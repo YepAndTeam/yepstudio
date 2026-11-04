@@ -1,31 +1,187 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>YAB STUDIO</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 16px;
-           background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); }
-    textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #8884; }
-    button { background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff);
-             border: 0; border-radius: 8px; padding: 10px 14px; margin-top: 8px; }
-    .idea { display: flex; gap: 12px; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid #8883; }
-    .meta { font-size: 12px; opacity: .6; }
-    .vote { margin: 0; min-width: 56px; background: #8883; color: inherit; }
-    .vote.on { background: var(--tg-theme-button-color, #2481cc); color: #fff; }
+    :root {
+      --bg: #000;
+      --fg: #fff;
+      --muted: #8a8a8a;
+      --line: #2b2b2b;
+      --field: #0f0f0f;
+    }
+    :root[data-theme="light"] {
+      --bg: #fff;
+      --fg: #000;
+      --muted: #707070;
+      --line: #d9d9d9;
+      --field: #f4f4f4;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; background: var(--bg); color: var(--fg); }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      padding: 20px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+      max-width: 560px;
+      margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* логотип: YAB плотный, STUDIO контуром */
+    .logo {
+      margin: 8px 0 28px;
+      font-size: 42px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .logo .solid { color: var(--fg); }
+    .logo .outline {
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--fg);
+      margin-left: 0.14em;
+    }
+
+    .lead { margin: 0 0 14px; font-size: 15px; color: var(--muted); line-height: 1.4; }
+
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 14px;
+      font: inherit;
+      font-size: 16px;
+      color: var(--fg);
+      background: var(--field);
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      outline: none;
+    }
+    textarea::placeholder { color: var(--muted); }
+    textarea:focus-visible { border-color: var(--fg); }
+
+    .send {
+      width: 100%;
+      margin-top: 10px;
+      padding: 14px;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--bg);
+      background: var(--fg);
+      border: 1.5px solid var(--fg);
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .send:disabled { opacity: .4; cursor: default; }
+    .send:focus-visible, .vote:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+
+    .head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 34px 0 4px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--fg);
+    }
+    .head h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+    .head .count { font-size: 15px; color: var(--muted); }
+
+    .idea {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .idea-body { min-width: 0; flex: 1; }
+    .idea-text { font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .idea-info { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .author { font-size: 13px; color: var(--muted); }
+
+    /* статус: форма обводки показывает стадию */
+    .status {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1.5px solid var(--fg);
+      color: var(--fg);
+      white-space: nowrap;
+    }
+    .status.new { border-color: var(--line); color: var(--muted); }
+    .status.planned { border-style: dashed; }
+    .status.in_progress { border-width: 2px; }
+    .status.done { background: var(--fg); color: var(--bg); }
+
+    .vote {
+      flex: none;
+      min-width: 58px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--fg);
+      background: transparent;
+      border: 1.5px solid var(--fg);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    .vote.on { background: var(--fg); color: var(--bg); }
+
+    .empty { padding: 28px 0; color: var(--muted); font-size: 15px; }
+
+    @media (prefers-reduced-motion: reduce) { .vote { transition: none; } }
   </style>
 </head>
 <body>
-  <h3>Идеи для игры</h3>
-  <textarea id="text" rows="3" placeholder="Что добавить в игру?"></textarea>
-  <button onclick="send()">Отправить идею</button>
-  <div id="list"></div>
+  <div class="logo" aria-label="YAB STUDIO">
+    <span class="solid">YAB</span><span class="outline">STUDIO</span>
+  </div>
+
+  <p class="lead">Предложи идею для игры или проголосуй за чужую.</p>
+  <textarea id="text" maxlength="1000" placeholder="Что добавить в игру?"></textarea>
+  <button type="button" id="sendBtn" class="send" onclick="send()">Отправить идею</button>
+
+  <div class="head">
+    <h2>Идеи</h2>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="list"><div class="empty">Загрузка…</div></div>
 
 <script>
   const tg = window.Telegram.WebApp;
-  tg.ready(); tg.expand();
+  tg.ready();
+  tg.expand();
+
+  // тема: чёрный или белый, в зависимости от Telegram
+  const dark = tg.colorScheme !== "light";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  try {
+    const c = dark ? "#000000" : "#ffffff";
+    tg.setHeaderColor(c);
+    tg.setBackgroundColor(c);
+  } catch (e) {}
+
+  const STATUS = {
+    new: "Новая",
+    planned: "В планах",
+    in_progress: "В работе",
+    done: "Готово",
+  };
+
+  function notify(msg) {
+    try { tg.showAlert(msg); } catch (e) { alert(msg); }
+  }
 
   async function api(path, method = "GET", body) {
     const r = await fetch("/api" + path, {
@@ -33,32 +189,64 @@
       headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) throw new Error(r.status);
+    if (!r.ok) {
+      let detail = "";
+      try { detail = JSON.stringify((await r.json()).detail || ""); } catch (e) {}
+      throw new Error(r.status + " " + detail);
+    }
     return r.json();
   }
 
   async function load() {
-    const ideas = await api("/ideas");
-    document.getElementById("list").innerHTML = ideas.map(i => `
-      <div class="idea">
-        <div>
-          <div>${esc(i.text)}</div>
-          <div class="meta">${esc(i.author)} · ${i.status}</div>
-        </div>
-        <button class="vote ${i.voted ? "on" : ""}" onclick="vote(${i.id})">▲ ${i.votes}</button>
-      </div>`).join("");
+    try {
+      const ideas = await api("/ideas");
+      document.getElementById("count").textContent = ideas.length ? String(ideas.length) : "";
+      document.getElementById("list").innerHTML = ideas.length
+        ? ideas.map(i => `
+          <div class="idea">
+            <div class="idea-body">
+              <div class="idea-text">${esc(i.text)}</div>
+              <div class="idea-info">
+                <span class="status ${esc(i.status)}">${esc(STATUS[i.status] || i.status)}</span>
+                <span class="author">${esc(i.author)}</span>
+              </div>
+            </div>
+            <button type="button" class="vote ${i.voted ? "on" : ""}" onclick="vote(${i.id})">▲ ${i.votes}</button>
+          </div>`).join("")
+        : `<div class="empty">Идей пока нет. Напиши первую.</div>`;
+    } catch (e) {
+      document.getElementById("list").innerHTML = `<div class="empty">Не удалось загрузить список.</div>`;
+      notify("Не удалось загрузить: " + e.message);
+    }
   }
 
   async function send() {
     const el = document.getElementById("text");
-    if (el.value.trim().length < 3) return;
-    await api("/ideas", "POST", { text: el.value });
-    el.value = ""; load();
+    const btn = document.getElementById("sendBtn");
+    const text = el.value.trim();
+    if (text.length < 3) { notify("Напиши идею хотя бы из 3 символов."); return; }
+    btn.disabled = true;
+    try {
+      await api("/ideas", "POST", { text });
+      el.value = "";
+      await load();
+    } catch (e) {
+      notify("Не удалось отправить: " + e.message);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
-  async function vote(id) { await api(`/ideas/${id}/vote`, "POST"); load(); }
+  async function vote(id) {
+    try {
+      await api(`/ideas/${id}/vote`, "POST");
+      await load();
+    } catch (e) {
+      notify("Не удалось проголосовать: " + e.message);
+    }
+  }
 
-  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   load();
 </script>
 </body>
