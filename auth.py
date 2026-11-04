@@ -11,6 +11,11 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
+# Telegram id админов через запятую: ADMIN_IDS=12345,67890
+ADMIN_IDS = {
+    int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x.isdigit()
+}
+
 
 def validate_init_data(init_data: str, max_age: int = 86400):
     """Возвращает данные юзера, если подпись верна, иначе None."""
