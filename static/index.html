@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 16px;
+           background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); }
+    textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #8884; }
+    button { background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff);
+             border: 0; border-radius: 8px; padding: 10px 14px; margin-top: 8px; }
+    .idea { display: flex; gap: 12px; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #8883; }
+    .meta { font-size: 12px; opacity: .6; }
+    .vote { margin: 0; min-width: 56px; background: #8883; color: inherit; }
+    .vote.on { background: var(--tg-theme-button-color, #2481cc); color: #fff; }
+  </style>
+</head>
+<body>
+  <h3>Идеи для игры</h3>
+  <textarea id="text" rows="3" placeholder="Что добавить в игру?"></textarea>
+  <button onclick="send()">Отправить идею</button>
+  <div id="list"></div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready(); tg.expand();
+
+  async function api(path, method = "GET", body) {
+    const r = await fetch("/api" + path, {
+      method,
+      headers: { "X-Init-Data": tg.initData, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+
+  async function load() {
+    const ideas = await api("/ideas");
+    document.getElementById("list").innerHTML = ideas.map(i => `
+      <div class="idea">
+        <div>
+          <div>${esc(i.text)}</div>
+          <div class="meta">${esc(i.author)} · ${i.status}</div>
+        </div>
+        <button class="vote ${i.voted ? "on" : ""}" onclick="vote(${i.id})">▲ ${i.votes}</button>
+      </div>`).join("");
+  }
+
+  async function send() {
+    const el = document.getElementById("text");
+    if (el.value.trim().length < 3) return;
+    await api("/ideas", "POST", { text: el.value });
+    el.value = ""; load();
+  }
+
+  async function vote(id) { await api(`/ideas/${id}/vote`, "POST"); load(); }
+
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  load();
+</script>
+</body>
+</html>
