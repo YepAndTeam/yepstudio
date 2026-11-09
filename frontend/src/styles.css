@@ -227,3 +227,42 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 .snd svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .gpick{display:flex;flex-direction:column;gap:12px}
 .gp{min-height:120px}
+/* ===== NYAN CAT ===== */
+:root[data-theme="nyan"]{
+  --ground:#003366;--card:#FF99FF;--card2:#FFD6FF;--line:#C94FB8;
+  --fg:#2B0A3D;--muted:#6A1B7D;--inv:#FFF0FF;color-scheme:light;
+  --r:10px;--rp:10px;--bw:3px;--bc:#000;--sh:3px 3px 0 #000;
+  --font:'Pixelify Sans',system-ui,sans-serif;--fd:'Press Start 2P',monospace;
+  --gbg:#001F4D;--gfg:#BFE3FF} /* цвета для canvas игр */
+
+:root[data-theme="nyan"] body{
+  color:#fff;font-size:16px;
+  background:
+    radial-gradient(circle,#fff 0 1px,transparent 1.5px) 0 0/90px 90px,
+    radial-gradient(circle,#FFFFAA 0 1px,transparent 1.5px) 40px 35px/140px 140px,
+    var(--ground)}
+/* текст внутри розовых блоков тёмный, на космосе белый */
+:root[data-theme="nyan"] .card,
+:root[data-theme="nyan"] .filters,
+:root[data-theme="nyan"] .menu,
+:root[data-theme="nyan"] .sheet,
+:root[data-theme="nyan"] nav,
+:root[data-theme="nyan"] .dots,
+:root[data-theme="nyan"] .snd{color:var(--fg)}
+:root[data-theme="nyan"] .fhead .n,
+:root[data-theme="nyan"] .noc{color:#BFE3FF}
+
+:root[data-theme="nyan"] .logo{color:#fff;font-size:13px}
+:root[data-theme="nyan"] .logo .o{-webkit-text-stroke:1px #fff}
+:root[data-theme="nyan"] .stats b{font-size:16px}
+
+/* радужная дорожка под шапкой */
+:root[data-theme="nyan"] header{position:relative}
+:root[data-theme="nyan"] header::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:12px;
+  background:linear-gradient(#F00 0 2px,#F90 2px 4px,#FF0 4px 6px,#3F0 6px 8px,#09F 8px 10px,#63F 10px 12px)}
+
+:root[data-theme="nyan"] textarea,
+:root[data-theme="nyan"] input[type=text]{border:2px solid #000}
+:root[data-theme="nyan"] button:active{transform:translate(2px,2px);box-shadow:none}
+:root[data-theme="nyan"] .scrim{background:rgba(0,20,60,.6)}

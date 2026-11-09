@@ -5,7 +5,7 @@ import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon } from "../components/Icons";
-
+import { drawNyanCat, drawNyanTrail, drawStars, NYAN_H } from "../nyan";
 const GAME = "dino";
 
 const W = 360, H = 180, GROUND = 150, DX = 40, DW = 22, DH = 26;
@@ -109,6 +109,7 @@ function step(s, dt) {
 function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
+  if (col.nyan) drawStars(ctx, W, GROUND, s.t);
   ctx.fillStyle = col.fg;
   ctx.fillRect(0, GROUND, W, 2);
 
@@ -123,17 +124,24 @@ function draw(ctx, s, col) {
   }
 
   // Динозавр
-  const y = s.y - DH;
-  ctx.fillRect(DX, y + 8, 14, 12); // тело
-  ctx.fillRect(DX + 10, y, 12, 10); // голова
-  ctx.fillRect(DX - 4, y + 10, 4, 4); // хвост
+   const y = s.y - DH;
   const air = s.y < GROUND;
-  const f = Math.floor(s.leg) % 2;
-  ctx.fillRect(DX + 2, y + 20, 4, air || f ? 6 : 3);
-  ctx.fillRect(DX + 9, y + 20, 4, air || !f ? 6 : 3);
-  ctx.fillStyle = col.bg;
-  ctx.fillRect(DX + 17, y + 2, 2, 2); // глаз
-  ctx.fillStyle = col.fg;
+  if (col.nyan) {
+    const frame = Math.floor(s.leg);
+    drawNyanTrail(ctx, DX - 2, s.y - NYAN_H, frame);
+    drawNyanCat(ctx, DX - 2, s.y - NYAN_H, frame, air);
+    ctx.fillStyle = col.fg;
+  } else {
+    ctx.fillRect(DX, y + 8, 14, 12); // тело
+    ctx.fillRect(DX + 10, y, 12, 10); // голова
+    ctx.fillRect(DX - 4, y + 10, 4, 4); // хвост
+    const f = Math.floor(s.leg) % 2;
+    ctx.fillRect(DX + 2, y + 20, 4, air || f ? 6 : 3);
+    ctx.fillRect(DX + 9, y + 20, 4, air || !f ? 6 : 3);
+    ctx.fillStyle = col.bg;
+    ctx.fillRect(DX + 17, y + 2, 2, 2); // глаз
+    ctx.fillStyle = col.fg;
+  }
 
   // Препятствия
   for (const o of s.obs) {
@@ -249,9 +257,10 @@ export default function Dino({ onBack }) {
       if (now - lastCol > 500) {
         const cs = getComputedStyle(document.documentElement);
         col.current = {
-          fg: cs.getPropertyValue("--fg").trim() || "#fff",
-          bg: cs.getPropertyValue("--card2").trim() || "#000",
+          fg: cs.getPropertyValue("--gfg").trim() || cs.getPropertyValue("--fg").trim() || "#fff",
+          bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
+          nyan: document.documentElement.dataset.theme === "nyan",
         };
         lastCol = now;
       }

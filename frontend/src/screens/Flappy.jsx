@@ -6,7 +6,7 @@ import { sfx } from "../sfx";
 import { flappySfx as fx } from "../flappySfx";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon } from "../components/Icons";
-
+import { drawNyanCat, drawNyanTrail, drawStars } from "../nyan";
 const GAME = "flappy";
 
 const W = 360, H = 240, GROUND = 216;
@@ -97,6 +97,7 @@ function step(s, dt) {
 function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
+  if (col.nyan) drawStars(ctx, W, GROUND, s.t);
   ctx.fillStyle = col.fg;
 
   // Трубы
@@ -117,20 +118,31 @@ function draw(ctx, s, col) {
     ctx.fillRect(((i * 41 - shift) % W + W) % W, GROUND + 8 + (i % 3) * 6, 6, 2);
   }
 
-  // Птица
+ // Птица / Nyan Cat
   const bob = s.phase === "idle" ? Math.sin(performance.now() / 250) * 4 : 0;
   const by = s.y + bob;
   const flap = s.vy < 0 || s.phase === "idle" ? Math.floor(performance.now() / 120) % 2 : 0;
-  ctx.save();
-  ctx.translate(BX, by);
-  ctx.rotate(Math.max(-0.4, Math.min(0.9, s.vy / 600)));
-  ctx.fillRect(-R, -R + 1, R * 2, R * 2 - 2); // тело
-  ctx.fillRect(R, -2, 5, 3); // клюв
-  ctx.fillRect(-R - 3, flap ? -R + 2 : 0, 7, 4); // крыло
-  ctx.fillStyle = col.bg;
-  ctx.fillRect(R - 6, -R + 3, 3, 3); // глаз
-  ctx.restore();
-  ctx.fillStyle = col.fg;
+  if (col.nyan) {
+    const frame = Math.floor(performance.now() / 120);
+    drawNyanTrail(ctx, BX - 13, by - 12, frame);
+    ctx.save();
+    ctx.translate(BX, by);
+    ctx.rotate(Math.max(-0.25, Math.min(0.5, s.vy / 900))); // кот почти не крутится
+    drawNyanCat(ctx, -13, -12, frame, true);
+    ctx.restore();
+    ctx.fillStyle = col.fg;
+  } else {
+    ctx.save();
+    ctx.translate(BX, by);
+    ctx.rotate(Math.max(-0.4, Math.min(0.9, s.vy / 600)));
+    ctx.fillRect(-R, -R + 1, R * 2, R * 2 - 2); // тело
+    ctx.fillRect(R, -2, 5, 3); // клюв
+    ctx.fillRect(-R - 3, flap ? -R + 2 : 0, 7, 4); // крыло
+    ctx.fillStyle = col.bg;
+    ctx.fillRect(R - 6, -R + 3, 3, 3); // глаз
+    ctx.restore();
+    ctx.fillStyle = col.fg;
+  }
 
   // Счёт и подсказки
   ctx.font = `bold 14px ${col.font}`;
@@ -211,9 +223,10 @@ export default function Flappy({ onBack }) {
       if (now - lastCol > 500) {
         const cs = getComputedStyle(document.documentElement);
         col.current = {
-          fg: cs.getPropertyValue("--fg").trim() || "#fff",
-          bg: cs.getPropertyValue("--card2").trim() || "#000",
+          fg: cs.getPropertyValue("--gfg").trim() || cs.getPropertyValue("--fg").trim() || "#fff",
+          bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
+          nyan: document.documentElement.dataset.theme === "nyan",
         };
         lastCol = now;
       }

@@ -26,7 +26,7 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change-me")
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
 STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
-THEMES = {"dark", "light", "retro", "terminal"}
+THEMES = {"dark", "light", "retro", "terminal", "nyan"}
 Base.metadata.create_all(engine)
 migrate()
 
