@@ -3,8 +3,9 @@ import { api } from "../api";
 import { useStore } from "../store";
 import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
+import { nyanSfx, isNyan } from "../nyanSfx";
 import Leaderboard from "../components/Leaderboard";
-import { BackIcon } from "../components/Icons";
+import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { drawNyanCat, drawNyanTrail, drawStars, NYAN_H } from "../nyan";
 const GAME = "dino";
 
@@ -202,6 +203,7 @@ export default function Dino({ onBack }) {
   }, []);
 
   const die = async () => {
+    nyanSfx.stop();
     sfx.die();
     const sc = g.current.score;
     setPhase("dead");
@@ -224,7 +226,7 @@ export default function Dino({ onBack }) {
     if (s.phase === "run") {
       if (s.y >= GROUND) {
         s.vy = -520;
-        sfx.jump();
+        isNyan() ? nyanSfx.nya() : sfx.jump();
         haptic();
       }
     } else if (s.phase === "idle" || performance.now() - s.deadAt > 500) {
@@ -232,7 +234,7 @@ export default function Dino({ onBack }) {
       setPhase("run");
       setResult(null);
       setScore(0);
-      sfx.jump();
+      isNyan() ? (nyanSfx.start(), nyanSfx.nya()) : sfx.jump();
       api("/game/start", "POST", { game: GAME }).catch(() => {});
     }
   };
@@ -282,6 +284,7 @@ export default function Dino({ onBack }) {
     };
     window.addEventListener("keydown", key);
     return () => {
+     nyanSfx.stop();
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", key);
     };
@@ -294,11 +297,13 @@ export default function Dino({ onBack }) {
           <BackIcon /> Игры
         </button>
         <button
-          onClick={() => setMuted(sfx.toggle())}
-          aria-label={muted ? "Включить звук" : "Выключить звук"}
-        >
-          {muted ? "🔇" : "🔊"}
-        </button>
+  type="button"
+  className="snd"
+  onClick={() => setMuted(sfx.toggle())}
+  aria-label={muted ? "Включить звук" : "Выключить звук"}
+>
+  {muted ? <SoundOff /> : <Sound />}
+</button>
       </div>
 
       <div className="card gm">

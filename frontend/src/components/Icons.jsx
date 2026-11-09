@@ -1,5 +1,19 @@
+
 const p = (size, children, cls) => (
-  <svg className={cls} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{children}</svg>
+  <svg
+    className={cls}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {children}
+  </svg>
 );
 export const Chevron = () => p(18, <path d="M9 5l7 7-7 7" />);
 export const BackIcon = () => p(20, <path d="M15 5l-7 7 7 7" />);
@@ -27,11 +41,13 @@ export const NavGame = () => (
     <circle cx="18" cy="13.5" r=".8" />
   </svg>
 );
+
 export const Sound = () => p(22, <>
   <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
   <path d="M15.5 9a4 4 0 0 1 0 6" />
   <path d="M18 6.5a8 8 0 0 1 0 11" />
 </>);
+
 export const SoundOff = () => p(22, <>
   <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
   <path d="M16 9.5l5 5M21 9.5l-5 5" />

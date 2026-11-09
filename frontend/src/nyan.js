@@ -1,3 +1,4 @@
+import { sfx } from "./sfx";
 // Пиксельный Nyan Cat, рисуется прямоугольниками
 const RAINBOW = ["#FF0000", "#FF9900", "#FFFF00", "#33FF00", "#0099FF", "#6633FF"];
 const COL = { K: "#000000", G: "#999999", T: "#FFCC99", P: "#FF99FF", S: "#FF3399", H: "#FF9999" };

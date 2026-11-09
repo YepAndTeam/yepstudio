@@ -266,3 +266,14 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="nyan"] input[type=text]{border:2px solid #000}
 :root[data-theme="nyan"] button:active{transform:translate(2px,2px);box-shadow:none}
 :root[data-theme="nyan"] .scrim{background:rgba(0,20,60,.6)}
+
+/* Кнопка звука в теме Nyan */
+:root[data-theme="nyan"] .snd {
+  background: #2B0A3D;
+  color: #FFF0FF;
+  border-color: #000;
+}
+
+:root[data-theme="nyan"] .snd svg {
+  stroke: currentColor;
+}

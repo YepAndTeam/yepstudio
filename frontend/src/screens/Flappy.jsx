@@ -5,8 +5,9 @@ import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
 import { flappySfx as fx } from "../flappySfx";
 import Leaderboard from "../components/Leaderboard";
-import { BackIcon } from "../components/Icons";
+import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { drawNyanCat, drawNyanTrail, drawStars } from "../nyan";
+import { nyanSfx, isNyan } from "../nyanSfx";
 const GAME = "flappy";
 
 const W = 360, H = 240, GROUND = 216;
@@ -167,11 +168,13 @@ export default function Flappy({ onBack }) {
   const loadTop = () => api(`/game/top?game=${GAME}`).then(setTop).catch(() => {});
   useEffect(() => {
     loadTop();
+    nyanSfx.stop();
   }, []);
 
   const die = async () => {
     fx.hit();
     fx.die();
+    nyanSfx.stop();
     const sc = g.current.score;
     setPhase("dead");
     setScore(sc);
@@ -190,16 +193,16 @@ export default function Flappy({ onBack }) {
 
   const press = () => {
     const s = g.current;
-    if (s.phase === "run") {
+     if (s.phase === "run") {
       s.vy = FLAP;
-      fx.flap();
+      isNyan() ? nyanSfx.nya() : fx.flap();
       haptic();
     } else if (s.phase === "idle" || performance.now() - s.deadAt > 500) {
       g.current = { ...fresh(), phase: "run", vy: FLAP };
       setPhase("run");
       setResult(null);
       setScore(0);
-      fx.flap();
+      isNyan() ? (nyanSfx.start(), nyanSfx.nya()) : fx.flap();
       api("/game/start", "POST", { game: GAME }).catch(() => {});
     }
   };
@@ -260,11 +263,13 @@ export default function Flappy({ onBack }) {
           <BackIcon /> Игры
         </button>
         <button
-          onClick={() => setMuted(sfx.toggle())}
-          aria-label={muted ? "Включить звук" : "Выключить звук"}
-        >
-          {muted ? "🔇" : "🔊"}
-        </button>
+  type="button"
+  className="snd"
+  onClick={() => setMuted(sfx.toggle())}
+  aria-label={muted ? "Включить звук" : "Выключить звук"}
+>
+  {muted ? <SoundOff /> : <Sound />}
+</button>
       </div>
 
       <div className="card gm">
