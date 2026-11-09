@@ -195,7 +195,7 @@ export default function Flappy({ onBack }) {
     const s = g.current;
      if (s.phase === "run") {
       s.vy = FLAP;
-      isNyan() ? nyanSfx.nya() : fx.flap();
+      isNyan() ? null : fx.flap();
       haptic();
     } else if (s.phase === "idle" || performance.now() - s.deadAt > 500) {
       g.current = { ...fresh(), phase: "run", vy: FLAP };
