@@ -16,9 +16,15 @@ ADMIN_IDS = {
     int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x.isdigit()
 }
 
+# Только для локальной разработки: DEV_USER_ID=твой_telegram_id в .env
+# На сервере эту переменную НЕ задавай
+DEV_USER_ID = os.getenv("DEV_USER_ID", "").strip()
+
 
 def validate_init_data(init_data: str, max_age: int = 86400):
     """Возвращает данные юзера, если подпись верна, иначе None."""
+    if DEV_USER_ID.isdigit() and init_data == "dev":
+        return {"user": {"id": int(DEV_USER_ID), "first_name": "Dev", "username": "dev"}}
     if not init_data:
         print("initData: пусто (апп открыт не из Telegram?)")
         return None

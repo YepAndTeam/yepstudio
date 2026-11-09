@@ -1,4 +1,5 @@
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -6,23 +7,26 @@ from typing import Optional
 
 from aiogram.types import MenuButtonWebApp, Update, WebAppInfo
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from auth import ADMIN_IDS, validate_init_data
 from bot import WEBAPP_URL, bot, dp
 from database import (
-    Base, Comment, CommentReaction, Post, Project, SessionLocal, Topic, User, Vote, engine, migrate,
+    Base, Comment, CommentReaction, GameScore, Notification, Post, Project,
+    SessionLocal, Topic, User, Vote, engine, migrate,
 )
+from notify import add_notification, notify_game_beaten, short
 
 load_dotenv(Path(__file__).parent / ".env")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change-me")
 
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
-
+STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
+THEMES = {"dark", "light", "retro", "terminal"}
 Base.metadata.create_all(engine)
 migrate()
 
@@ -82,7 +86,18 @@ def get_admin(user: User = Depends(get_user)) -> User:
 
 
 # ---------- профиль ----------
+class ThemeIn(BaseModel):
+    theme: str
 
+
+@app.post("/api/me/theme")
+def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db)):
+    if body.theme not in THEMES:
+        raise HTTPException(422, "Неизвестная тема")
+    # сюда позже добавим проверку разблокировки
+    user.theme = body.theme
+    db.commit()
+    return {"ok": True}
 @app.get("/api/me")
 def me(user: User = Depends(get_user), db=Depends(get_db)):
     def count(*where, model):
@@ -94,6 +109,7 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "comments": count(Comment.user_id == user.id, model=Comment),
         "votes": count(Vote.user_id == user.id, model=Vote),
         "rated": count(Topic.user_id == user.id, Topic.rated.is_(True), Topic.deleted.is_(False), model=Topic),
+        "theme": user.theme,
     }
 
 
@@ -213,21 +229,64 @@ def toggle_vote(topic_id: int, user: User = Depends(get_user), db=Depends(get_db
 
 
 @app.patch("/api/topics/{topic_id}")
-def patch_topic(topic_id: int, body: TopicPatch, admin: User = Depends(get_admin), db=Depends(get_db)):
+def patch_topic(topic_id: int, body: TopicPatch, bg: BackgroundTasks,
+                admin: User = Depends(get_admin), db=Depends(get_db)):
     t = get_topic_or_404(db, topic_id)
     if body.pinned is not None:
         t.pinned = body.pinned
     if body.rated is not None and body.rated != t.rated:
         t.rated = body.rated
         t.rated_at = datetime.utcnow() if body.rated else None
+        if body.rated:
+            add_notification(db, bg, t.user_id, "rated",
+                             f"Твоя тема «{short(t.title)}» получила «Оценено» 🎉",
+                             ref=f"t{t.id}", actor_id=admin.id)
     if body.status is not None:
         if body.status not in STATUSES:
             raise HTTPException(422, "Неизвестный статус")
+        if body.status != t.status and body.status in STATUS_RU:
+            add_notification(db, bg, t.user_id, "status",
+                             f"Статус твоей темы «{short(t.title)}»: {STATUS_RU[body.status]}",
+                             ref=f"t{t.id}", actor_id=admin.id)
         t.status = body.status
     db.commit()
     return {"ok": True}
 
+@app.get("/api/notifications")
+def list_notifications(user: User = Depends(get_user), db=Depends(get_db)):
+    rows = db.scalars(
+        select(Notification).where(Notification.user_id == user.id)
+        .order_by(Notification.id.desc()).limit(50)
+    ).all()
+    unread = db.scalar(
+        select(func.count()).select_from(Notification)
+        .where(Notification.user_id == user.id, Notification.read.is_(False))
+    ) or 0
+    return {
+        "unread": unread,
+        "items": [{"id": n.id, "kind": n.kind, "text": n.text, "ref": n.ref,
+                   "read": n.read, "created_at": iso(n.created_at)} for n in rows],
+    }
 
+
+@app.post("/api/notifications/read")
+def read_notifications(user: User = Depends(get_user), db=Depends(get_db)):
+    db.execute(update(Notification)
+               .where(Notification.user_id == user.id, Notification.read.is_(False))
+               .values(read=True))
+    db.commit()
+    return {"ok": True}
+
+
+class NotifySettings(BaseModel):
+    push: bool
+
+
+@app.post("/api/me/notify")
+def set_notify(body: NotifySettings, user: User = Depends(get_user), db=Depends(get_db)):
+    user.notify = body.push
+    db.commit()
+    return {"ok": True}
 @app.delete("/api/topics/{topic_id}")
 def delete_topic(topic_id: int, admin: User = Depends(get_admin), db=Depends(get_db)):
     t = get_topic_or_404(db, topic_id)
@@ -291,11 +350,12 @@ def list_comments(ref: str, user: User = Depends(get_user), db=Depends(get_db)):
 
 
 @app.post("/api/comments")
-def add_comment(body: CommentIn, user: User = Depends(get_user), db=Depends(get_db)):
+def add_comment(body: CommentIn, bg: BackgroundTasks, user: User = Depends(get_user), db=Depends(get_db)):
     kind, ref_id = parse_ref(db, body.ref)
     text = body.text.strip()
     if len(text) < 2:
         raise HTTPException(422, "Слишком короткий комментарий")
+    parent = None
     parent_id = None
     if body.parent_id is not None:
         parent = db.get(Comment, body.parent_id)
@@ -304,6 +364,17 @@ def add_comment(body: CommentIn, user: User = Depends(get_user), db=Depends(get_
         parent_id = parent.parent_id or parent.id  # ответы только в один уровень
     c = Comment(ref_type=kind, ref_id=ref_id, parent_id=parent_id, user_id=user.id, text=text)
     db.add(c)
+
+    # кого уведомить: автора темы и автора комментария, на который ответили
+    targets = {}
+    if kind == "topic":
+        topic = db.get(Topic, ref_id)
+        targets[topic.user_id] = f"{user.first_name} ответил(а) в твоей теме «{short(topic.title)}»"
+    if parent:
+        targets[parent.user_id] = f"{user.first_name} ответил(а) тебе: «{short(text, 80)}»"
+    for uid, msg in targets.items():
+        add_notification(db, bg, uid, "reply", msg, ref=body.ref, actor_id=user.id)
+
     db.commit()
     return {"id": c.id}
 
@@ -327,6 +398,106 @@ def react(comment_id: int, body: ReactIn, user: User = Depends(get_user), db=Dep
     return {"ok": True}
 
 
+# ---------- игры ----------
+
+# rate  — максимум очков в секунду, slack — запас на задержку сети и округления.
+# dino:   10 очков/сек (score = t * 10)
+# flappy: труба каждые ~1.5 сек (140 px при скорости 95 px/с), то есть не больше ~0.7 очка/сек.
+#         Если поменяешь SPEED или SPACING во flappy.js, поправь rate здесь.
+GAMES = {
+    "dino": {"rate": 11, "slack": 10},
+    "flappy": {"rate": 0.8, "slack": 3},
+}
+GAME_RUNS: dict[
+    tuple[int, str], float] = {}  # (user_id, game) -> время старта забега (при нескольких воркерах нужен Redis)
+
+
+def check_game(game: str) -> str:
+    if game not in GAMES:
+        raise HTTPException(422, "Неизвестная игра")
+    return game
+
+
+class StartIn(BaseModel):
+    game: str = "dino"
+
+
+class ScoreIn(BaseModel):
+    game: str = "dino"
+    score: int = Field(ge=0, le=100000)
+
+
+@app.post("/api/game/start")
+def game_start(body: Optional[StartIn] = None, user: User = Depends(get_user)):
+    # body необязателен, чтобы старая версия фронта (без game) не падала с 422
+    game = check_game(body.game if body else "dino")
+    GAME_RUNS[(user.id, game)] = time.monotonic()
+    return {"ok": True}
+
+
+@app.post("/api/game/score")
+def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user), db=Depends(get_db)):
+    game = check_game(body.game)
+    started = GAME_RUNS.pop((user.id, game), None)
+    if started is None:
+        raise HTTPException(422, "Забег не начат")
+    elapsed = time.monotonic() - started
+    limits = GAMES[game]
+    if body.score > elapsed * limits["rate"] + limits["slack"]:
+        raise HTTPException(422, "Подозрительный результат")
+
+    row = db.scalar(select(GameScore).where(GameScore.user_id == user.id, GameScore.game == game))
+    old = row.best if row else 0
+    if not row:
+        row = GameScore(user_id=user.id, game=game, best=0, plays=0)
+        db.add(row)
+    row.plays += 1
+
+    record = body.score > old
+    if record:
+        row.best = body.score
+        row.updated_at = datetime.utcnow()
+        if old > 0:
+            # кого обогнали в этой игре: были выше твоего старого рекорда, теперь ниже нового
+            beaten = db.scalars(
+                select(GameScore.user_id)
+                .where(GameScore.game == game, GameScore.best > old,
+                       GameScore.best < body.score, GameScore.user_id != user.id)
+                .order_by(GameScore.best.desc()).limit(3)
+            ).all()
+            for uid in beaten:
+                notify_game_beaten(db, bg, uid, user.first_name, body.score, user.id)
+    db.commit()
+
+    rank = 1 + (db.scalar(
+        select(func.count()).select_from(GameScore)
+        .where(GameScore.game == game, GameScore.best > row.best)
+    ) or 0)
+    return {"best": row.best, "record": record, "rank": rank}
+
+
+@app.get("/api/game/top")
+def game_top(game: str = "dino", user: User = Depends(get_user), db=Depends(get_db)):
+    game = check_game(game)
+    rows = db.execute(
+        select(GameScore.user_id, User.first_name, GameScore.best)
+        .join(User, User.id == GameScore.user_id)
+        .where(GameScore.game == game, GameScore.best > 0)
+        .order_by(GameScore.best.desc(), GameScore.updated_at)
+        .limit(20)
+    ).all()
+    mine = db.scalar(select(GameScore).where(GameScore.user_id == user.id, GameScore.game == game))
+    rank = None
+    if mine and mine.best > 0:
+        rank = 1 + (db.scalar(
+            select(func.count()).select_from(GameScore)
+            .where(GameScore.game == game, GameScore.best > mine.best)
+        ) or 0)
+    return {
+        "top": [{"user_id": uid, "name": name, "best": best} for uid, name, best in rows],
+        "my_best": mine.best if mine else 0,
+        "my_rank": rank,
+    }
 # ---------- Telegram ----------
 
 @app.post("/webhook")

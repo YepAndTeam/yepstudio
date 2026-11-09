@@ -2,3 +2,6 @@
 ideas.db
 .idea/
 __pycache__/
+node_modules/
+
+*.db
