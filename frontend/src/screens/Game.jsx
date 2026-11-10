@@ -13,6 +13,7 @@ import Flappy from "./Flappy";
 import Snake from "./Snake";
 import Tetris from "./Tetris";
 import { tg } from "../tg";
+import Chess from "./Chess";
 
 // Казуальные: играешь один, борешься за рекорд
 const CASUAL = [
@@ -24,7 +25,7 @@ const CASUAL = [
 
 // Состязания: партия против другого участника. View: null = пока заглушка "Скоро"
 const VERSUS = [
-  { id: "chess", title: "Шахматы", hint: "Партия с другом", View: null },
+  { id: "chess", title: "Шахматы", hint: "Партия с другом", View: Chess },
   { id: "checkers", title: "Шашки", hint: "Партия с другом", View: null },
 ];
 
@@ -32,8 +33,10 @@ const ALL = [...CASUAL, ...VERSUS];
 
 export default function Game({ initial }) {
   const { me, theme } = useStore();
-  const [game, setGame] = useState(ALL.some((g) => g.id === initial && g.View) ? initial : null);
-  const [section, setSection] = useState(VERSUS.some((g) => g.id === initial) ? "versus" : "casual");
+ const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
+const [arg, setArg] = useState(initArg || null);
+const [game, setGame] = useState(ALL.some((g) => g.id === initGame && g.View) ? initGame : null);
+const [section, setSection] = useState(VERSUS.some((g) => g.id === initGame) ? "versus" : "casual");
   const [board, setBoard] = useState(CASUAL[0].id);
   const [tops, setTops] = useState({});
 
@@ -73,7 +76,7 @@ export default function Game({ initial }) {
     const View = current.View;
     return (
       <>
-        <View onBack={() => setGame(null)} />
+        <View onBack={() => { setGame(null); setArg(null); }} arg={arg} />
         {theme === "nyan" && <NyanRunner />}
       </>
     );

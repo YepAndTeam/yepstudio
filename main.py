@@ -13,7 +13,8 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
-
+import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
+from chess_api import make_router
 from auth import ADMIN_IDS, validate_init_data
 from bot import WEBAPP_URL, bot, dp
 from database import (
@@ -86,7 +87,7 @@ def get_admin(user: User = Depends(get_user)) -> User:
         raise HTTPException(403, "Только для модераторов")
     return user
 
-
+app.include_router(make_router(get_user, get_db))
 # ---------- профиль ----------
 class ThemeIn(BaseModel):
     theme: str
@@ -513,36 +514,61 @@ async def webhook(request: Request):
     return {"ok": True}
 @app.get("/s/{ref}", response_class=HTMLResponse)
 def share_page(ref: str, db=Depends(get_db)):
-    if not re.fullmatch(r"[tn]\d+|game_[a-z]+", ref):
+    if not re.fullmatch(r"[tn]\d+|game_[a-z0-9_]+", ref):
         raise HTTPException(404)
 
     title, desc = "YAB STUDIO", "Открой в мини-приложении"
+
     if ref[0] == "t":
         t = db.get(Topic, int(ref[1:]))
         if t and not t.deleted:
             author = db.get(User, t.user_id)
-            votes = db.scalar(select(func.count()).select_from(Vote)
-                              .where(Vote.idea_id == t.id)) or 0
-            replies = db.scalar(select(func.count()).select_from(Comment)
-                                .where(Comment.ref_type == "topic", Comment.ref_id == t.id)) or 0
+            votes = db.scalar(
+                select(func.count()).select_from(Vote)
+                .where(Vote.idea_id == t.id)
+            ) or 0
+            replies = db.scalar(
+                select(func.count()).select_from(Comment)
+                .where(Comment.ref_type == "topic", Comment.ref_id == t.id)
+            ) or 0
+
             title = f"{t.category}: {t.title}"
-            head = f"{author.first_name} · ▲ {votes} · ответов {replies}" if author else f"▲ {votes} · ответов {replies}"
+            head = (
+                f"{author.first_name} · ▲ {votes} · ответов {replies}"
+                if author else f"▲ {votes} · ответов {replies}"
+            )
             body = " ".join((t.text or "").split())
             desc = f"{head}. {body}"[:200]
+
     elif ref[0] == "n":
         p = db.get(Post, int(ref[1:]))
         if p:
             title = p.title
             desc = " ".join((p.text or "").split())[:200] or "Новость YAB STUDIO"
+
+    elif ref.startswith("game_chess"):
+        title = "Сыграем партию в шахматы?"
+        desc = "Прими вызов в YAB STUDIO"
+
     else:
-        names = {"dino": "Дино", "flappy": "Flappy", "snake": "Змейка", "tetris": "Тетрис"}
+        names = {
+            "dino": "Дино",
+            "flappy": "Flappy",
+            "snake": "Змейка",
+            "tetris": "Тетрис",
+        }
         g = names.get(ref[5:], "игре")
-        title, desc = f"Сможешь побить мой рекорд в «{g}»?", "Заходи в игру в YAB STUDIO"
+        title = f"Сможешь побить мой рекорд в «{g}»?"
+        desc = "Заходи в игру в YAB STUDIO"
 
     target = f"{TG_APP_LINK}?startapp={ref}"
     img = f"{WEBAPP_URL}/og.png"
     e = escape
-    return f"""<!doctype html><html><head><meta charset="utf-8">
+
+    return f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
 <title>{e(title)}</title>
 <meta property="og:site_name" content="YAB STUDIO">
 <meta property="og:title" content="{e(title)}">
@@ -552,8 +578,12 @@ def share_page(ref: str, db=Depends(get_db)):
 <meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-</head><body><script>location.replace({target!r})</script>
-<a href="{e(target)}">Открыть</a></body></html>"""
+</head>
+<body>
+<script>location.replace({target!r})</script>
+<a href="{e(target)}">Открыть</a>
+</body>
+</html>"""
 
 # статику монтируем последней, иначе она перекроет маршруты выше
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

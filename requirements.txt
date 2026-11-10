@@ -29,3 +29,4 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 uvicorn==0.39.0
 yarl==1.22.0
+chess==1.11.2
