@@ -48,7 +48,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
+@app.middleware("http")
+async def isolation_headers(request: Request, call_next):
+    response = await call_next(request)
+    # нужны для Doom (SharedArrayBuffer) внутри iframe
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
+    return response
 
 def iso(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat() + "Z" if dt else None  # в базе хранится UTC

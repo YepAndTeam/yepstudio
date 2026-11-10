@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-
 const isolationHeaders = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "require-corp",
@@ -9,22 +8,13 @@ const isolationHeaders = {
 
 export default defineConfig({
   plugins: [react()],
-
   server: {
     headers: isolationHeaders,
+    proxy: { "/api": "http://127.0.0.1:8000" },
   },
-
-  preview: {
-    headers: isolationHeaders,
-  },
-});
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: { "/api": "http://localhost:8000" }, // порт твоего FastAPI
-  },
+  preview: { headers: isolationHeaders },
   build: {
-    outDir: "../static", // FastAPI уже раздаёт эту папку
-    emptyOutDir: true,   // ВНИМАНИЕ: очищает static/, сделай бэкап старого index.html
+    outDir: "../static",
+    emptyOutDir: true,
   },
 });

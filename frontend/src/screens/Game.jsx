@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import { shareLink } from "../share";
@@ -66,17 +66,9 @@ export default function Game({ initial }) {
   const [board, setBoard] = useState(CASUAL[0].id);
   const [tops, setTops] = useState({});
 
-  // ввод секретного кода: поле появляется по долгому нажатию на заголовок «Игры»
+  // ввод секретного кода
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("");
-  const pressTimer = useRef(null);
-
-  const startPress = () => {
-    clearTimeout(pressTimer.current);
-    pressTimer.current = setTimeout(() => setShowCode((v) => !v), 600);
-  };
-  const endPress = () => clearTimeout(pressTimer.current);
-  useEffect(() => () => clearTimeout(pressTimer.current), []);
 
   const tryCode = (v) => {
     setCode(v);
@@ -90,6 +82,11 @@ export default function Game({ initial }) {
       setUnlocked(true);
       setSection("secret");
     }
+  };
+
+  const onKey = () => {
+    if (unlocked) setSection("secret");
+    else setShowCode((v) => !v);
   };
 
   const loadTops = () =>
@@ -183,35 +180,40 @@ export default function Game({ initial }) {
     );
   };
 
+  // кнопка-ключ в стиле чипов
+  const keyChip = (
+    <button
+      type="button"
+      className={`chip key ${section === "secret" || showCode ? "on" : ""}`}
+      aria-label="Секретное"
+      onClick={onKey}
+    >
+      <span>
+        <KeyIcon />
+      </span>
+    </button>
+  );
+
+  const codeInput = showCode && !unlocked && (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoFocus
+      value={code}
+      onChange={(e) => tryCode(e.target.value)}
+      placeholder="Введите код"
+      autoComplete="off"
+      autoCapitalize="off"
+      autoCorrect="off"
+      spellCheck={false}
+    />
+  );
+
   return (
     <>
       <div className="fhead">
-        <h2
-          onPointerDown={startPress}
-          onPointerUp={endPress}
-          onPointerLeave={endPress}
-          onPointerCancel={endPress}
-          onContextMenu={(e) => e.preventDefault()}
-          style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
-        >
-          Игры
-        </h2>
+        <h2>Игры</h2>
       </div>
-
-      {showCode && !unlocked && (
-        <input
-          type="text"
-          inputMode="numeric"
-          autoFocus
-          value={code}
-          onChange={(e) => tryCode(e.target.value)}
-          placeholder="Код"
-          autoComplete="off"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
-      )}
 
       <div className="filters">
         <div className="seg">
@@ -229,16 +231,6 @@ export default function Game({ initial }) {
           >
             Состязания
           </button>
-          {unlocked && (
-            <button
-              type="button"
-              className={`key ${section === "secret" ? "on" : ""}`}
-              aria-label="Секретное"
-              onClick={() => setSection("secret")}
-            >
-              <KeyIcon />
-            </button>
-          )}
         </div>
       </div>
 
@@ -256,7 +248,9 @@ export default function Game({ initial }) {
                   onClick={() => setBoard(g.id)}
                 />
               ))}
+              {keyChip}
             </div>
+            {codeInput}
           </div>
           <Leaderboard
             title={`${shown.title} — рекорды`}
@@ -283,7 +277,13 @@ export default function Game({ initial }) {
       )}
 
       {section === "secret" && unlocked && (
-        <div className="ggrid">{SECRET.map((g) => tile(g, false, false))}</div>
+        <>
+          <div className="ggrid">{SECRET.map((g) => tile(g, false, false))}</div>
+
+          <div className="filters">
+            <div className="chips scroll">{keyChip}</div>
+          </div>
+        </>
       )}
     </>
   );
