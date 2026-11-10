@@ -7,7 +7,7 @@ import { nyanSfx, isNyan } from "../nyanSfx";
 import { drawNyanHead, drawStars } from "../nyan";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
-
+import Pad from "../components/Pad";
 const GAME = "snake";
 
 const COLS = 24, ROWS = 16, C = 15;
@@ -186,6 +186,11 @@ export default function Snake({ onBack }) {
     }
     api("/game/start", "POST", { game: GAME }).catch(() => {});
   };
+  const press = (dx, dy) => {
+  const s = g.current;
+  if (s.phase === "run") turn(s, dx, dy);
+  else start();
+};
   const startRef = useRef(start);
   startRef.current = start;
 
@@ -303,6 +308,12 @@ export default function Snake({ onBack }) {
             touchAction: "none",
           }}
         />
+        <Pad keys={[
+  { label: "▲", pos: "1 / 2", on: () => press(0, -1) },
+  { label: "◀", pos: "2 / 1", on: () => press(-1, 0) },
+  { label: "▼", pos: "2 / 2", on: () => press(0, 1) },
+  { label: "▶", pos: "2 / 3", on: () => press(1, 0) },
+]} />
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
             {phase === "dead" ? `Результат: ${score}` : "Свайпай или стрелки / WASD"}

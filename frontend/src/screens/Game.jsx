@@ -12,6 +12,7 @@ import Dino from "./Dino";
 import Flappy from "./Flappy";
 import Snake from "./Snake";
 import Tetris from "./Tetris";
+import { tg } from "../tg";
 
 // Казуальные: играешь один, борешься за рекорд
 const CASUAL = [
@@ -45,7 +46,7 @@ export default function Game({ initial }) {
       )
     ).then((e) => setTops(Object.fromEntries(e)));
 
-  useEffect(() => {
+   useEffect(() => {
     if (!game) loadTops();
   }, [game]);
 
@@ -58,6 +59,13 @@ export default function Game({ initial }) {
       nyanSfx.stop();
       tetrisSfx.stop();
     };
+  }, [game]);
+
+  // отключаем свайп-закрытие Telegram, пока открыта игра
+  useEffect(() => {
+    if (!game) return;
+    try { tg.disableVerticalSwipes?.(); } catch {}
+    return () => { try { tg.enableVerticalSwipes?.(); } catch {} };
   }, [game]);
 
   const current = ALL.find((g) => g.id === game);

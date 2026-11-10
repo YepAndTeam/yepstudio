@@ -335,3 +335,8 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 .gtile .title{padding-right:36px}
 .gtile .snd{position:absolute;top:8px;right:8px;width:34px;height:34px}
 .gtile .snd svg{width:18px;height:18px}
+html,body{overscroll-behavior:none}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto 0;max-width:240px}
+.pad.row{grid-template-columns:repeat(4,1fr);max-width:320px}
+.padbtn{min-height:52px;border-radius:var(--r);border:var(--bw) solid var(--bc);background:var(--card2);color:var(--fg);font-size:20px;box-shadow:var(--sh);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.padbtn:active{opacity:.7}

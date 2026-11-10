@@ -9,6 +9,7 @@ import Leaderboard from "../components/Leaderboard";
 import { BackIcon } from "../components/Icons";
 import { Sound, SoundOff } from "../components/Icons";
 import { tetrisSfx, isTetrisTheme } from "../tetrisSfx";
+import Pad from "../components/Pad";
 const GAME = "tetris";
 
 const COLS = 10, ROWS = 20, C = 12;
@@ -242,6 +243,11 @@ if (isNyan()) {
 }
     api("/game/start", "POST", { game: GAME }).catch(() => {});
   };
+  const act = (fn) => {
+  const s = g.current;
+  if (s.phase === "run") fn(s);
+  else start();
+};
   const startRef = useRef(start);
   startRef.current = start;
 
@@ -380,6 +386,12 @@ tetris: document.documentElement.dataset.theme === "tetris",
             touchAction: "none",
           }}
         />
+        <Pad row keys={[
+  { label: "◀", on: () => act((s) => move(s, -1)) },
+  { label: "⟳", on: () => act(rotate) },
+  { label: "▶", on: () => act((s) => move(s, 1)) },
+  { label: "⤓", on: () => act(hardDrop) },
+]} />
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
             {phase === "dead" ? `Результат: ${score}` : "Свайп ↔ двигает, ↓ роняет, тап вращает"}
