@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { CYCLE, ST, dayLabel } from "../constants";
 import { useStore } from "../store";
 import { confirmDialog, haptic, notify } from "../tg";
-import { BackIcon, Dots } from "../components/Icons";
 import { Loading, Skeleton, Stat } from "../components/Common";
+import { BackIcon, Dots, LinkIcon } from "../components/Icons";
+import { copyLink } from "../share";
 
 export default function Thread({ refId, onBack }) {
   const s = useStore();
@@ -76,9 +77,18 @@ export default function Thread({ refId, onBack }) {
   return (
     <>
       <div className="bar">
-        {backBtn}
-        {mod && <button type="button" className="dots" aria-label="Действия модератора" onClick={() => setMenu((m) => !m)}><Dots /></button>}
-      </div>
+  {backBtn}
+  <div style={{ display: "flex", gap: 8 }}>
+    <button type="button" className="snd" aria-label="Скопировать ссылку" onClick={() => copyLink(refId)}>
+      <LinkIcon />
+    </button>
+    {mod && (
+      <button type="button" className="dots" aria-label="Действия модератора" onClick={() => setMenu((m) => !m)}>
+        <Dots />
+      </button>
+    )}
+  </div>
+</div>
 
       {mod && menu && (
         <div className="menu">

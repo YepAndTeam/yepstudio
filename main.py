@@ -4,7 +4,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-
+import re
+from html import escape
+from fastapi.responses import HTMLResponse
 from aiogram.types import MenuButtonWebApp, Update, WebAppInfo
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
@@ -22,7 +24,7 @@ from notify import add_notification, notify_game_beaten, short
 
 load_dotenv(Path(__file__).parent / ".env")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "change-me")
-
+TG_APP_LINK = "https://t.me/yab_studio_bot"
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
 STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
@@ -507,7 +509,37 @@ async def webhook(request: Request):
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
+@app.get("/s/{ref}", response_class=HTMLResponse)
+def share_page(ref: str, db=Depends(get_db)):
+    if not re.fullmatch(r"[tn]\d+|game_[a-z]+", ref):
+        raise HTTPException(404)
 
+    title, desc = "YAB STUDIO", "Открой в мини-приложении"
+    if ref[0] == "t":
+        t = db.get(Topic, int(ref[1:]))
+        if t and not t.deleted:
+            title = t.title
+            desc = (t.text or t.category)[:160]
+    elif ref[0] == "n":
+        p = db.get(Post, int(ref[1:]))
+        if p:
+            title = p.title
+            desc = (p.text or "")[:160]
+    else:
+        title, desc = "Сможешь побить мой рекорд?", "Заходи в игру в YAB STUDIO"
+
+    target = f"{TG_APP_LINK}?startapp={ref}"
+    img = f"{WEBAPP_URL}/og.png"
+    e = escape
+    return f"""<!doctype html><html><head><meta charset="utf-8">
+<title>{e(title)}</title>
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:image" content="{img}">
+<meta property="og:type" content="website">
+<meta http-equiv="refresh" content="0;url={e(target)}">
+</head><body><script>location.replace({target!r})</script>
+<a href="{e(target)}">Открыть</a></body></html>"""
 
 # статику монтируем последней, иначе она перекроет маршруты выше
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

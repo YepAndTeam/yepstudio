@@ -88,7 +88,7 @@ export default function App() {
   // deep link
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
-  if (ref === "game") setTab("game");
+ if (ref && ref.startsWith("game")) setTab("game");
   else if (ref && /^[tn]\d+$/.test(ref)) setThread(ref);
 }, []);
 

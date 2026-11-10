@@ -8,6 +8,7 @@ import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { drawNyanCat, drawNyanTrail, drawStars } from "../nyan";
 import { nyanSfx, isNyan } from "../nyanSfx";
+import { shareRecord } from "../share";
 const GAME = "flappy";
 
 const W = 360, H = 240, GROUND = 216;
@@ -290,7 +291,10 @@ export default function Flappy({ onBack }) {
               : "Тап или пробел, чтобы взмахнуть"}
           </span>
           <span className="small muted">
-            Рекорд: {result?.best ?? top?.my_best ?? 0}
+            Рекорд:{(result?.best ?? top?.my_best) > 0 && (
+  <button type="button" className="send" onClick={() => shareRecord(GAME, "Dino", result?.best ?? top.my_best)}>
+    Мой рекорд, сможешь побить?
+            </button>)}
           </span>
         </div>
         {result?.record && (

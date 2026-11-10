@@ -52,3 +52,7 @@ export const SoundOff = () => p(22, <>
   <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
   <path d="M16 9.5l5 5M21 9.5l-5 5" />
 </>);
+export const LinkIcon = () => p(20, <>
+  <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+  <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+</>);

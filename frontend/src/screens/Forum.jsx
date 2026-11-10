@@ -3,7 +3,7 @@ import { CATS } from "../constants";
 import { useStore } from "../store";
 import { Chip, Loading, Stat } from "../components/Common";
 import { Pin, Plus } from "../components/Icons";
-
+import { copyLink } from "../share";
 export default function Forum({ openThread, openSheet, cat, setCat, sort, setSort }) {
   const { topics, me } = useStore();
 
@@ -45,6 +45,14 @@ export default function Forum({ openThread, openSheet, cat, setCat, sort, setSor
             <span className="au">{t.author_id === me?.id ? "Ты" : t.author}</span>
             <span className={`v ${t.voted ? "on" : ""}`}>▲ {t.votes}</span>
             <span>Ответов: {t.replies}</span>
+            <span
+  role="button"
+  tabIndex={0}
+  className="cp"
+  onClick={(e) => { e.stopPropagation(); copyLink("t" + t.id); }}
+>
+  Ссылка
+</span>
           </div>
         </button>
       ))}

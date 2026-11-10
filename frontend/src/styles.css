@@ -277,3 +277,4 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="nyan"] .snd svg {
   stroke: currentColor;
 }
+.topic .foot .cp{margin-left:auto;padding:6px 0 6px 12px;font-weight:600;color:var(--fg);cursor:pointer}
