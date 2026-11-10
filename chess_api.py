@@ -3,12 +3,16 @@ from datetime import datetime
 from typing import Optional
 
 import chess
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 
+import presence
 from chess_models import ChessGame
 from database import User
+from notify import add_notification
+
+KIND = "chess"
 
 
 def iso(dt: Optional[datetime]) -> Optional[str]:
@@ -58,6 +62,10 @@ def make_router(get_user, get_db):
         board, san = replay(g)
         my = my_color(g, user)
         turn = "w" if board.turn else "b"
+        if my:
+            presence.touch(KIND, g.id, user.id)  # игрок сейчас в партии
+        opp_id = g.black_id if my == "w" else g.white_id if my == "b" else None
+        opp_away = bool(g.status == "active" and opp_id and presence.is_away(KIND, g.id, opp_id))
         legal = []
         if g.status == "active" and my == turn:
             legal = [m.uci() for m in board.legal_moves]
@@ -70,6 +78,7 @@ def make_router(get_user, get_db):
             "creator_id": g.creator_id,
             "moves": san, "last": moves[-1] if moves else None,
             "legal": legal, "updated_at": iso(g.updated_at),
+            "opp_away": opp_away,
         }
 
     def brief(db, g, user):
@@ -187,5 +196,30 @@ def make_router(get_user, get_db):
         g.updated_at = datetime.utcnow()
         db.commit()
         return full(db, g, user)
+
+    @r.post("/{game_id}/call")
+    def call(game_id: int, bg: BackgroundTasks, user: User = Depends(get_user), db=Depends(get_db)):
+        """Позвать соперника, который ушёл: уведомление в ленту + пуш в Telegram."""
+        g = get_game(db, game_id)
+        my = my_color(g, user)
+        if g.status != "active" or my is None:
+            raise HTTPException(409, "Позвать нельзя")
+        board, _ = replay(g)
+        if my == ("w" if board.turn else "b"):
+            raise HTTPException(409, "Сейчас твой ход")
+        opp_id = g.black_id if my == "w" else g.white_id
+        if not presence.is_away(KIND, g.id, opp_id):
+            raise HTTPException(409, "Соперник сейчас в партии")
+        wait = presence.call_wait(KIND, g.id)
+        if wait:
+            raise HTTPException(429, f"Уже звал. Повтори через {wait} с")
+        add_notification(
+            db, bg, opp_id, "game",
+            f"{user.first_name} ждёт твой ход в шахматах",
+            ref=f"game_chess_{g.id}", actor_id=user.id,
+        )
+        presence.mark_called(KIND, g.id)
+        db.commit()
+        return {"ok": True}
 
     return r

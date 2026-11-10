@@ -136,6 +136,7 @@ function Match({ id, onBack }) {
   const [sel, setSel] = useState(null);
   const [promo, setPromo] = useState(null);
   const [err, setErr] = useState(null);
+  const [called, setCalled] = useState(-1); // сколько было ходов, когда позвали соперника
   const cv = useRef(null);
   const stRef = useRef(null);
   const prevLen = useRef(0);
@@ -234,6 +235,16 @@ function Match({ id, onBack }) {
   }
 
   const mine = st.creator_id === me?.id;
+
+  // соперник ушёл (минуту не открывал партию), а сейчас его ход
+  const canCall = st.status === "active" && st.my && st.turn !== st.my && st.opp_away && called !== st.moves.length;
+  const call = () =>
+    api(`/chess/${id}/call`, "POST")
+      .then(() => {
+        setCalled(st.moves.length);
+        notify("Позвали соперника");
+      })
+      .catch((e) => notify(e.message));
   let status = "";
   if (st.status === "open") status = mine ? "Ждём соперника. Отправь ему ссылку." : "Тебя вызвали на партию";
   else if (st.status === "active") {
@@ -313,6 +324,12 @@ function Match({ id, onBack }) {
           onClick={() => confirmDialog("Сдаться?", () => act("resign"))}
         >
           Сдаться
+        </button>
+      )}
+
+      {canCall && (
+        <button type="button" className="send" style={{ alignSelf: "stretch" }} onClick={call}>
+          Позвать соперника
         </button>
       )}
 

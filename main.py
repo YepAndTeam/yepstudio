@@ -14,7 +14,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
-from chess_api import make_router
+import checkers_models  # noqa: F401  (регистрирует таблицу до create_all)
+from chess_api import make_router as make_chess_router
+from checkers_api import make_router as make_checkers_router
 from auth import ADMIN_IDS, validate_init_data
 from bot import WEBAPP_URL, bot, dp
 from database import (
@@ -87,7 +89,8 @@ def get_admin(user: User = Depends(get_user)) -> User:
         raise HTTPException(403, "Только для модераторов")
     return user
 
-app.include_router(make_router(get_user, get_db))
+app.include_router(make_chess_router(get_user, get_db))
+app.include_router(make_checkers_router(get_user, get_db))
 # ---------- профиль ----------
 class ThemeIn(BaseModel):
     theme: str
@@ -548,6 +551,10 @@ def share_page(ref: str, db=Depends(get_db)):
 
     elif ref.startswith("game_chess"):
         title = "Сыграем партию в шахматы?"
+        desc = "Прими вызов в YAB STUDIO"
+
+    elif ref.startswith("game_checkers"):
+        title = "Сыграем партию в шашки?"
         desc = "Прими вызов в YAB STUDIO"
 
     else:

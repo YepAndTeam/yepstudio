@@ -14,6 +14,7 @@ import Snake from "./Snake";
 import Tetris from "./Tetris";
 import { tg } from "../tg";
 import Chess from "./Chess";
+import Checkers from "./Checkers"
 
 // Казуальные: играешь один, борешься за рекорд
 const CASUAL = [
@@ -26,7 +27,7 @@ const CASUAL = [
 // Состязания: партия против другого участника. View: null = пока заглушка "Скоро"
 const VERSUS = [
   { id: "chess", title: "Шахматы", hint: "Партия с другом", View: Chess },
-  { id: "checkers", title: "Шашки", hint: "Партия с другом", View: null },
+  { id: "checkers", title: "Шашки", hint: "Партия с другом", View: Checkers },
 ];
 
 const ALL = [...CASUAL, ...VERSUS];
