@@ -2,7 +2,15 @@ import { sfx } from "./sfx";
 // Пиксельный Nyan Cat, рисуется прямоугольниками
 const RAINBOW = ["#FF0000", "#FF9900", "#FFFF00", "#33FF00", "#0099FF", "#6633FF"];
 const COL = { K: "#000000", G: "#999999", T: "#FFCC99", P: "#FF99FF", S: "#FF3399", H: "#FF9999" };
-
+const HEAD = [
+  "K.....K",
+  "KKKKKKK",
+  "KGGGGGK",
+  "KGKGKGK",
+  "KHGGGHK",
+  "KGGKGGK",
+  "KKKKKKK",
+];
 // Кот в сетке 13x12 клеток, клетка = 2px
 export const NYAN_W = 26;
 export const NYAN_H = 24;
@@ -62,4 +70,16 @@ export function drawStars(ctx, W, maxY, t, color = "#FFFFAA") {
     const sz = i % 4 === 0 ? 2 : 1;
     ctx.fillRect(Math.round(x), y, sz, sz);
   }
+}
+export function drawNyanHead(ctx, cx, cy, u = 2) {
+  const x0 = Math.round(cx - 3.5 * u);
+  const y0 = Math.round(cy - 3.5 * u);
+  HEAD.forEach((row, j) => {
+    for (let i = 0; i < 7; i++) {
+      const c = row[i];
+      if (c === ".") continue;
+      ctx.fillStyle = COL[c];
+      ctx.fillRect(x0 + i * u, y0 + j * u, u, u);
+    }
+  });
 }

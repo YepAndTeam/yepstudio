@@ -9,6 +9,7 @@ import Inbox from "./screens/Inbox";
 import NewTopicSheet from "./components/NewTopicSheet";
 import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons";
 import Game from "./screens/Game";
+import NyanRunner from "./components/NyanRunner";
 const TABS = [
   ["news", "Новости", <NavNews />],
   ["forum", "Форум", <NavForum />],
@@ -17,7 +18,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const { loadHome, loadTopics, loadMe, loadNotifs, notifs } = useStore();
+const { loadHome, loadTopics, loadMe, loadNotifs, notifs, theme } = useStore();
   const [tab, setTab] = useState("news");
   const [thread, setThread] = useState(null);
   const [inbox, setInbox] = useState(false);

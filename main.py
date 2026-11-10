@@ -28,7 +28,7 @@ TG_APP_LINK = "https://t.me/yab_studio_bot"
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
 STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
-THEMES = {"dark", "light", "retro", "terminal", "nyan"}
+THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris"}
 Base.metadata.create_all(engine)
 migrate()
 
@@ -409,6 +409,8 @@ def react(comment_id: int, body: ReactIn, user: User = Depends(get_user), db=Dep
 GAMES = {
     "dino": {"rate": 11, "slack": 10},
     "flappy": {"rate": 0.8, "slack": 3},
+    "snake": {"rate": 5, "slack": 5},
+"tetris": {"rate": 40, "slack": 50},
 }
 GAME_RUNS: dict[
     tuple[int, str], float] = {}  # (user_id, game) -> время старта забега (при нескольких воркерах нужен Redis)

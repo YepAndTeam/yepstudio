@@ -18,5 +18,6 @@ export const THEMES = [
   { id: "retro",    name: "Ретро 98", bg: "#008080", card: "#C0C0C0", fg: "#000000" },
   { id: "terminal", name: "Терминал", bg: "#000000", card: "#050805", fg: "#33FF66" },
   { id: "nyan", name: "Nyan Cat", bg: "#003366", card: "#FF99FF", fg: "#2B0A3D" },
+  { id: "tetris", name: "Тетрис", bg: "#0A0A1F", card: "#14143A", fg: "#F4F4FF" },
 ];
 export const THEME_IDS = THEMES.map((t) => t.id);

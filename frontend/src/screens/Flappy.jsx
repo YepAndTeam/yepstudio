@@ -254,6 +254,7 @@ export default function Flappy({ onBack }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", key);
+      nyanSfx.stop();
     };
   }, []);
 

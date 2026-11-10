@@ -278,3 +278,60 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
   stroke: currentColor;
 }
 .topic .foot .cp{margin-left:auto;padding:6px 0 6px 12px;font-weight:600;color:var(--fg);cursor:pointer}
+.runner{position:absolute;left:0;right:0;bottom:80px;height:26px;overflow:hidden;pointer-events:none;z-index:5}
+.runner canvas{position:absolute;top:0;image-rendering:pixelated;animation:nyanrun 22s linear infinite}
+@keyframes nyanrun{0%{left:-70px}45%{left:100%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){.runner{display:none}}
+/* ===== ТЕТРИС ===== */
+:root[data-theme="tetris"]{
+  --ground:#0A0A1F;--card:#14143A;--card2:#05051A;--line:#2F2F7A;
+  --fg:#F4F4FF;--muted:#9A9AD0;--inv:#0A0A1F;color-scheme:dark;
+  --r:4px;--rp:4px;--bw:2px;--bc:#4B4BFF;--sh:3px 3px 0 #000;
+  --font:'Pixelify Sans',system-ui,sans-serif;--fd:'Press Start 2P',monospace;
+  --gbg:#05051A;--gfg:#00F0F0} /* цвета для canvas игр */
+
+:root[data-theme="tetris"] body{
+  font-size:16px;-webkit-font-smoothing:none;
+  background:
+    linear-gradient(rgba(75,75,255,.12) 1px,transparent 1px) 0 0/24px 24px,
+    linear-gradient(90deg,rgba(75,75,255,.12) 1px,transparent 1px) 0 0/24px 24px,
+    var(--ground)}
+:root[data-theme="tetris"] .logo{font-size:13px}
+:root[data-theme="tetris"] .logo .o{-webkit-text-stroke:1px var(--fg)}
+:root[data-theme="tetris"] h2,
+:root[data-theme="tetris"] h3{font-family:var(--fd);font-size:13px;line-height:1.5}
+:root[data-theme="tetris"] .post h3,
+:root[data-theme="tetris"] .thread h2{font-size:14px}
+:root[data-theme="tetris"] .stats b{font-size:16px}
+:root[data-theme="tetris"] .ava,
+:root[data-theme="tetris"] .sw i,
+:root[data-theme="tetris"] .dot{border-radius:0}
+
+/* полоска из семи тетрамино под шапкой */
+:root[data-theme="tetris"] header{position:relative}
+:root[data-theme="tetris"] header::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:8px;
+  background:linear-gradient(90deg,
+    #00F0F0 0 14.28%,#F0F000 14.28% 28.57%,#A000F0 28.57% 42.85%,
+    #00F000 42.85% 57.14%,#F00000 57.14% 71.42%,#0000F0 71.42% 85.71%,#F0A000 85.71%)}
+
+:root[data-theme="tetris"] textarea,
+:root[data-theme="tetris"] input[type=text]{border:2px solid var(--bc);border-radius:0}
+:root[data-theme="tetris"] nav{border-top:var(--bw) solid var(--bc)}
+:root[data-theme="tetris"] button:active{transform:translate(2px,2px);box-shadow:none}
+.ggrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gtile{position:relative}
+.gtile .gp{min-height:112px;height:100%}
+.gtile .title{padding-right:36px}
+.gtile .snd{position:absolute;top:8px;right:8px;width:34px;height:34px}
+.gtile .snd svg{width:18px;height:18px}
+.gtile.soon .gp{opacity:.6;cursor:default}
+.gtile.wide{grid-column:1/-1}
+.gtile.wide .gp{min-height:0}
+.ggrid + .gtile.wide{margin-top:0}
+.ggrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gtile{position:relative}
+.gtile .gp{min-height:112px;height:100%}
+.gtile .title{padding-right:36px}
+.gtile .snd{position:absolute;top:8px;right:8px;width:34px;height:34px}
+.gtile .snd svg{width:18px;height:18px}
