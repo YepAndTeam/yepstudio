@@ -24,7 +24,7 @@ export default function App() {
   const [cat, setCat] = useState("Все");
   const [sort, setSort] = useState("new");
   const [sheet, setSheet] = useState(false);
-
+const [gameRef, setGameRef] = useState(null);
   const content = useRef(null);
   const saved = useRef(0);
 
@@ -37,6 +37,7 @@ export default function App() {
     setTab(t);
     setThread(null);
     setInbox(false);
+    setGameRef(null);
     scrollTo(0);
     if (t === "news") loadHome();
     if (t === "forum") loadTopics();
@@ -88,8 +89,11 @@ export default function App() {
   // deep link
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
- if (ref && ref.startsWith("game")) setTab("game");
-  else if (ref && /^[tn]\d+$/.test(ref)) setThread(ref);
+
+  if (ref && ref.startsWith("game")) {
+    setTab("game");
+    setGameRef(ref.slice(5) || null);
+  }
 }, []);
 
   // обновление нотификаций
@@ -155,7 +159,7 @@ export default function App() {
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "game" ? <Game />
+          ) : tab === "game" ? <Game initial={gameRef} />
             : (
             <Profile openThread={openThread} />
           )}
