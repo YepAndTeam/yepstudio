@@ -534,14 +534,14 @@ def share_page(ref: str, db=Depends(get_db)):
     img = f"{WEBAPP_URL}/og.png"
     e = escape
     return f"""<!doctype html><html><head><meta charset="utf-8">
-<title>{e(title)}</title>
-<meta property="og:title" content="{e(title)}">
-<meta property="og:description" content="{e(desc)}">
-<meta property="og:image" content="{img}">
-<meta property="og:type" content="website">
-<meta http-equiv="refresh" content="0;url={e(target)}">
-</head><body><script>location.replace({target!r})</script>
-<a href="{e(target)}">Открыть</a></body></html>"""
+    <title>{e(title)}</title>
+    <meta property="og:site_name" content="YAB STUDIO">
+    <meta property="og:title" content="{e(title)}">
+    <meta property="og:description" content="{e(desc)}">
+    <meta property="og:image" content="{img}">
+    <meta property="og:type" content="website">
+    </head><body><script>location.replace({target!r})</script>
+    <a href="{e(target)}">Открыть</a></body></html>"""
 
 # статику монтируем последней, иначе она перекроет маршруты выше
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

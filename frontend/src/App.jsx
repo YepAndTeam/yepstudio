@@ -90,10 +90,12 @@ const [gameRef, setGameRef] = useState(null);
   // deep link
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
-
-  if (ref && ref.startsWith("game")) {
+  if (!ref) return;
+  if (ref.startsWith("game")) {
     setTab("game");
     setGameRef(ref.slice(5) || null);
+  } else if (/^[tn]\d+$/.test(ref)) {
+    setThread(ref);
   }
 }, []);
 
