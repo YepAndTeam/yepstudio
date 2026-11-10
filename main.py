@@ -520,28 +520,40 @@ def share_page(ref: str, db=Depends(get_db)):
     if ref[0] == "t":
         t = db.get(Topic, int(ref[1:]))
         if t and not t.deleted:
-            title = t.title
-            desc = (t.text or t.category)[:160]
+            author = db.get(User, t.user_id)
+            votes = db.scalar(select(func.count()).select_from(Vote)
+                              .where(Vote.idea_id == t.id)) or 0
+            replies = db.scalar(select(func.count()).select_from(Comment)
+                                .where(Comment.ref_type == "topic", Comment.ref_id == t.id)) or 0
+            title = f"{t.category}: {t.title}"
+            head = f"{author.first_name} · ▲ {votes} · ответов {replies}" if author else f"▲ {votes} · ответов {replies}"
+            body = " ".join((t.text or "").split())
+            desc = f"{head}. {body}"[:200]
     elif ref[0] == "n":
         p = db.get(Post, int(ref[1:]))
         if p:
             title = p.title
-            desc = (p.text or "")[:160]
+            desc = " ".join((p.text or "").split())[:200] or "Новость YAB STUDIO"
     else:
-        title, desc = "Сможешь побить мой рекорд?", "Заходи в игру в YAB STUDIO"
+        names = {"dino": "Дино", "flappy": "Flappy", "snake": "Змейка", "tetris": "Тетрис"}
+        g = names.get(ref[5:], "игре")
+        title, desc = f"Сможешь побить мой рекорд в «{g}»?", "Заходи в игру в YAB STUDIO"
 
     target = f"{TG_APP_LINK}?startapp={ref}"
     img = f"{WEBAPP_URL}/og.png"
     e = escape
     return f"""<!doctype html><html><head><meta charset="utf-8">
-    <title>{e(title)}</title>
-    <meta property="og:site_name" content="YAB STUDIO">
-    <meta property="og:title" content="{e(title)}">
-    <meta property="og:description" content="{e(desc)}">
-    <meta property="og:image" content="{img}">
-    <meta property="og:type" content="website">
-    </head><body><script>location.replace({target!r})</script>
-    <a href="{e(target)}">Открыть</a></body></html>"""
+<title>{e(title)}</title>
+<meta property="og:site_name" content="YAB STUDIO">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:image" content="{img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+</head><body><script>location.replace({target!r})</script>
+<a href="{e(target)}">Открыть</a></body></html>"""
 
 # статику монтируем последней, иначе она перекроет маршруты выше
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")
