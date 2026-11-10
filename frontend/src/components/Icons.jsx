@@ -1,4 +1,3 @@
-
 const p = (size, children, cls) => (
   <svg
     className={cls}
@@ -55,4 +54,29 @@ export const SoundOff = () => p(22, <>
 export const LinkIcon = () => p(20, <>
   <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
   <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+</>);
+
+/* ===== Иконки экранных кнопок (Pad). Тот же штрих 1.8, скруглённые концы ===== */
+export const PadLeft = () => p(26, <path d="M19 12H6M11.5 6L5.5 12l6 6" />);
+export const PadRight = () => p(26, <path d="M5 12h13M12.5 6l6 6-6 6" />);
+export const PadUp = () => p(26, <path d="M12 19V6M6 11.5l6-6 6 6" />);
+export const PadDown = () => p(26, <path d="M12 5v13M6 12.5l6 6 6-6" />);
+// двойной шеврон вниз: «сбросить» (тетрис)
+export const PadDrop = () => p(26, <path d="M6 6.5l6 6 6-6M6 12.5l6 6 6-6" />);
+// стрелка вверх над чертой: прыжок
+export const PadJump = () => p(26, <path d="M12 20V9.5M7 13.5l5-5 5 5M7.5 4.5h9" />);
+// круговая стрелка: поворот
+export const PadRotate = () => p(26, <>
+  <path d="M18.5 12a6.5 6.5 0 1 1-2-4.7" />
+  <path d="M18.5 4.5v3.8h-3.8" />
+</>);
+// прицел: огонь
+export const PadFire = () => p(30, <>
+  <circle cx="12" cy="12" r="5.5" />
+  <circle cx="12" cy="12" r=".9" />
+  <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" />
+</>);
+export const KeyIcon = () => p(20, <>
+  <circle cx="8" cy="15" r="4" />
+  <path d="M11 12l9-9M16 7l3 3M14 9l2 2" />
 </>);

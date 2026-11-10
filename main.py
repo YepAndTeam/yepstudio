@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
 import checkers_models  # noqa: F401  (регистрирует таблицу до create_all)
 from chess_api import make_router as make_chess_router
@@ -89,8 +89,11 @@ def get_admin(user: User = Depends(get_user)) -> User:
         raise HTTPException(403, "Только для модераторов")
     return user
 
+
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
+
+
 # ---------- профиль ----------
 class ThemeIn(BaseModel):
     theme: str
@@ -104,6 +107,8 @@ def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db))
     user.theme = body.theme
     db.commit()
     return {"ok": True}
+
+
 @app.get("/api/me")
 def me(user: User = Depends(get_user), db=Depends(get_db)):
     def count(*where, model):
@@ -258,6 +263,7 @@ def patch_topic(topic_id: int, body: TopicPatch, bg: BackgroundTasks,
     db.commit()
     return {"ok": True}
 
+
 @app.get("/api/notifications")
 def list_notifications(user: User = Depends(get_user), db=Depends(get_db)):
     rows = db.scalars(
@@ -293,6 +299,8 @@ def set_notify(body: NotifySettings, user: User = Depends(get_user), db=Depends(
     user.notify = body.push
     db.commit()
     return {"ok": True}
+
+
 @app.delete("/api/topics/{topic_id}")
 def delete_topic(topic_id: int, admin: User = Depends(get_admin), db=Depends(get_db)):
     t = get_topic_or_404(db, topic_id)
@@ -406,18 +414,18 @@ def react(comment_id: int, body: ReactIn, user: User = Depends(get_user), db=Dep
 
 # ---------- игры ----------
 
-# rate  — максимум очков в секунду, slack — запас на задержку сети и округления.
-# dino:   10 очков/сек (score = t * 10)
-# flappy: труба каждые ~1.5 сек (140 px при скорости 95 px/с), то есть не больше ~0.7 очка/сек.
-#         Если поменяешь SPEED или SPACING во flappy.js, поправь rate здесь.
+# Античит упрощён: бесплатный Render засыпает и перезапускается, а проверка по времени
+# забега держалась в памяти процесса, из-за чего честные результаты отклонялись.
+# Теперь только верхний потолок очков. Явных читеров удаляем вручную
+# (DELETE /api/game/score/{user_id} или прямо в базе).
 GAMES = {
-    "dino": {"rate": 11, "slack": 10},
-    "flappy": {"rate": 0.8, "slack": 3},
-    "snake": {"rate": 5, "slack": 5},
-"tetris": {"rate": 40, "slack": 50},
+    "dino": {"max": 20000},
+    "flappy": {"max": 500},
+    "snake": {"max": 3000},
+    "tetris": {"max": 100000},
+    "hell": {"max": 5000},
 }
-GAME_RUNS: dict[
-    tuple[int, str], float] = {}  # (user_id, game) -> время старта забега (при нескольких воркерах нужен Redis)
+GAME_RUNS: dict[tuple[int, str], float] = {}  # оставлено, чтобы /game/start не ломал старый фронт
 
 
 def check_game(game: str) -> str:
@@ -446,12 +454,8 @@ def game_start(body: Optional[StartIn] = None, user: User = Depends(get_user)):
 @app.post("/api/game/score")
 def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(body.game)
-    started = GAME_RUNS.pop((user.id, game), None)
-    if started is None:
-        raise HTTPException(422, "Забег не начат")
-    elapsed = time.monotonic() - started
-    limits = GAMES[game]
-    if body.score > elapsed * limits["rate"] + limits["slack"]:
+    GAME_RUNS.pop((user.id, game), None)  # старт больше не обязателен
+    if body.score > GAMES[game]["max"]:
         raise HTTPException(422, "Подозрительный результат")
 
     row = db.scalar(select(GameScore).where(GameScore.user_id == user.id, GameScore.game == game))
@@ -484,6 +488,18 @@ def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user
     return {"best": row.best, "record": record, "rank": rank}
 
 
+@app.delete("/api/game/score/{user_id}")
+def delete_score(user_id: int, game: Optional[str] = None,
+                 admin: User = Depends(get_admin), db=Depends(get_db)):
+    """Удаляет рекорды читера: все игры или одну (?game=dino). Только для админов."""
+    q = delete(GameScore).where(GameScore.user_id == user_id)
+    if game:
+        q = q.where(GameScore.game == check_game(game))
+    db.execute(q)
+    db.commit()
+    return {"ok": True}
+
+
 @app.get("/api/game/top")
 def game_top(game: str = "dino", user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(game)
@@ -506,6 +522,8 @@ def game_top(game: str = "dino", user: User = Depends(get_user), db=Depends(get_
         "my_best": mine.best if mine else 0,
         "my_rank": rank,
     }
+
+
 # ---------- Telegram ----------
 
 @app.post("/webhook")
@@ -515,6 +533,8 @@ async def webhook(request: Request):
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
+
+
 @app.get("/s/{ref}", response_class=HTMLResponse)
 def share_page(ref: str, db=Depends(get_db)):
     if not re.fullmatch(r"[tn]\d+|game_[a-z0-9_]+", ref):
@@ -563,6 +583,7 @@ def share_page(ref: str, db=Depends(get_db)):
             "flappy": "Flappy",
             "snake": "Змейка",
             "tetris": "Тетрис",
+            "hell": "Ад",
         }
         g = names.get(ref[5:], "игре")
         title = f"Сможешь побить мой рекорд в «{g}»?"
@@ -591,6 +612,7 @@ def share_page(ref: str, db=Depends(get_db)):
 <a href="{e(target)}">Открыть</a>
 </body>
 </html>"""
+
 
 # статику монтируем последней, иначе она перекроет маршруты выше
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")
