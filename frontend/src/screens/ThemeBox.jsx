@@ -85,12 +85,16 @@ export default function ThemeBox({ jera = 0, onBack }) {
   }
   async function handleUnlock(attempt) {
     try {
+      if (!purchase.current) {
+        throw new Error("Кассета уже обработана. Вернись в магазин и открой историю круток.");
+      }
       const result=await api("/shop/theme-box/unlock","POST",{box_id:purchase.current,runes:attempt});
       purchase.current=null;requestId.current=null;
       const state=result.shop;
       if(state)setShop(state);
       else setShop(value=>({...value,balance:result.balance,active_box:null}));
-      setError("");void loadMe();return result;
+      syncEconomy(state || result);
+      setError("");return result;
     }catch(e){setError(e.message);throw e;}
   }
   const history=shop?.history || [];
