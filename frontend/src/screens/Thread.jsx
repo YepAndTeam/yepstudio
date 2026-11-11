@@ -19,7 +19,7 @@ export default function Thread({ refId, onBack }) {
   const [busy, setBusy] = useState(false);
   const taRef = useRef(null);
 
-  useEffect(() => { s.loadComments(refId); }, [refId]); // eslint-disable-line
+  useEffect(() => { s.loadComments(refId); if(isTopic)s.loadTopics();else s.loadHome(); }, [refId]); // eslint-disable-line
 
   const backBtn = <button type="button" className="back" onClick={onBack}><BackIcon /><span>Назад</span></button>;
 
@@ -27,7 +27,7 @@ export default function Thread({ refId, onBack }) {
     return (
       <>
         <div className="bar">{backBtn}</div>
-        {topics || home ? <div className="empty">Эта запись недоступна.</div> : <Skeleton />}
+        {(isTopic?topics:home) ? <div className="empty">Эта запись недоступна.</div> : <Skeleton />}
       </>
     );
   }

@@ -1,168 +1,31 @@
-import { useState } from "react";
-import { useStore } from "../store";
-import { Loading } from "../components/Common";
-import { JeraIcon } from "../components/JeraIcon";
-import TournamentAdmin from "../components/TournamentAdmin";
-import AdminWallet from "../components/AdminWallet";
-import RecordsAdmin from "../components/RecordsAdmin";
-import DailyReward from "../components/DailyReward";
-import Achievements from "../components/Achievements";
-import ThemeCollection from "./ThemeCollection";
-import { ST, THEMES } from "../constants";
-import Settings from "./Settings";
-import Accounting from "../components/Accounting";
-import Shop from "./Shop";
-
-export default function Profile({ openThread, onOpenLetter }) {
-  const { me: m, topics, theme, loadMe } = useStore();
-  const [tab, setTab] = useState("profile"); // "profile" | "shop"
-
-
-  const cur = THEMES.find((t) => t.id === theme) || THEMES[0];
-  if (!m) return <Loading />;
-  if (tab === "accounting" && m.role === "admin") return <Accounting local={import.meta.env.DEV} onBack={()=>setTab("profile")} />;
-  if (tab === "settings") return <Settings onBack={()=>setTab("profile")} />;
-  if (tab === "achievements") return <><button className="back" onClick={()=>setTab("profile")}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
-  if (tab === "collection") return <ThemeCollection onBack={() => setTab("profile")} />;
-
-  const mine = (topics || []).filter((t) => t.author_id === m.id);
-  const rated = mine.filter((t) => t.rated).length || m.rated;
-
-  return (
-    <>
-      <div className="filters">
-        <div className="seg">
-          <button
-            type="button"
-            className={tab === "profile" ? "on" : ""}
-            onClick={() => setTab("profile")}
-          >
-            Профиль
-          </button>
-          <button
-            type="button"
-            className={tab === "shop" ? "on" : ""}
-            onClick={() => setTab("shop")}
-          >
-            Магазин
-          </button>
-        </div>
-      </div>
-
-      {tab === "shop" && <Shop jera={m.jera ?? 0} />}
-
-      {tab === "profile" && (
-        <>
-          <div className="card me">
-            <div className="ava">
-              {(m.first_name || "?").trim().charAt(0).toUpperCase()}
-            </div>
-            <div className="col" style={{ minWidth: 0, gap: 2 }}>
-              <div className="nm">{m.first_name}</div>
-              {m.username && (
-                <div className="muted" style={{ fontSize: 14 }}>
-                  @{m.username}
-                </div>
-              )}
-              <div className="me-tags">
-                <button
-                  type="button"
-                  className="jera-chip"
-                  aria-label="Открыть магазин"
-                  onClick={() => setTab("shop")}
-                >
-                  <JeraIcon size={16} />
-                  <span>{m.jera ?? 0}</span>
-                </button>
-                {rated > 0 && <span className="badge">Оценено идей: {rated}</span>}
-              </div>
-            </div>
-          </div>
-
-          <DailyReward userId={m.id} reward={m.daily_reward} refresh={loadMe} />
-
-          <div className="card stats">
-            <div>
-              <b>{m.topics}</b>
-              <span>Темы</span>
-            </div>
-            <div>
-              <b>{m.comments}</b>
-              <span>Комментарии</span>
-            </div>
-            <div>
-              <b>{m.votes}</b>
-              <span>Голоса</span>
-            </div>
-          </div>
-
-          <div className="card tail">
-            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 600 }}>
-              Мои темы
-            </h3>
-            {!mine.length && (
-              <div className="noc" style={{ padding: "4px 0 18px" }}>
-                Ты ещё не создавал тем.
-              </div>
-            )}
-            {mine.map((t) => (
-              <button
-                type="button"
-                className="mine"
-                key={t.id}
-                onClick={() => openThread("t" + t.id)}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div className="tt">{t.title}</div>
-                  <div className="mm">
-                    {t.category}
-                    {t.status ? " · " + ST[t.status] : ""}
-                  </div>
-                </div>
-                <div className="rt">
-                  {t.rated && <span className="badge">Оценено</span>}
-                  <span>▲ {t.votes}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <button className="card achievement-entry" onClick={()=>setTab("achievements")}><span>Достижения</span><small className="muted">Прогресс, цели и награды →</small></button>
-
-          {/* Тема оформления */}
-          <button
-            type="button"
-            className="card themerow"
-            onClick={() => setTab("collection")}
-          >
-            <span className="pv" style={{ background: cur.bg }}>
-              <i style={{ background: cur.card }}>
-                <b style={{ background: cur.fg }} />
-              </i>
-            </span>
-            <span className="col" style={{ minWidth: 0, gap: 2, flex: 1 }}>
-              <span className="muted small">Коллекция кассет</span>
-              <span style={{ fontWeight: 600 }}>{cur.name}</span>
-            </span>
-            <svg width="20" height="20" viewBox="0 0 24 24" className="chev">
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </button>
-
-          <button className="card achievement-entry" onClick={()=>setTab("settings")}><span>Настройки</span><small className="muted">Звук, размер поля и управление →</small></button>
-
-          {m.compensation_letters?.length>0 && <div className="card col" style={{gap:10}}>
-            <h3>Письма от студии</h3>
-            {m.compensation_letters.map(letter=><button type="button" className="pub alt" key={letter.id} onClick={()=>onOpenLetter?.(letter.id)}>
-              Чек компенсации · +{letter.total} Йер
-            </button>)}
-          </div>}
-          {m.role === "admin" && <TournamentAdmin />}
-          {m.role === "admin" && <button className="card achievement-entry" onClick={()=>setTab("accounting")}><span>Бухгалтерия</span><small className="muted">Йеры, кассеты и журнал операций →</small></button>}
-          {m.role === "admin" && <AdminWallet />}
-          {m.role === "admin" && <RecordsAdmin onUpdated={loadMe} />}
-        </>
-      )}
-    </>
-  );
+import {useState,useEffect} from 'react';
+import {useStore} from '../store';
+import {Loading} from '../components/Common';
+import {JeraIcon} from '../components/JeraIcon';
+import TournamentAdmin from '../components/TournamentAdmin';
+import AdminWallet from '../components/AdminWallet';
+import RecordsAdmin from '../components/RecordsAdmin';
+import DailyReward from '../components/DailyReward';
+import Achievements from '../components/Achievements';
+import Accounting from '../components/Accounting';
+import ThemeCollection from './ThemeCollection';
+import Settings from './Settings';
+import Shop from './Shop';
+import Friends from './Friends';
+import {THEMES,ST} from '../constants';
+export default function Profile({openThread,onOpenLetter,initialSection,targetId}){
+ const {me:m,topics,theme,loadMe,loadTopics}=useStore();const [tab,setTab]=useState(initialSection||'profile'),[rewardOpen,showReward]=useState(false);
+ useEffect(()=>{if(tab==='activity')void loadTopics();},[tab,loadTopics]);
+ if(!m)return <Loading/>;
+ const back=()=>setTab('profile'),mine=(topics||[]).filter(t=>t.author_id===m.id),cur=THEMES.find(t=>t.id===theme)||THEMES[0];
+ if(tab==='friends')return <Friends onBack={back} targetId={targetId}/>;
+ if(tab==='settings')return <Settings onBack={back}/>;
+ if(tab==='collection')return <ThemeCollection onBack={back}/>;
+ if(tab==='accounting'&&m.role==='admin')return <Accounting local={import.meta.env.DEV} onBack={()=>setTab('admin')}/>;
+ if(tab==='shop')return <><button className="back" onClick={back}>‹ Профиль</button><Shop jera={m.jera||0}/></>;
+ if(tab==='achievements')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
+ if(tab==='admin'&&m.role==='admin')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Управление студией</h2><button className="card profile-menu-row" onClick={()=>setTab('accounting')}><span>Бухгалтерия</span><span>›</span></button><TournamentAdmin/><AdminWallet/><RecordsAdmin onUpdated={loadMe}/></>;
+ if(tab==='letters')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Письма от студии</h2>{m.compensation_letters?.map(l=><button className="card profile-menu-row" key={l.id} onClick={()=>onOpenLetter?.(l.id)}><span>Чек компенсации</span><b>+{l.total} Йер</b></button>)}</>;
+ if(tab==='activity')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Моя активность</h2><div className="card stats"><div><b>{m.topics}</b><span>Темы</span></div><div><b>{m.comments}</b><span>Комментарии</span></div><div><b>{m.votes}</b><span>Голоса</span></div></div><section className="card"><h3>Мои темы</h3>{!topics?<Loading/>:!mine.length?<p className="small muted">Ты ещё не создавал тем.</p>:mine.map(t=><button className="mine" key={t.id} onClick={()=>openThread('t'+t.id)}><div><b>{t.title}</b><p className="small muted">{t.category} · {ST[t.status]||'Без статуса'}</p></div><span>▲ {t.votes}</span></button>)}</section></>;
+ return <section className="profile-hub"><div className="card profile-hero"><div className="ava">{(m.first_name||'?').slice(0,1)}</div><div className="profile-identity"><h2>{m.first_name}</h2>{m.username&&<small className="muted">@{m.username}</small>}<span className="small muted">Тема · {cur.name}</span></div><button className="jera-chip" aria-label="Открыть магазин" onClick={()=>setTab('shop')}><JeraIcon size={16}/>{m.jera||0}</button></div><div className="card profile-reward"><button className="profile-menu-row" onClick={()=>showReward(v=>!v)} aria-expanded={rewardOpen}><span><b>Ежедневная награда</b><small className="muted">{m.daily_reward?.awarded?'Начислено сегодня':'Награда за сегодня получена'}</small></span><b>+{m.daily_reward?.amount||25} Йер {rewardOpen?'⌃':'⌄'}</b></button>{rewardOpen&&<DailyReward userId={m.id} reward={m.daily_reward} refresh={loadMe}/>}</div><div className="profile-shortcuts">{[['friends','Друзья','Кто в сети и совместные игры'],['collection','Кассеты','Твоя коллекция тем'],['achievements','Достижения','Прогресс и награды'],['settings','Настройки','Экран, звук и управление']].map(([id,title,description])=><button className="card profile-shortcut" key={id} onClick={()=>setTab(id)}><b>{title}</b><small>{description}</small><span aria-hidden="true">↗</span></button>)}</div><section className="card profile-menu">{[['shop','Магазин'],['activity','Моя активность'],...(m.compensation_letters?.length?[['letters','Письма от студии']]:[]),...(m.role==='admin'?[['admin','Управление студией']]:[])].map(([id,title])=><button className="profile-menu-row" key={id} onClick={()=>setTab(id)}><span>{title}</span><span>›</span></button>)}</section></section>;
 }

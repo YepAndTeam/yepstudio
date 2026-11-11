@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime,timedelta
 from uuid import uuid4
 from sqlalchemy import select,update,delete,func
-from database import User,Meta
+from database import User,Meta,Notification
 from widget_models import BotContact,BoardInvitation,BoardWidgetSession,BoardWidgetQuery
 from chess_models import ChessGame
 from checkers_models import CheckersGame
@@ -56,6 +56,19 @@ def session_view(db,session,now=None):
  page,count,users=opponents(db,session.user_id,session.page);session.page=page
  return {'screen':'players','kind':session.kind,'page':page,'pages':max(1,(count+4)//5),'players':users}
 
+
+def create_invitation(db,uid,target,kind,now=None):
+ now=now or datetime.utcnow()
+ if kind not in ('chess','checkers'):raise WidgetError('Неизвестная игра')
+ recipient=db.get(User,target);contact=db.get(BotContact,target)
+ if target==uid or not recipient or not recipient.notify or not contact or not contact.available:raise WidgetError('Игрок недоступен для приглашений. Он должен нажать /start и включить уведомления.')
+ pending=db.scalar(select(func.count()).select_from(BoardInvitation).where(BoardInvitation.sender_id==uid,BoardInvitation.status=='pending',BoardInvitation.expires_at>now))
+ if pending>=3:raise WidgetError('У тебя уже три ожидающих приглашения.')
+ recent=db.scalar(select(BoardInvitation.id).where(BoardInvitation.sender_id==uid,BoardInvitation.created_at>now-timedelta(seconds=30)).limit(1))
+ if recent:raise WidgetError('Подожди 30 секунд перед следующим приглашением.')
+ invitation=BoardInvitation(id=uuid4().hex,sender_id=uid,recipient_id=target,kind=kind,status='pending',delivery='queued',created_at=now,expires_at=now+timedelta(minutes=30))
+ db.add(invitation);db.flush();return invitation
+
 def handle_action(db,uid,chat_id,message_id,query_id,data,now=None):
  now=now or datetime.utcnow();lock_widgets(db)
  if chat_id!=uid:raise WidgetError('Открой виджет в личном чате с ботом.')
@@ -80,14 +93,8 @@ def handle_action(db,uid,chat_id,message_id,query_id,data,now=None):
   if session.kind not in ('chess','checkers'):raise WidgetError('Сначала выбери игру')
   try:target=int(data.split(':',1)[1])
   except ValueError:raise WidgetError('Выбери игрока')
-  recipient=db.get(User,target);contact=db.get(BotContact,target)
-  if target==uid or not recipient or not recipient.notify or not contact or not contact.available:raise WidgetError('Игрок недоступен для приглашений. Он должен нажать /start и включить уведомления.')
-  pending=db.scalar(select(func.count()).select_from(BoardInvitation).where(BoardInvitation.sender_id==uid,BoardInvitation.status=='pending',BoardInvitation.expires_at>now))
-  if pending>=3:raise WidgetError('У тебя уже три ожидающих приглашения.')
-  recent=db.scalar(select(BoardInvitation.id).where(BoardInvitation.sender_id==uid,BoardInvitation.created_at>now-timedelta(seconds=30)).limit(1))
-  if recent:raise WidgetError('Подожди 30 секунд перед следующим приглашением.')
-  invitation=BoardInvitation(id=uuid4().hex,sender_id=uid,recipient_id=target,kind=session.kind,status='pending',delivery='queued',created_at=now,expires_at=now+timedelta(minutes=30))
-  db.add(invitation);db.flush();session.invitation_id=invitation.id;delivery=invitation.id
+  invitation=create_invitation(db,uid,target,session.kind,now)
+  session.invitation_id=invitation.id;delivery=invitation.id
  elif data in ('accept','decline','cancel','retry'):
   invitation=db.get(BoardInvitation,session.invitation_id) if session.invitation_id else None
   if not invitation or uid not in (invitation.sender_id,invitation.recipient_id):raise WidgetError('Приглашение не найдено')
@@ -103,6 +110,7 @@ def handle_action(db,uid,chat_id,message_id,query_id,data,now=None):
     model=ChessGame if invitation.kind=='chess' else CheckersGame
     game=model(creator_id=invitation.sender_id,white_id=white,black_id=black,status='active',moves='')
     db.add(game);db.flush();invitation.game_id=game.id;invitation.status='accepted'
+    db.add(Notification(user_id=invitation.sender_id,kind='game',text=db.get(User,uid).first_name+' принял приглашение. Партия готова в разделе игр.',ref='game'))
    elif invitation.status!='accepted':raise WidgetError('Приглашение уже закрыто или истекло')
   else:
    if data=='decline' and uid!=invitation.recipient_id or data=='cancel' and uid!=invitation.sender_id:raise WidgetError('Это действие недоступно')

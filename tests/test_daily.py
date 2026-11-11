@@ -25,6 +25,13 @@ class DailyTest(unittest.TestCase):
         with self.sessions() as db:
             self.assertEqual(db.get(User,1).jera,25)
             self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),1)
+    def test_repeat_visit_only_reads_and_does_not_lock_economy(self):
+        from sqlalchemy import event
+        now=datetime(2026,11,12,10,tzinfo=timezone.utc);self.visit(now)
+        statements=[]
+        event.listen(self.engine,'before_cursor_execute',lambda conn,cursor,sql,*args:statements.append(sql))
+        self.assertFalse(self.visit(now)['awarded'])
+        self.assertTrue(all(sql.lstrip().upper().startswith('SELECT') for sql in statements))
     def test_midnight_is_kazakhstan_time(self):
         now=datetime(2026,11,11,18,59,59,tzinfo=timezone.utc)
         first=self.visit(now)

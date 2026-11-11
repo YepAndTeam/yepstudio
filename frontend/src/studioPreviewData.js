@@ -1,3 +1,4 @@
+import {makeFriendPreview} from "./friendPreviewData";
 import {boardPreview} from "./boardPreviewData";
 import {makeRacePreview} from "./racePreviewData";
 import activityCatalog from "../../activity_catalog.json";
@@ -18,6 +19,7 @@ export function installStudioPreview(scene,theme){
     owned_themes:["dark","light","retro","terminal","nyan","tetris","poop"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
     daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?50:25,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
     compensation_letters:scene==="letter"?[receipt]:[]};
+  const friendPreview=makeFriendPreview();
   const racePreview=makeRacePreview(scene,me);
   if(scene.startsWith("race_"))window.Telegram.WebApp.initDataUnsafe.start_param="races";
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
@@ -44,6 +46,7 @@ export function installStudioPreview(scene,theme){
       {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]});
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
+    const social=friendPreview(path,method,body);if(social!==undefined)return social;
     const boardResult=boardPreview(path,method);if(boardResult!==undefined)return boardResult;
     const raceResult=await racePreview(path,method,body);if(raceResult!==undefined)return raceResult;
     if(path==="/tasks")return {earned_today:3,daily_limit:10,balance:me.jera,ends_at:new Date(Date.now()+3600000).toISOString(),tasks:["participation","variety","score"].map((category,i)=>{const candidates=activityCatalog.tasks.filter(task=>task.category===category);const task=candidates[(Math.floor(Date.now()/86400000)+i)%candidates.length];return {...task,amount:[3,3,4][i],earned:i===0,current:i===0?task.target:Math.floor(task.target*.4)};})};

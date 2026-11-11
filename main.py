@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import social_models  # friends and shared online status
 import widget_models  # registers private-chat widget tables
 import race_models  # registers race tables before create_all
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
@@ -188,6 +189,11 @@ def get_admin(user: User = Depends(get_user)) -> User:
 
 from race_api import make_race_router
 app.include_router(make_race_router(get_user,get_admin,get_db,deliver_race_reminders))
+from social_api import make_social_router
+async def deliver_friend_game(invitation_id):
+    from widget_bot import deliver_invitation
+    await deliver_invitation(bot,SessionLocal,invitation_id)
+app.include_router(make_social_router(get_user,get_db,deliver_friend_game))
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
 
@@ -224,6 +230,7 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "votes": count(Vote.user_id == user.id, model=Vote),
         "rated": count(Topic.user_id == user.id, Topic.rated.is_(True), Topic.deleted.is_(False), model=Topic),
         "theme": user.theme or "dark", "jera": user.jera,
+        "unread_notifications": count(Notification.user_id==user.id,Notification.read.is_(False),model=Notification),
         "owned_themes": sorted(owned_themes(db, user.id)), "theme_box_price": BOX_PRICE,
         "compensation_letters": list_letters(db, user.id),
         "daily_reward": daily,
@@ -549,6 +556,11 @@ def patch_topic(topic_id: int, body: TopicPatch, bg: BackgroundTasks,
         t.status = body.status
     db.commit()
     return {"ok": True}
+
+
+@app.get("/api/notifications/unread")
+def unread_notifications(user: User = Depends(get_user), db=Depends(get_db)):
+    return {"unread":db.scalar(select(func.count()).select_from(Notification).where(Notification.user_id==user.id,Notification.read.is_(False))) or 0}
 
 
 @app.get("/api/notifications")

@@ -6,6 +6,7 @@ import Community from "./screens/Community";
 import Profile from "./screens/Profile";
 import Thread from "./screens/Thread";
 import Inbox from "./screens/Inbox";
+import SocialHeartbeat from "./components/SocialHeartbeat";
 import BackgroundMusic from "./components/BackgroundMusic";
 import CompensationMail from "./components/CompensationMail";
 import NewTopicSheet from "./components/NewTopicSheet";
@@ -20,9 +21,10 @@ const TABS = [
 ];
 
 export default function App() {
-const { loadHome, loadTopics, loadMe, loadNotifs, notifs, theme, me, acknowledgeCompensation } = useStore();
+const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, acknowledgeCompensation } = useStore();
   const [tournamentId,setTournamentId]=useState(null);
   const [studioSection,setStudioSection]=useState(null);
+  const [friendTarget,setFriendTarget]=useState(null),[profileSection,setProfileSection]=useState(null);
   const [selectedMail,setSelectedMail]=useState(null);
   const [dismissedMail,setDismissedMail]=useState([]);
   const letters=me?.compensation_letters || [];
@@ -49,14 +51,14 @@ const [gameRef, setGameRef] = useState(null);
     setThread(null);
     setInbox(false);
     setGameRef(null);
+    setProfileSection(null);setFriendTarget(null);
     scrollTo(0);
     if (t === "news") loadHome();
     if (t === "forum") loadTopics();
     if (t === "profile") {
-      loadMe();
-      loadTopics();
+      loadMe(false);
     }
-    loadNotifs();
+    loadUnread();
   };
 
   const openThread = (ref) => {
@@ -109,7 +111,9 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if (ref==="races") {
+  if (ref.startsWith("friend_") && /^friend_\d+$/.test(ref)){
+    setTab("profile");setProfileSection("friends");setFriendTarget(Number(ref.slice(7)));
+  } else if (ref==="races") {
     setTab("news");setStudioSection("races");
   } else if (ref.startsWith("tour_")) {
     setTab("news");setGameRef(null);setTournamentId(ref.slice(5));
@@ -124,7 +128,7 @@ const [gameRef, setGameRef] = useState(null);
   // обновление нотификаций
   useEffect(() => {
     const tick = () => {
-      if (document.visibilityState === "visible") loadNotifs();
+      if (document.visibilityState === "visible") loadUnread();
     };
     const id = setInterval(tick, 60000);
     const resume=()=>{if(document.visibilityState==="visible"){void loadMe();tick();}};
@@ -133,7 +137,7 @@ const [gameRef, setGameRef] = useState(null);
       clearInterval(id);
       document.removeEventListener("visibilitychange", resume);
     };
-  }, [loadNotifs, loadMe]);
+  }, [loadUnread, loadMe]);
 
   const onCreated = () => {
     setSheet(false);
@@ -146,7 +150,7 @@ const [gameRef, setGameRef] = useState(null);
 
   return (
     <>
-      <BackgroundMusic />
+      <BackgroundMusic /><SocialHeartbeat userId={me?.id}/>
       <header>
         <div className="logo">
           <span>YAB</span>
@@ -174,7 +178,7 @@ const [gameRef, setGameRef] = useState(null);
           {thread ? (
             <Thread key={thread} refId={thread} onBack={back} />
           ) : inbox ? (
-            <Inbox openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
+            <Inbox openFriends={()=>{setInbox(false);setTab("profile");setProfileSection("friends");setFriendTarget(null);}} openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
             <Studio key={studioSection||"default"} initialSection={studioSection} openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
           ) : tab === "forum" ? (
@@ -188,7 +192,7 @@ const [gameRef, setGameRef] = useState(null);
             />
           ) : tab === "game" ? <Game initial={gameRef} />
             : (
-            <Profile openThread={openThread} onOpenLetter={setSelectedMail} />
+            <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} />
           )}
         </div>
       </div>

@@ -13,8 +13,10 @@ def reward_visit(db, user_id, now=None):
         now = now.replace(tzinfo=timezone.utc)
     local = now.astimezone(KZ)
     today = local.date()
-    lock_scores(db)
     row = db.get(DailyVisit, (user_id, today.isoformat()))
+    if row is None:
+        lock_scores(db)
+        row = db.get(DailyVisit, (user_id, today.isoformat()), populate_existing=True)
     awarded = row is None
     if awarded:
         previous = db.scalar(select(DailyVisit).where(DailyVisit.user_id == user_id)
