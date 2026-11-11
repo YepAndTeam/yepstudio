@@ -8,6 +8,8 @@ import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { drawNyanCat, drawNyanTrail, drawStars, NYAN_H } from "../nyan";
 import { shareRecord } from "../share";
+import { drawPoop } from "../poop";
+import { drawBathroom, drawPlunger, drawPaperRoll } from "../bathroom";
 const GAME = "dino";
 
 const W = 360, H = 180, GROUND = 150, DX = 40, DW = 22, DH = 26;
@@ -112,11 +114,12 @@ function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
   if (col.nyan) drawStars(ctx, W, GROUND, s.t);
+  if (col.poop) drawBathroom(ctx, W, GROUND, H);
   ctx.fillStyle = col.fg;
   ctx.fillRect(0, GROUND, W, 2);
 
   // Земля
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; !col.poop && i < 8; i++) {
     ctx.fillRect(
       ((i * 53 - s.t * s.speed * 0.5) % W + W) % W,
       GROUND + 8 + (i % 3) * 6,
@@ -128,7 +131,10 @@ function draw(ctx, s, col) {
   // Динозавр
    const y = s.y - DH;
   const air = s.y < GROUND;
-  if (col.nyan) {
+  if (col.poop) {
+    drawPoop(ctx, DX, y, DW, DH, air ? 0 : Math.floor(s.leg), false, s.phase === "dead");
+    ctx.fillStyle = col.fg;
+  } else if (col.nyan) {
     const frame = Math.floor(s.leg);
     drawNyanTrail(ctx, DX - 2, s.y - NYAN_H, frame);
     drawNyanCat(ctx, DX - 2, s.y - NYAN_H, frame, air);
@@ -149,6 +155,12 @@ function draw(ctx, s, col) {
   for (const o of s.obs) {
     const x = Math.round(o.x);
 
+    if (col.poop) {
+      if (o.type === "fly") drawPaperRoll(ctx, x, GROUND-o.fy, o.w, o.h, Math.floor(s.t*8)%2);
+      else drawPlunger(ctx, x, GROUND, o.w, o.h);
+      ctx.fillStyle=col.fg;
+      continue;
+    }
     if (o.type === "fly") {
       const by = GROUND - o.fy; // нижняя точка птицы
       const flap = Math.floor(s.t * 10 + o.x * 0.1) % 2;
@@ -183,6 +195,7 @@ function draw(ctx, s, col) {
   ctx.textAlign = "right";
   ctx.fillText(String(s.score).padStart(5, "0"), W - 10, 20);
   ctx.textAlign = "center";
+  if (s.phase === "starting") ctx.fillText("Готовим забег…", W / 2, 70);
   if (s.phase === "idle") ctx.fillText("Тапни, чтобы бежать", W / 2, 70);
   if (s.phase === "dead") ctx.fillText("Конец. Тапни ещё раз", W / 2, 70);
 }
@@ -190,6 +203,8 @@ function draw(ctx, s, col) {
 export default function Dino({ onBack }) {
   const { me } = useStore();
   const cv = useRef(null);
+  const starting = useRef(false);
+  const alive = useRef(true);
   const g = useRef(fresh());
   const col = useRef({ fg: "#fff", bg: "#000", font: "monospace" });
   const [phase, setPhase] = useState("idle");
@@ -222,7 +237,8 @@ export default function Dino({ onBack }) {
   const dieRef = useRef(die);
   dieRef.current = die;
 
-  const press = () => {
+  const press = async () => {
+    if(starting.current)return;
     const s = g.current;
     if (s.phase === "run") {
       if (s.y >= GROUND) {
@@ -231,18 +247,25 @@ export default function Dino({ onBack }) {
         haptic();
       }
     } else if (s.phase === "idle" || performance.now() - s.deadAt > 500) {
-      g.current = { ...fresh(), phase: "run" };
-      setPhase("run");
-      setResult(null);
-      setScore(0);
-      isNyan() ? (nyanSfx.start(), nyanSfx.nya()) : sfx.jump();
-      api("/game/start", "POST", { game: GAME }).catch(() => {});
+      starting.current=true;
+      g.current.phase="starting";
+      setPhase("starting");
+      try {
+        await api("/game/start", "POST", { game: GAME });
+        if(!alive.current)return;
+        g.current = { ...fresh(), phase: "run" };
+        setPhase("run");setResult(null);setScore(0);
+        if(isNyan()){nyanSfx.start();nyanSfx.nya();}else sfx.jump();
+      } catch(e) {
+        if(alive.current){g.current=fresh();setPhase("idle");notify("Не удалось начать забег: "+e.message);}
+      } finally {starting.current=false;}
     }
   };
   const pressRef = useRef(press);
   pressRef.current = press;
 
   useEffect(() => {
+    alive.current=true;
     // Чёткая картинка на экранах с высокой плотностью пикселей
     const dpr = window.devicePixelRatio || 1;
     cv.current.width = W * dpr;
@@ -264,6 +287,7 @@ export default function Dino({ onBack }) {
           bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
           nyan: document.documentElement.dataset.theme === "nyan",
+          poop: document.documentElement.dataset.theme === "poop",
         };
         lastCol = now;
       }
@@ -285,6 +309,7 @@ export default function Dino({ onBack }) {
     };
     window.addEventListener("keydown", key);
     return () => {
+     alive.current=false;
      nyanSfx.stop();
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", key);

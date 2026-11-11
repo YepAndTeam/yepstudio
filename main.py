@@ -1,10 +1,13 @@
 import os
+import asyncio
+import logging
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 import re
+import json
 from html import escape
 from fastapi.responses import HTMLResponse
 from aiogram.types import MenuButtonWebApp, Update, WebAppInfo
@@ -12,7 +15,7 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, update, and_, or_
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
 import checkers_models  # noqa: F401  (регистрирует таблицу до create_all)
 from chess_api import make_router as make_chess_router
@@ -21,7 +24,7 @@ from auth import ADMIN_IDS, validate_init_data
 from bot import WEBAPP_URL, bot, dp
 from database import (
     Base, Comment, CommentReaction, GameScore, Notification, Post, Project,
-    SessionLocal, Topic, User, Vote, engine, migrate,
+    SessionLocal, Topic, User, Vote, engine, migrate, AllTimeScore, Tournament, TournamentScore,
 )
 from notify import add_notification, notify_game_beaten, short
 
@@ -31,9 +34,34 @@ TG_APP_LINK = "https://t.me/yab_studio_bot"
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
 STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
-THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris"}
+THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris", "poop"}
 Base.metadata.create_all(engine)
 migrate()
+from weekly import ensure_period, week_ends_at
+from score_service import initialize_score_state, submit_result, invalidate_scores, lock_scores, begin_run, ScoreError
+from reset_records import preview as reset_preview, summary as reset_summary, apply_plan as apply_record_reset, RESET_ID
+from database import Meta, RecordReset
+initialize_score_state(SessionLocal)
+from shop_service import (initialize_shop_state, owned_themes, buy_box, unlock_box,
+                          shop_state, ShopError, BOX_PRICE)
+initialize_shop_state(SessionLocal)
+from compensation_service import initialize_letters, list_letters, mark_read
+initialize_letters(SessionLocal)
+from tournament_service import (list_events, get_event, event_state, create_event,
+    start_event, cancel_event, register as register_tournament, settle_due, TournamentError, vote as tournament_vote)
+
+def settle_tournaments_in_background():
+    with SessionLocal.begin() as db:
+        settle_due(db)
+
+
+async def tournament_clock():
+    while True:
+        await asyncio.sleep(30)
+        try:
+            await asyncio.to_thread(settle_tournaments_in_background)
+        except Exception:
+            logging.getLogger(__name__).exception("Tournament settlement failed; retrying on next tick")
 
 
 @asynccontextmanager
@@ -43,8 +71,16 @@ async def lifespan(app: FastAPI):
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))
         )
-    yield
-    await bot.session.close()
+    clock = asyncio.create_task(tournament_clock())
+    try:
+        yield
+    finally:
+        clock.cancel()
+        try:
+            await clock
+        except asyncio.CancelledError:
+            pass
+        await bot.session.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -109,7 +145,8 @@ class ThemeIn(BaseModel):
 def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db)):
     if body.theme not in THEMES:
         raise HTTPException(422, "Неизвестная тема")
-    # сюда позже добавим проверку разблокировки
+    if body.theme not in owned_themes(db, user.id):
+        raise HTTPException(403, "Эта тема ещё не получена")
     user.theme = body.theme
     db.commit()
     return {"ok": True}
@@ -117,6 +154,8 @@ def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db))
 
 @app.get("/api/me")
 def me(user: User = Depends(get_user), db=Depends(get_db)):
+    if settle_due(db):
+        db.commit()
     def count(*where, model):
         return db.scalar(select(func.count()).select_from(model).where(*where)) or 0
 
@@ -126,8 +165,158 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "comments": count(Comment.user_id == user.id, model=Comment),
         "votes": count(Vote.user_id == user.id, model=Vote),
         "rated": count(Topic.user_id == user.id, Topic.rated.is_(True), Topic.deleted.is_(False), model=Topic),
-        "theme": user.theme,
+        "theme": user.theme or "dark", "jera": user.jera,
+        "owned_themes": sorted(owned_themes(db, user.id)), "theme_box_price": BOX_PRICE,
+        "compensation_letters": list_letters(db, user.id),
     }
+
+
+@app.post("/api/me/compensation/{reset_id}/read")
+def read_compensation(reset_id: str, user: User = Depends(get_user), db=Depends(get_db)):
+    if not mark_read(db, user.id, reset_id):
+        raise HTTPException(404, "Письмо не найдено")
+    db.commit()
+    return {"ok": True}
+
+
+# ---------- турниры ----------
+class TournamentCreateIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    game: str = "dino"
+    duration_hours: int = Field(default=48, ge=1, le=168)
+    entry_fee: int = Field(default=0, ge=0, le=10000)
+
+
+def tournament_response(db, event, user_id):
+    data = event_state(db, event, user_id)
+    data["balance"] = db.scalar(select(User.jera).where(User.id == user_id)) or 0
+    if WEBAPP_URL:
+        data["share_url"] = WEBAPP_URL.rstrip("/") + data["share_path"]
+    return data
+
+
+@app.get("/api/tournaments")
+def tournaments(user: User = Depends(get_user), db=Depends(get_db)):
+    data = list_events(db, user.id)
+    db.commit()
+    return data
+
+
+@app.get("/api/tournaments/{event_id}")
+def tournament_detail(event_id: str, user: User = Depends(get_user), db=Depends(get_db)):
+    settle_due(db)
+    try:
+        data = tournament_response(db, get_event(db, event_id), user.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+@app.post("/api/tournaments/{event_id}/register")
+def tournament_register(event_id: str, user: User = Depends(get_user), db=Depends(get_db)):
+    try:
+        register_tournament(db, event_id, user.id)
+        data = tournament_response(db, get_event(db, event_id), user.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+class TournamentVoteIn(BaseModel):
+    game: str
+
+
+@app.post("/api/tournaments/{event_id}/vote")
+def vote_next_tournament(event_id: str, body: TournamentVoteIn, user: User = Depends(get_user), db=Depends(get_db)):
+    try:
+        event = tournament_vote(db, event_id, user.id, body.game)
+        data = tournament_response(db, event, user.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+@app.post("/api/admin/tournaments")
+def tournament_create(body: TournamentCreateIn, admin: User = Depends(get_admin), db=Depends(get_db)):
+    try:
+        event = create_event(db, body.title, body.game, body.duration_hours, body.entry_fee)
+        data = tournament_response(db, event, admin.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+@app.post("/api/admin/tournaments/{event_id}/start")
+def tournament_start(event_id: str, admin: User = Depends(get_admin), db=Depends(get_db)):
+    try:
+        data = tournament_response(db, start_event(db, event_id), admin.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+@app.post("/api/admin/tournaments/{event_id}/cancel")
+def tournament_cancel(event_id: str, admin: User = Depends(get_admin), db=Depends(get_db)):
+    try:
+        data = tournament_response(db, cancel_event(db, event_id), admin.id)
+    except TournamentError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return data
+
+
+# ---------- магазин ----------
+class BuyThemeBoxIn(BaseModel):
+    request_id: str = Field(min_length=1, max_length=64)
+
+
+class UnlockThemeBoxIn(BaseModel):
+    box_id: str = Field(min_length=1, max_length=40)
+    runes: list[str] = Field(min_length=3, max_length=3)
+
+
+@app.get("/api/shop")
+def get_shop(user: User = Depends(get_user), db=Depends(get_db)):
+    return shop_state(db, user.id)
+
+
+@app.post("/api/shop/theme-box/buy")
+def buy_theme_box(body: BuyThemeBoxIn, user: User = Depends(get_user), db=Depends(get_db)):
+    try:
+        result = buy_box(db, user.id, body.request_id)
+        result["owned_themes"] = sorted(owned_themes(db, user.id))
+    except ShopError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return result
+
+
+@app.post("/api/shop/theme-box/unlock")
+def unlock_theme_box(body: UnlockThemeBoxIn, user: User = Depends(get_user), db=Depends(get_db)):
+    try:
+        result = unlock_box(db, user.id, body.box_id, body.runes)
+        result["shop"] = shop_state(db, user.id)
+        result["owned_themes"] = result["shop"]["owned_themes"]
+    except ShopError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return result
+
+
+@app.post("/api/admin/shop/test-balance")
+def admin_test_balance(body: BuyThemeBoxIn, admin: User = Depends(get_admin), db=Depends(get_db)):
+    from shop_service import grant_test_balance
+    try:
+        result = grant_test_balance(db, admin.id, body.request_id)
+    except ShopError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return result
 
 
 # ---------- новости ----------
@@ -445,89 +634,163 @@ class StartIn(BaseModel):
 
 
 class ScoreIn(BaseModel):
+    run_id: Optional[str] = Field(default=None, max_length=40)
     game: str = "dino"
     score: int = Field(ge=0, le=100000)
 
 
 @app.post("/api/game/start")
-def game_start(body: Optional[StartIn] = None, user: User = Depends(get_user)):
-    # body необязателен, чтобы старая версия фронта (без game) не падала с 422
+def game_start(body: Optional[StartIn] = None, user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(body.game if body else "dino")
-    GAME_RUNS[(user.id, game)] = time.monotonic()
-    return {"ok": True}
+    try:
+        run = begin_run(db, user.id, game)
+    except ScoreError as error:
+        raise HTTPException(error.status, str(error))
+    db.commit()
+    return {"ok": True, "run_id": run.id}
+
 
 
 @app.post("/api/game/score")
 def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(body.game)
+    ensure_period(db, bg)
     GAME_RUNS.pop((user.id, game), None)  # старт больше не обязателен
     if body.score > GAMES[game]["max"]:
         raise HTTPException(422, "Подозрительный результат")
 
-    row = db.scalar(select(GameScore).where(GameScore.user_id == user.id, GameScore.game == game))
-    old = row.best if row else 0
-    if not row:
-        row = GameScore(user_id=user.id, game=game, best=0, plays=0)
-        db.add(row)
-    row.plays += 1
-
-    record = body.score > old
+    try:
+        row, old, record = submit_result(db, user.id, game, body.score, run_id=body.run_id)
+    except ScoreError as error:
+        raise HTTPException(error.status, str(error))
     if record:
-        row.best = body.score
-        row.updated_at = datetime.utcnow()
         if old > 0:
-            # кого обогнали в этой игре: были выше твоего старого рекорда, теперь ниже нового
+            # кого обогнали
             beaten = db.scalars(
                 select(GameScore.user_id)
-                .where(GameScore.game == game, GameScore.best > old,
-                       GameScore.best < body.score, GameScore.user_id != user.id)
-                .order_by(GameScore.best.desc()).limit(3)
+                .where(
+                    GameScore.game == game,
+                    GameScore.best > old,
+                    GameScore.best < body.score,
+                    GameScore.user_id != user.id,
+                )
+                .order_by(GameScore.best.desc())
+                .limit(3)
             ).all()
             for uid in beaten:
                 notify_game_beaten(db, bg, uid, user.first_name, body.score, user.id)
-    db.commit()
 
     rank = 1 + (db.scalar(
         select(func.count()).select_from(GameScore)
         .where(GameScore.game == game, GameScore.best > row.best)
     ) or 0)
-    return {"best": row.best, "record": record, "rank": rank}
-
+    response = {"best": row.best, "record": record, "rank": rank}
+    db.commit()
+    return response
 
 @app.delete("/api/game/score/{user_id}")
 def delete_score(user_id: int, game: Optional[str] = None,
                  admin: User = Depends(get_admin), db=Depends(get_db)):
     """Удаляет рекорды читера: все игры или одну (?game=dino). Только для админов."""
-    q = delete(GameScore).where(GameScore.user_id == user_id)
-    if game:
-        q = q.where(GameScore.game == check_game(game))
-    db.execute(q)
+    invalidate_scores(db, user_id, check_game(game) if game else None)
     db.commit()
     return {"ok": True}
 
 
 @app.get("/api/game/top")
-def game_top(game: str = "dino", user: User = Depends(get_user), db=Depends(get_db)):
+def game_top(bg: BackgroundTasks, game: str = "dino", scope: Literal["week", "all", "tournament"] = "week",
+             tournament_id: Optional[str] = None,
+             user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(game)
+    ensure_period(db, bg)
+    event = None
+    if scope == "tournament":
+        event = db.get(Tournament, tournament_id) if tournament_id else None
+        if not event or event.game != game or event.cancelled:
+            raise HTTPException(404, "Турнир не найден")
+        M, condition, order = TournamentScore, TournamentScore.tournament_id == event.id, TournamentScore.achieved_at
+    else:
+        M = AllTimeScore if scope == "all" else GameScore
+        condition = M.game == game
+        order = M.achieved_at if scope == "all" else M.updated_at
     rows = db.execute(
-        select(GameScore.user_id, User.first_name, GameScore.best)
-        .join(User, User.id == GameScore.user_id)
-        .where(GameScore.game == game, GameScore.best > 0)
-        .order_by(GameScore.best.desc(), GameScore.updated_at)
-        .limit(20)
+        select(M.user_id, User.first_name, M.best).join(User, User.id == M.user_id)
+        .where(condition, M.best > 0).order_by(M.best.desc(), order, M.user_id).limit(20)
     ).all()
-    mine = db.scalar(select(GameScore).where(GameScore.user_id == user.id, GameScore.game == game))
+    mine = db.scalar(select(M).where(M.user_id == user.id, condition))
     rank = None
     if mine and mine.best > 0:
-        rank = 1 + (db.scalar(
-            select(func.count()).select_from(GameScore)
-            .where(GameScore.game == game, GameScore.best > mine.best)
-        ) or 0)
-    return {
-        "top": [{"user_id": uid, "name": name, "best": best} for uid, name, best in rows],
-        "my_best": mine.best if mine else 0,
-        "my_rank": rank,
+        higher = M.best > mine.best
+        if scope == "tournament":
+            higher = or_(higher, and_(M.best == mine.best, or_(
+                M.achieved_at < mine.achieved_at,
+                and_(M.achieved_at == mine.achieved_at, M.user_id < user.id))))
+        rank = 1 + (db.scalar(select(func.count()).select_from(M)
+                    .where(condition, higher)) or 0)
+    top, last_best, place = [], None, 0
+    for index, (uid, name, best) in enumerate(rows, 1):
+        if scope == "tournament" or best != last_best:
+            place, last_best = index, best
+        top.append({"user_id": uid, "name": name, "best": best, "place": place})
+    response = {
+        "top": top, "my_best": mine.best if mine else 0, "my_rank": rank,
+        "ends_at": iso(event.ends_at) if event else iso(week_ends_at()) if scope == "week" else None,
     }
+    db.commit()  # includes a possible weekly rollover, in the same transaction
+    return response
+
+
+
+class RecordsMaintenanceIn(BaseModel):
+    enabled: bool
+
+
+class RecordsResetIn(BaseModel):
+    archive_hash: str = Field(min_length=64, max_length=64)
+
+
+@app.get("/api/admin/records/status")
+def records_status(admin: User = Depends(get_admin), db=Depends(get_db)):
+    return {"maintenance": db.scalar(select(Meta.value).where(Meta.key == "score_maintenance")) == "1",
+            "applied": db.get(RecordReset, RESET_ID) is not None}
+
+
+@app.post("/api/admin/records/maintenance")
+def records_maintenance(body: RecordsMaintenanceIn, admin: User = Depends(get_admin), db=Depends(get_db)):
+    lock_scores(db)
+    settle_due(db)
+    if body.enabled and db.scalar(select(Tournament.id).where(Tournament.cancelled.is_(False), Tournament.status.in_(["registration", "active"])).limit(1)):
+        raise HTTPException(409, "Сначала заверши или отмени текущий турнир")
+    db.merge(Meta(key="score_maintenance", value="1" if body.enabled else "0"))
+    db.commit()
+    return {"ok": True, "maintenance": body.enabled}
+
+
+@app.get("/api/admin/records/reset-preview")
+def records_preview(admin: User = Depends(get_admin), db=Depends(get_db)):
+    lock_scores(db)
+    if db.get(RecordReset, RESET_ID):
+        raise HTTPException(409, "Однократный сброс уже выполнен")
+    plan = reset_preview(db)
+    plan["summary"] = reset_summary(plan)
+    db.commit()
+    return plan
+
+
+@app.post("/api/admin/records/reset-apply")
+def records_apply(body: RecordsResetIn, admin: User = Depends(get_admin), db=Depends(get_db)):
+    lock_scores(db)
+    if db.get(RecordReset, RESET_ID):
+        return {"already_applied": True, "reset_id": RESET_ID}
+    plan = reset_preview(db)
+    if plan["archive_hash"] != body.archive_hash:
+        raise HTTPException(409, "Данные изменились. Обнови расчёт перед сбросом.")
+    try:
+        result = apply_record_reset(db, plan)
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+    db.commit()
+    return result
 
 
 # ---------- Telegram ----------
@@ -618,6 +881,40 @@ def share_page(ref: str, db=Depends(get_db)):
 <a href="{e(target)}">Открыть</a>
 </body>
 </html>"""
+
+
+# Public HTML for Telegram's link preview crawler; no login required.
+@app.get("/tournaments/{event_id}", response_class=HTMLResponse)
+def tournament_share_page(event_id: str, db=Depends(get_db)):
+    try:
+        event = get_event(db, event_id)
+    except TournamentError:
+        raise HTTPException(404, "Турнир не найден")
+    names = {"dino":"Дино", "flappy":"Flappy", "snake":"Змейка", "tetris":"Тетрис", "hell":"Ад"}
+    game_name = names.get(event.game, event.game)
+    fee = "Участие бесплатно" if event.entry_fee == 0 else f"Взнос {event.entry_fee} Йер"
+    state = "Регистрация открыта" if event.status == "registration" else "Турнир идёт" if event.status == "active" and event.ends_at > datetime.utcnow() else "Турнир отменён" if event.cancelled else "Турнир завершён"
+    title = event.title
+    description = f"{state} · {game_name} · {event.duration_hours} ч · {fee}. 1 место — мифическая тема «Какашечки», 2–5 — Йера."
+    base = (WEBAPP_URL or "").rstrip("/")
+    image = base + "/tournament-" + event.game + ".png"
+    url = base + "/tournaments/" + event.id
+    target = TG_APP_LINK + "?startapp=tour_" + event.id
+    e = escape
+    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(title)}</title>
+<meta property="og:type" content="website"><meta property="og:site_name" content="YAB STUDIO">
+<meta property="og:title" content="{e(title)}"><meta property="og:description" content="{e(description)}">
+<meta property="og:url" content="{e(url, quote=True)}"><meta property="og:image" content="{e(image, quote=True)}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image"></head>
+<body style="margin:0;background:#101713;color:#f3efd6;font:17px system-ui">
+<main style="max-width:700px;margin:40px auto;padding:24px">
+<img src="{e(image, quote=True)}" alt="Турнир YAB STUDIO" style="width:100%;border-radius:16px">
+<h1>{e(title)}</h1><p>{e(description)}</p>
+<p>Засчитывается лучший результат зарегистрированного участника. При равных очках выше тот, кто достиг результата раньше.</p>
+<a href="{e(target, quote=True)}" style="display:inline-block;padding:16px 24px;border-radius:12px;background:#edbe63;color:#24170f;text-decoration:none;font-weight:bold">Открыть турнир в Telegram</a>
+</main></body></html>'''
 
 
 # статику монтируем последней, иначе она перекроет маршруты выше

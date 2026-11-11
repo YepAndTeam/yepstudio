@@ -6,7 +6,7 @@ const SITE = "https://yepstudio.onrender.com";
 
 // ref: "t12" (тема), "n3" (новость), "game_dino" (игра).
 // В startapp можно только буквы, цифры, _ и -
-export const appLink = (ref) => `${SITE}/s/${ref}`;
+export const appLink = (ref) => ref.startsWith("tour_") ? `${SITE}/tournaments/${encodeURIComponent(ref.slice(5))}` : `${SITE}/s/${ref}`;
 async function copy(text) {
   try {
     await navigator.clipboard.writeText(text);

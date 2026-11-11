@@ -4,6 +4,8 @@ import { useStore } from "../store";
 import { shareLink } from "../share";
 import { nyanSfx } from "../nyanSfx";
 import { tetrisSfx } from "../tetrisSfx";
+import TournamentBanner from "../components/TournamentBanner";
+import TournamentList from "../components/TournamentList";
 import Leaderboard from "../components/Leaderboard";
 import NyanRunner from "../components/NyanRunner";
 import { Chip } from "../components/Common";
@@ -50,7 +52,16 @@ const readUnlocked = () => {
   }
 };
 
-export default function Game({ initial }) {
+// Сколько осталось до конца недели: "3 д 5 ч" / "5 ч" / "скоро"
+function timeLeft(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return "скоро";
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor(ms / 3600000) % 24;
+  return d > 0 ? `${d} д ${h} ч` : `${h} ч`;
+}
+
+export default function Game({ initial, tournamentId, onTournamentChange }) {
   const { me, theme } = useStore();
   const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
   const inSecret = SECRET.some((g) => g.id === initGame);
@@ -60,10 +71,14 @@ export default function Game({ initial }) {
     ALL.some((g) => g.id === initGame && g.View) ? initGame : null
   );
   const [section, setSection] = useState(
-    inSecret ? "secret" : VERSUS.some((g) => g.id === initGame) ? "versus" : "casual"
+    tournamentId ? "versus" : inSecret ? "secret" : VERSUS.some((g) => g.id === initGame) ? "versus" : "casual"
   );
+  const [tournament,setTournament]=useState(tournamentId || null);
+  const openTournament=id=>{setTournament(id);setGame(null);setArg(null);setSection("versus");onTournamentChange?.(id);};
+  const closeTournament=()=>{setTournament(null);onTournamentChange?.(null);};
   const [unlocked, setUnlocked] = useState(() => inSecret || readUnlocked());
   const [board, setBoard] = useState(CASUAL[0].id);
+  const [scope, setScope] = useState("week"); // "week" | "all"
   const [tops, setTops] = useState({});
 
   // ввод секретного кода
@@ -92,7 +107,7 @@ export default function Game({ initial }) {
   const loadTops = () =>
     Promise.all(
       CASUAL.map((g) =>
-        api(`/game/top?game=${g.id}`)
+        api(`/game/top?game=${g.id}&scope=${scope}`)
           .then((r) => [g.id, r])
           .catch(() => [g.id, null])
       )
@@ -100,7 +115,7 @@ export default function Game({ initial }) {
 
   useEffect(() => {
     if (!game) loadTops();
-  }, [game]);
+  }, [game, scope]);
 
   useEffect(() => {
     if (!game) {
@@ -140,9 +155,11 @@ export default function Game({ initial }) {
   }
 
   const shown = CASUAL.find((g) => g.id === board);
+  const shownTop = tops[shown.id];
 
   const tile = (g, withBest, canShare = true) => {
     const soon = !g.View;
+    // The displayed record follows the selected leaderboard scope.
     const best = withBest ? tops[g.id]?.my_best ?? 0 : 0;
     const text =
       best > 0
@@ -239,6 +256,25 @@ export default function Game({ initial }) {
           <div className="ggrid">{CASUAL.map((g) => tile(g, true))}</div>
 
           <div className="filters">
+            <div className="seg">
+              <button
+                type="button"
+                className={scope === "week" ? "on" : ""}
+                onClick={() => setScope("week")}
+              >
+                Неделя
+              </button>
+              <button
+                type="button"
+                className={scope === "all" ? "on" : ""}
+                onClick={() => setScope("all")}
+              >
+                За всё время
+              </button>
+            </div>
+          </div>
+
+          <div className="filters">
             <div className="chips scroll">
               {CASUAL.map((g) => (
                 <Chip
@@ -252,29 +288,28 @@ export default function Game({ initial }) {
             </div>
             {codeInput}
           </div>
+
+          {scope === "week" && shownTop?.ends_at && (
+            <div className="small muted" style={{ padding: "0 4px 8px" }}>
+              До сброса: {timeLeft(shownTop.ends_at)}
+            </div>
+          )}
+
           <Leaderboard
-            title={`${shown.title} — рекорды`}
-            data={tops[shown.id]}
+            title={`${shown.title} — ${scope === "all" ? "за всё время" : "рекорды недели"}`}
+            data={shownTop}
             meId={me?.id}
           />
         </>
       )}
 
-      {section === "versus" && (
-        <>
-          <div className="ggrid">{VERSUS.map((g) => tile(g, false))}</div>
-
-          <div className="gtile soon wide">
-            <button type="button" className="topic gp" disabled>
-              <div className="title">Турниры</div>
-              <div className="prev">Сетки, призы и звание чемпиона</div>
-              <div className="foot">
-                <span className="badge">В будущих обновлениях</span>
-              </div>
-            </button>
-          </div>
-        </>
-      )}
+      {section === "versus" && (tournament ? <>
+        <button type="button" className="back" onClick={closeTournament}>‹ Все состязания</button>
+        <TournamentBanner eventId={tournament} onPlay={id=>setGame(id)} />
+      </> : <>
+        <TournamentList onOpen={openTournament} />
+        <div className="ggrid">{VERSUS.map((g) => tile(g, false))}</div>
+      </>)}
 
       {section === "secret" && unlocked && (
         <>

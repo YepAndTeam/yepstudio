@@ -7,6 +7,9 @@ import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { shareRecord } from "../share";
 
+import ArcadeStick from "../components/ArcadeStick";
+import { mergeControls } from "../arcadeInput";
+import { wcWall, drawWcRoom, drawWcEnemyColumn, drawPlungerWeapon } from "../hellWc";
 const GAME = "hell";
 const W = 320, H = 200, COLS = 160;
 const FOV = 0.66;
@@ -56,7 +59,8 @@ function ray(px, py, dx, dy) {
     if (isWall(mx, my)) break;
   }
   const dist = side === 0 ? sdx - ddx : sdy - ddy;
-  return { dist: Math.max(dist, 0.01), side };
+  const wallX=side===0?py+dist*dy:px+dist*dx;
+  return { dist: Math.max(dist, 0.01), side, wallX:wallX-Math.floor(wallX) };
 }
 
 function spawnEnemy(s) {
@@ -131,22 +135,28 @@ function step(s, dt, k) {
   }
 }
 
-function draw(ctx, s) {
+function draw(ctx, s, poop = false, zbuf = new Float32Array(COLS)) {
   // потолок и пол
   ctx.fillStyle = "#1a0a0a"; ctx.fillRect(0, 0, W, H / 2);
   ctx.fillStyle = "#2b2220"; ctx.fillRect(0, H / 2, W, H / 2);
 
+  if(poop)drawWcRoom(ctx,W,H);
+
   const dx = Math.cos(s.a), dy = Math.sin(s.a);
   const plx = -dy * FOV, ply = dx * FOV;
   const cw = W / COLS;
-  const zbuf = new Array(COLS);
 
   for (let i = 0; i < COLS; i++) {
     const cam = (2 * i) / COLS - 1;
-    const { dist, side } = ray(s.px, s.py, dx + plx * cam, dy + ply * cam);
+    const { dist, side, wallX } = ray(s.px, s.py, dx + plx * cam, dy + ply * cam);
     zbuf[i] = dist;
     const lh = Math.min(H * 2, H / dist);
     const fog = Math.max(0.15, 1 - dist / 12);
+    if(poop){
+      const texture=wcWall(side,fog);
+      ctx.drawImage(texture,Math.floor(wallX*32),0,1,32,i*cw,(H-lh)/2,cw+.5,lh);
+      continue;
+    }
     const base = side ? 110 : 150;
     ctx.fillStyle = `rgb(${Math.floor(base * fog)},${Math.floor(base * 0.35 * fog)},${Math.floor(base * 0.25 * fog)})`;
     ctx.fillRect(i * cw, (H - lh) / 2, cw + 0.5, lh);
@@ -174,6 +184,7 @@ function draw(ctx, s) {
       const col = Math.floor(x / cw);
       if (col < 0 || col >= COLS || ty > zbuf[col]) continue;
       const u = (x - left) / widthPx;
+      if(poop){drawWcEnemyColumn(ctx,x,top,size,u,e.hit>0);continue;}
       const body = e.hit > 0 ? "#ffffff" : `rgb(${Math.floor(200 * fog)},${Math.floor(40 * fog)},${Math.floor(30 * fog)})`;
       ctx.fillStyle = body;
       ctx.fillRect(x, top + size * 0.25, 1, size * 0.55); // тело
@@ -188,9 +199,12 @@ function draw(ctx, s) {
   // оружие
   const bob = s.phase === "run" ? Math.sin(s.t * 8) * 1.5 : 0;
   const kick = s.flash > 0 ? 6 : 0;
+  if(poop){drawPlungerWeapon(ctx,W,H,bob,kick,s.flash>0);}else{
   ctx.fillStyle = "#555"; ctx.fillRect(W / 2 - 10, H - 40 + kick + bob, 20, 40);
   ctx.fillStyle = "#333"; ctx.fillRect(W / 2 - 4, H - 52 + kick + bob, 8, 16);
   if (s.flash > 0) { ctx.fillStyle = "#ffd24a"; ctx.fillRect(W / 2 - 8, H - 66, 16, 14); }
+
+  }
 
   // прицел
   ctx.fillStyle = "#fff";
@@ -213,7 +227,12 @@ function draw(ctx, s) {
 }
 
 export default function Hell({ onBack }) {
-  const { me } = useStore();
+  const { me, theme } = useStore();
+  const themeRef=useRef(theme);
+  useEffect(()=>{themeRef.current=theme;},[theme]);
+  const stick=useRef({x:0,y:0});
+  const touchFire=useRef(0);
+  const firePointer=useRef(null);
   const cv = useRef(null);
   const g = useRef(fresh());
   const keys = useRef(KEYS());
@@ -229,6 +248,7 @@ export default function Hell({ onBack }) {
   const die = async () => {
     sfx.die();
     keys.current = KEYS();
+    stick.current={x:0,y:0};touchFire.current=0;
     const sc = g.current.score;
     setPhase("dead");
     setScore(sc);
@@ -258,25 +278,32 @@ export default function Hell({ onBack }) {
 
   const tap = () => {
     const s = g.current;
-    if (s.phase === "run") keys.current.fire = 1; // одиночный тап = выстрел
+    if (s.phase === "run") touchFire.current = 1; // одиночный тап = выстрел
     else if (s.phase === "idle" || performance.now() - s.deadAt > 500) startRef.current();
   };
 
   useEffect(() => {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.current.width = W * dpr;
     cv.current.height = H * dpr;
     const ctx = cv.current.getContext("2d");
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = false;
 
+    const input=KEYS();
+    const zbuf=new Float32Array(COLS);
+    const resetInput=()=>{keys.current=KEYS();stick.current={x:0,y:0};touchFire.current=0;firePointer.current=null;};
+    const onVisibility=()=>{if(document.hidden)resetInput();};
+    window.addEventListener("blur",resetInput);
+    document.addEventListener("visibilitychange",onVisibility);
     let raf, last = performance.now();
     const frame = (now) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       const s = g.current;
-      if (s.phase === "run") step(s, dt, keys.current);
-      draw(ctx, s);
+      mergeControls(keys.current,stick.current,touchFire.current,input);
+      if (s.phase === "run") step(s, dt, input);
+      draw(ctx, s, themeRef.current === "poop", zbuf);
       if (s.justDied) { s.justDied = false; dieRef.current(); }
       raf = requestAnimationFrame(frame);
     };
@@ -297,31 +324,24 @@ export default function Hell({ onBack }) {
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     return () => {
+      resetInput();
+      window.removeEventListener("blur",resetInput);
+      document.removeEventListener("visibilitychange",onVisibility);
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
   }, []);
 
-  // кнопка удержания для мобильных
-  const hold = (k, label, style) => (
-    <button
-      type="button"
-      className="padbtn"
-      style={{ touchAction: "none", userSelect: "none", ...style }}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        e.currentTarget.setPointerCapture?.(e.pointerId);
-        if (g.current.phase !== "run") return tap();
-        keys.current[k] = 1;
-      }}
-      onPointerUp={() => { keys.current[k] = 0; }}
-      onPointerCancel={() => { keys.current[k] = 0; }}
-      onPointerLeave={() => { keys.current[k] = 0; }}
-    >
-      {label}
-    </button>
-  );
+  const releaseFire=(e)=>{
+    if(e.pointerId!==firePointer.current)return;
+    firePointer.current=null;touchFire.current=0;
+  };
+  const pressFire=(e)=>{
+    if(firePointer.current!==null)return;
+    e.preventDefault();firePointer.current=e.pointerId;e.currentTarget.setPointerCapture(e.pointerId);
+    tap();
+  };
 
   const best = result?.best ?? top?.my_best;
 
@@ -344,24 +364,30 @@ export default function Hell({ onBack }) {
       <div className="card gm">
         <canvas
           ref={cv}
-          onPointerDown={tap}
-          onPointerUp={() => { keys.current.fire = 0; }}
+          onPointerDown={pressFire}
+          onPointerUp={releaseFire}
+          onPointerCancel={releaseFire}
+          onLostPointerCapture={releaseFire}
           style={{ width: "100%", aspectRatio: `${W} / ${H}`, display: "block", touchAction: "none" }}
         />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 52px)", gridTemplateRows: "repeat(2, 52px)", gap: 6 }}>
-            {hold("left", "◀", { gridArea: "2 / 1" })}
-            {hold("up", "▲", { gridArea: "1 / 2" })}
-            {hold("down", "▼", { gridArea: "2 / 2" })}
-            {hold("right", "▶", { gridArea: "2 / 3" })}
+        <div className="hell-controls">
+          <div className="hell-stick-wrap">
+            <ArcadeStick enabled={phase === "run"}
+              onActivate={()=>{if(g.current.phase!=="run")tap();}}
+              onChange={value=>{stick.current=value;}} />
+            <span className="small muted">Ход / поворот</span>
           </div>
-          {hold("fire", "ОГОНЬ", { width: 96, height: 96, borderRadius: "50%", fontWeight: 700 })}
+          <button type="button" className="hell-fire" aria-label="Удерживать для стрельбы"
+            onPointerDown={pressFire} onPointerUp={releaseFire}
+            onPointerCancel={releaseFire} onLostPointerCapture={releaseFire}>
+            <span>{theme === "poop" ? "ПРОБИТЬ" : "ОГОНЬ"}</span>
+          </button>
         </div>
 
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
-            {phase === "dead" ? `Результат: ${score}` : "WASD / стрелки, пробел — огонь"}
+            {phase === "dead" ? `Результат: ${score}` : "Стик — ход и поворот, кнопка — огонь. WASD / пробел"}
           </span>
           <span className="small muted">
             Рекорд: {best > 0 && (

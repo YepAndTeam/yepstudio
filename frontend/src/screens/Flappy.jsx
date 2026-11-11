@@ -9,6 +9,8 @@ import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { drawNyanCat, drawNyanTrail, drawStars } from "../nyan";
 import { nyanSfx, isNyan } from "../nyanSfx";
 import { shareRecord } from "../share";
+import { drawPoop } from "../poop";
+import { drawBathroom, drawDrainPipe } from "../bathroom";
 const GAME = "flappy";
 
 const W = 360, H = 240, GROUND = 216;
@@ -100,6 +102,7 @@ function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
   if (col.nyan) drawStars(ctx, W, GROUND, s.t);
+  if (col.poop) drawBathroom(ctx, W, GROUND, H);
   ctx.fillStyle = col.fg;
 
   // Трубы
@@ -107,6 +110,12 @@ function draw(ctx, s, col) {
     const x = Math.round(p.x);
     const top = Math.round(p.c - GAP / 2);
     const bot = Math.round(p.c + GAP / 2);
+    if (col.poop) {
+      drawDrainPipe(ctx,x,0,PW,top,true);
+      drawDrainPipe(ctx,x,bot,PW,GROUND-bot,false);
+      ctx.fillStyle=col.fg;
+      continue;
+    }
     ctx.fillRect(x, 0, PW, top);
     ctx.fillRect(x - 3, top - 8, PW + 6, 8); // шапка сверху
     ctx.fillRect(x, bot, PW, GROUND - bot);
@@ -116,7 +125,7 @@ function draw(ctx, s, col) {
   // Земля
   ctx.fillRect(0, GROUND, W, 2);
   const shift = s.phase === "run" || s.phase === "dead" ? s.t * SPEED : 0;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; !col.poop && i < 10; i++) {
     ctx.fillRect(((i * 41 - shift) % W + W) % W, GROUND + 8 + (i % 3) * 6, 6, 2);
   }
 
@@ -124,7 +133,14 @@ function draw(ctx, s, col) {
   const bob = s.phase === "idle" ? Math.sin(performance.now() / 250) * 4 : 0;
   const by = s.y + bob;
   const flap = s.vy < 0 || s.phase === "idle" ? Math.floor(performance.now() / 120) % 2 : 0;
-  if (col.nyan) {
+  if (col.poop) {
+    ctx.save();
+    ctx.translate(BX, by);
+    ctx.rotate(Math.max(-0.3, Math.min(0.65, s.vy / 800)));
+    drawPoop(ctx, -11, -12, 22, 24, flap, true, s.phase === "dead");
+    ctx.restore();
+    ctx.fillStyle = col.fg;
+  } else if (col.nyan) {
     const frame = Math.floor(performance.now() / 120);
     drawNyanTrail(ctx, BX - 13, by - 12, frame);
     ctx.save();
@@ -231,6 +247,7 @@ export default function Flappy({ onBack }) {
           bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
           nyan: document.documentElement.dataset.theme === "nyan",
+          poop: document.documentElement.dataset.theme === "poop",
         };
         lastCol = now;
       }

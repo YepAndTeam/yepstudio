@@ -6,6 +6,7 @@ import Forum from "./screens/Forum";
 import Profile from "./screens/Profile";
 import Thread from "./screens/Thread";
 import Inbox from "./screens/Inbox";
+import CompensationMail from "./components/CompensationMail";
 import NewTopicSheet from "./components/NewTopicSheet";
 import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons";
 import Game from "./screens/Game";
@@ -18,7 +19,13 @@ const TABS = [
 ];
 
 export default function App() {
-const { loadHome, loadTopics, loadMe, loadNotifs, notifs, theme } = useStore();
+const { loadHome, loadTopics, loadMe, loadNotifs, notifs, theme, me, acknowledgeCompensation } = useStore();
+  const [tournamentId,setTournamentId]=useState(null);
+  const [selectedMail,setSelectedMail]=useState(null);
+  const [dismissedMail,setDismissedMail]=useState([]);
+  const letters=me?.compensation_letters || [];
+  const letter=selectedMail?letters.find(item=>item.id===selectedMail):letters.find(item=>!item.read&&!dismissedMail.includes(me.id+":"+item.id));
+  const closeMail=()=>{if(letter)setDismissedMail(value=>[...value,me.id+":"+letter.id]);setSelectedMail(null);};
   const [tab, setTab] = useState("news");
   const [thread, setThread] = useState(null);
   const [inbox, setInbox] = useState(false);
@@ -35,6 +42,7 @@ const [gameRef, setGameRef] = useState(null);
     });
 
   const go = (t) => {
+    if(t==="news")setTournamentId(null);
     setTab(t);
     setThread(null);
     setInbox(false);
@@ -91,7 +99,9 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if (ref.startsWith("game")) {
+  if (ref.startsWith("tour_")) {
+    setTab("game");setGameRef(null);setTournamentId(ref.slice(5));
+  } else if (ref.startsWith("game")) {
     setTab("game");
     setGameRef(ref.slice(5) || null);
   } else if (/^[tn]\d+$/.test(ref)) {
@@ -105,12 +115,13 @@ const [gameRef, setGameRef] = useState(null);
       if (document.visibilityState === "visible") loadNotifs();
     };
     const id = setInterval(tick, 60000);
-    document.addEventListener("visibilitychange", tick);
+    const resume=()=>{if(document.visibilityState==="visible"){void loadMe();tick();}};
+    document.addEventListener("visibilitychange", resume);
     return () => {
       clearInterval(id);
-      document.removeEventListener("visibilitychange", tick);
+      document.removeEventListener("visibilitychange", resume);
     };
-  }, [loadNotifs]);
+  }, [loadNotifs, loadMe]);
 
   const onCreated = () => {
     setSheet(false);
@@ -150,9 +161,9 @@ const [gameRef, setGameRef] = useState(null);
           {thread ? (
             <Thread key={thread} refId={thread} onBack={back} />
           ) : inbox ? (
-            <Inbox openThread={openThread} onBack={back} />
+            <Inbox openThread={openThread} onBack={back} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
-            <News openThread={openThread} />
+            <News openThread={openThread} tournamentId={tournamentId} onOpenTournament={id=>{setTournamentId(id);setGameRef(null);setTab("game");}} />
           ) : tab === "forum" ? (
             <Forum
               openThread={openThread}
@@ -162,9 +173,9 @@ const [gameRef, setGameRef] = useState(null);
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "game" ? <Game initial={gameRef} />
+          ) : tab === "game" ? <Game initial={gameRef} tournamentId={tournamentId} onTournamentChange={setTournamentId} />
             : (
-            <Profile openThread={openThread} />
+            <Profile openThread={openThread} onOpenLetter={setSelectedMail} />
           )}
         </div>
       </div>
@@ -182,6 +193,8 @@ const [gameRef, setGameRef] = useState(null);
           </button>
         ))}
       </nav>
+
+      {letter && <CompensationMail key={letter.id} letter={letter} onLater={closeMail} onRead={async()=>{await acknowledgeCompensation(letter.id);closeMail();}} />}
 
       {sheet && (
         <NewTopicSheet onClose={() => setSheet(false)} onCreated={onCreated} />

@@ -8,6 +8,8 @@ import { drawNyanHead, drawStars } from "../nyan";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import Pad from "../components/Pad";
+import { drawWcFloor, drawRollSegment } from "../wcGames";
+import { drawPlunger } from "../bathroom";
 const GAME = "snake";
 
 const COLS = 24, ROWS = 16, C = 15;
@@ -87,6 +89,7 @@ function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
   if (col.nyan) drawStars(ctx, W, H, s.t);
+  if (col.poop) drawWcFloor(ctx,W,H,C);
 
   ctx.fillStyle = col.fg;
   ctx.fillRect(0, 0, W, 2);
@@ -96,7 +99,9 @@ function draw(ctx, s, col) {
 
   // еда
   const f = s.food;
-  if (col.nyan) {
+  if (col.poop) {
+    drawPlunger(ctx,f.x*C+2,f.y*C+C-1,C-4,C-2);
+  } else if (col.nyan) {
     ctx.fillStyle = "#FFCC99";
     ctx.fillRect(f.x * C + 3, f.y * C + 3, C - 6, C - 6);
     ctx.fillStyle = "#FF3399";
@@ -109,6 +114,7 @@ function draw(ctx, s, col) {
   // тело (с конца к голове)
   for (let i = s.snake.length - 1; i >= 1; i--) {
     const p = s.snake[i];
+    if(col.poop){drawRollSegment(ctx,p.x*C,p.y*C,C);continue;}
     ctx.fillStyle = col.nyan ? RAINBOW[(i - 1) % RAINBOW.length] : col.fg;
     ctx.fillRect(p.x * C + 1, p.y * C + 1, C - 2, C - 2);
   }
@@ -116,7 +122,9 @@ function draw(ctx, s, col) {
 
     // голова
   const h = s.snake[0];
-  if (col.nyan) {
+  if (col.poop) {
+    drawRollSegment(ctx,h.x*C,h.y*C,C,true,s.dir);
+  } else if (col.nyan) {
     drawNyanHead(ctx, h.x * C + C / 2, h.y * C + C / 2);
   } else {
     ctx.fillStyle = col.fg;
@@ -215,6 +223,7 @@ export default function Snake({ onBack }) {
           bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
           nyan: document.documentElement.dataset.theme === "nyan",
+          poop: document.documentElement.dataset.theme === "poop",
         };
         lastCol = now;
       }

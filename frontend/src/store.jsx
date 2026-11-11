@@ -90,12 +90,25 @@ export function StoreProvider({ children }) {
     }
   }, [me?.theme]);
 
-  const setTheme = (id) => {
-    setThemeState(id);
+  const syncEconomy = useCallback((state) => {
+    setMe(value=>value?{...value,jera:state.balance ?? value.jera,owned_themes:state.owned_themes ?? value.owned_themes}:value);
+  },[]);
+
+  const acknowledgeCompensation = useCallback(async (id) => {
+    await api("/me/compensation/"+encodeURIComponent(id)+"/read","POST");
+    setMe(value=>value?{...value,compensation_letters:(value.compensation_letters || []).map(letter=>letter.id===id?{...letter,read:true}:letter)}:value);
+  },[]);
+
+  const setTheme = async (id) => {
+    if (!me?.owned_themes?.includes(id)) {
+      setError("Эта тема ещё не получена");return false;
+    }
     try {
-      localStorage.setItem("yab_theme", id);
-    } catch {}
-    api("/me/theme", "POST", { theme: id }).catch(() => {});
+      await api("/me/theme", "POST", { theme: id });
+      setThemeState(id);setMe(value=>({...value,theme:id}));
+      try { localStorage.setItem("yab_theme",id); } catch {}
+      return true;
+    } catch(e){setError(e.message);return false;}
   };
 
   const setPush = async (v) => {
@@ -201,6 +214,8 @@ export function StoreProvider({ children }) {
     readNotifs,
     toggleMod,
     setTheme,
+    syncEconomy,
+    acknowledgeCompensation,
     setPush,
     sendComment,
     react,

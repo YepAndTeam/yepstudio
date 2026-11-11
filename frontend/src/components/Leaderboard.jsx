@@ -12,7 +12,7 @@ export default function Leaderboard({ title = "Таблица рекордов",
       )}
       {data?.top.map((r, i) => (
         <div className={`lb ${r.user_id === meId ? "me" : ""}`} key={r.user_id}>
-          <span className="rk">{i + 1}</span>
+          <span className="rk">{r.place ?? i + 1}</span>
           <span className="nm">{r.user_id === meId ? "Ты" : r.name}</span>
           <b>{r.best}</b>
         </div>

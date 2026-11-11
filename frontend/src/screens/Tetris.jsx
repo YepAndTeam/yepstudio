@@ -10,6 +10,7 @@ import { BackIcon } from "../components/Icons";
 import { Sound, SoundOff } from "../components/Icons";
 import { tetrisSfx, isTetrisTheme } from "../tetrisSfx";
 import Pad from "../components/Pad";
+import { drawCeramic, drawWcFloor, drawToilet, drawFlush } from "../wcGames";
 const GAME = "tetris";
 
 const COLS = 10, ROWS = 20, C = 12;
@@ -46,6 +47,7 @@ const fresh = () => ({
   score: 0,
   soft: false,
   cleared: false,
+  clearFx: null,
   deadAt: 0,
   justDied: false,
 });
@@ -75,9 +77,12 @@ function lock(s) {
       if (v && y + r >= 0) s.grid[y + r][x + c] = k + 1;
     })
   );
+  const fullRows = [];
+  s.grid.forEach((row,index) => { if(row.every(Boolean)) fullRows.push({index,values:[...row]}); });
   const left = s.grid.filter((row) => row.some((v) => !v));
   const n = ROWS - left.length;
   if (n) {
+    s.clearFx = { at: performance.now(), rows: fullRows };
     s.grid = [...Array.from({ length: n }, () => Array(COLS).fill(0)), ...left];
     s.lines += n;
     s.score += POINTS[n];
@@ -125,6 +130,7 @@ function step(s, dt) {
 }
 
 function cell(ctx, col, x, y, k, size = C) {
+  if(col.poop){drawCeramic(ctx,x*size,y*size,k,size);return;}
   const c = col.nyan ? RAINBOW[k % RAINBOW.length] : col.tetris ? PIECES[k] : col.fg;
   const px = x * size + 1, py = y * size + 1, s = size - 2;
   ctx.fillStyle = c;
@@ -143,6 +149,10 @@ function draw(ctx, s, col) {
   ctx.fillStyle = col.bg;
   ctx.fillRect(0, 0, W, H);
   if (col.nyan) drawStars(ctx, W, H, s.t);
+  if (col.poop) {
+    drawWcFloor(ctx,BW,H,C);
+    ctx.fillStyle="#fcf6dd";ctx.fillRect(BW,0,W-BW,H);
+  }
 
   ctx.fillStyle = col.fg;
   ctx.fillRect(BW, 0, 2, H);
@@ -164,6 +174,7 @@ function draw(ctx, s, col) {
   nm.forEach((row, r) =>
     row.forEach((v, c) => {
       if (!v) return;
+      if(col.poop){drawCeramic(ctx,off+c*8,22+r*8,s.next,8);return;}
       ctx.fillStyle = col.nyan ? RAINBOW[s.next] : col.tetris ? PIECES[s.next] : col.fg;
       ctx.fillRect(off + c * 8, 22 + r * 8, 7, 7);
     })
@@ -176,6 +187,12 @@ function draw(ctx, s, col) {
   ctx.fillText("ЛИНИИ", cx, 126);
   ctx.font = `bold 14px ${col.font}`;
   ctx.fillText(String(s.lines), cx, 144);
+
+  if(col.poop){
+    const progress=drawFlush(ctx,s.clearFx,BW,C,performance.now(),col.reduced);
+    drawToilet(ctx,cx-22,166,progress);
+    ctx.fillStyle=col.fg;ctx.font=`bold 7px ${col.font}`;ctx.fillText(progress ? "СМЫВАЕМ!" : "ЗОЛОТОЙ СМЫВ",cx,236);
+  }
 
   ctx.font = `bold 11px ${col.font}`;
   if (s.phase === "idle") {
@@ -272,6 +289,8 @@ if (isNyan()) {
           bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
           font: getComputedStyle(document.body).fontFamily,
           nyan: document.documentElement.dataset.theme === "nyan",
+          poop: document.documentElement.dataset.theme === "poop",
+          reduced: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 tetris: document.documentElement.dataset.theme === "tetris",
         };
         lastCol = now;

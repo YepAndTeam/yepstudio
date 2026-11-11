@@ -1,14 +1,16 @@
+import TournamentBanner from "../components/TournamentBanner";
 import { STAGES, ST, dayLabel } from "../constants";
 import { useStore } from "../store";
 import { Dot, Loading } from "../components/Common";
 import { Chevron } from "../components/Icons";
 
-export default function News({ openThread }) {
+export default function News({ openThread, tournamentId, onOpenTournament }) {
   const { home: h } = useStore();
   if (!h) return <Loading />;
 
   return (
     <>
+      <TournamentBanner compact eventId={tournamentId} onOpen={onOpenTournament} />
       {h.latest && (
         <div className="card banner">
           <span className="pt" />
