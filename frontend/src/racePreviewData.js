@@ -18,6 +18,7 @@ export function makeRacePreview(scene,me){
  const response=race=>({...race,server_now:now(),bracket:bracket(),meeting_bets:meetingBets()});
  return async(path,method,body)=>{
   if(path==='/races')return {schedule,enabled:isEnabled,can_bet:true,fund:{balance,reserved:0,available:balance},current:response(quarter?matches.find(r=>r.node_id==='Q1'):matches[0]),bracket:bracket(),history:[{id:'demo-proof',status:'finished',starts_at:packet.rules.starts_at,winner:packet.ranking[0],attempt:0,node_id:'ARCHIVE'}]};
+  if(path.endsWith('/fund-topup')){const existing=receipts.get(body.request_id);if(existing&&existing!==JSON.stringify([body.amount,body.note]))throw Error('Запрос уже использован');if(!existing){balance+=body.amount;receipts.set(body.request_id,JSON.stringify([body.amount,body.note]));}return {added:existing?0:body.amount,amount:body.amount,fund:{balance,reserved:0,available:balance}};}
   if(path.startsWith('/admin/races/')){if(path.endsWith('schedule'))schedule=body.times;if(path.endsWith('enabled'))isEnabled=body.enabled;if(path.endsWith('fund-shop'))balance+=100;return {added:100,enabled:isEnabled,fund:{balance,reserved:0,available:balance}};}
   if(!path.startsWith('/races/'))return undefined;
   const [,,id,action]=path.split('/'),race=id==='demo-proof'?proofRace:matches.find(r=>r.id===id);if(!race)throw Error('Тестовая пара не найдена');

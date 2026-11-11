@@ -4,7 +4,7 @@ from datetime import datetime,timedelta
 from uuid import uuid4
 from sqlalchemy import select,func,delete,update,or_,and_
 from database import User,JeraTx,Meta,ThemeBoxPurchase,Tournament,Notification
-from race_models import RaceMeeting,Race,RaceBet,RaceFund,RaceFundTx,RaceShopFunding,RaceTournamentFunding,RaceChat,RaceReminder
+from race_models import RaceMeeting,Race,RaceBet,RaceFund,RaceFundTx,RaceFundTopUp,RaceShopFunding,RaceTournamentFunding,RaceChat,RaceReminder
 from race_fairness import CHAIN,ALGORITHM,canonical,commitment,round_at,round_timestamp,draw,verify_beacon
 from score_service import lock_scores
 from weekly import grant
@@ -302,6 +302,22 @@ def seed_from_shop(db):
   if db.get(RaceShopFunding,box.id):continue
   value=max(0,box.price-box.refund);db.add(RaceShopFunding(box_id=box.id,amount=value));fund_move(db,value,'shop:'+box.id);amount+=value
  db.flush();return amount
+
+def top_up_fund(db,admin_id,amount,note,request_id):
+ lock_scores(db)
+ admin=db.get(User,admin_id)
+ if not admin or admin.role!='admin':raise RaceError(403,'Пополнять фонд может только администратор')
+ note=' '.join(note.split())
+ if type(amount) is not int or not 1<=amount<=100000:raise RaceError(422,'Сумма — от 1 до 100 000 Йер')
+ if not 3<=len(note)<=120:raise RaceError(422,'Причина — от 3 до 120 символов')
+ if not 16<=len(request_id)<=64:raise RaceError(422,'Некорректный идентификатор операции')
+ previous=db.scalar(select(RaceFundTopUp).where(RaceFundTopUp.admin_id==admin_id,RaceFundTopUp.request_id==request_id))
+ if previous:
+  if (previous.amount,previous.note)!=(amount,note):raise RaceError(409,'Этот запрос уже использован для другого пополнения')
+  return previous,False
+ row=RaceFundTopUp(id=uuid4().hex,admin_id=admin_id,amount=amount,note=note,request_id=request_id)
+ db.add(row);fund_move(db,amount,'mint:'+row.id);db.flush()
+ return row,True
 
 def fund_tournament(db,event_id):
  lock_scores(db);event=db.get(Tournament,event_id)

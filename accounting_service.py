@@ -45,6 +45,13 @@ def economy_report(db,days=30,include_admins=False,now=None):
   reserved=db.scalar(select(func.coalesce(func.sum(Race.reserved),0)).where(Race.status=='scheduled')) or 0
   tournament_held=db.scalar(select(func.coalesce(func.sum(RaceTournamentFunding.reserved),0)).where(RaceTournamentFunding.closed.is_(False))) or 0
   race_fund=dict(balance=int(cash),reserved=int(reserved),available=int(cash-reserved),tournament_held=int(tournament_held))
+  race_fund['topups']=[];race_fund['issued_in_period']=0
+  if inspect(db.connection()).has_table('race_fund_topups'):
+   from race_models import RaceFundTopUp
+   topup_period=[RaceFundTopUp.created_at>=start] if start else []
+   race_fund['issued_in_period']=int(db.scalar(select(func.coalesce(func.sum(RaceFundTopUp.amount),0)).where(*topup_period)) or 0)
+   topups=db.execute(select(RaceFundTopUp,User.first_name).join(User,User.id==RaceFundTopUp.admin_id).where(*topup_period).order_by(RaceFundTopUp.created_at.desc(),RaceFundTopUp.id.desc()).limit(30)).all()
+   race_fund['topups']=[dict(id=row.id,amount=row.amount,note=row.note,admin_id=row.admin_id,admin_name=name,created_at=row.created_at.isoformat()+'Z') for row,name in topups]
  return dict(generated_at=now.isoformat()+'Z',days=days,include_admins=include_admins,timezone='UTC+5',starts_at=start.isoformat()+'Z' if start else None,
   wallets=dict(players=wallets[0],total=int(wallets[1]),maximum=int(wallets[2]),negative=int(wallets[3]),ledger_net=int(ledger_all),unexplained_difference=int(wallets[1]-ledger_all)),
   flow=dict(inflow=incoming,outflow=outgoing,net=incoming-outgoing,refunds=refunds,issued_excluding_refunds=incoming-refunds,transactions=sum(r['count'] for r in categories),active_players=active,admin_test_issued=int(admin_test)),categories=categories,daily=daily,boxes=boxes,race_fund=race_fund,

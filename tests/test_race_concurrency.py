@@ -7,7 +7,7 @@ from sqlalchemy import create_engine,select,func
 from sqlalchemy.orm import sessionmaker
 from database import Base,User,Meta
 from race_models import Race,RaceBet,RaceFund
-from race_service import make_meeting,accept_bet,RaceError
+from race_service import make_meeting,accept_bet,top_up_fund,RaceError
 from score_service import initialize_score_state
 class RaceConcurrencyTest(unittest.TestCase):
  def setUp(self):
@@ -44,3 +44,12 @@ class RaceConcurrencyTest(unittest.TestCase):
   with self.sessions() as db:
    self.assertEqual(db.get(User,1).jera,20);self.assertEqual(db.get(RaceFund,1).balance,1005)
    self.assertEqual(db.scalar(select(func.count()).select_from(RaceBet).where(RaceBet.status=='pending')),1)
+ def test_simultaneous_fund_topup_retry_mints_once(self):
+  with self.sessions.begin() as db:db.add(User(id=2,first_name='Admin',role='admin',jera=10000))
+  def request(_):
+   with self.sessions.begin() as db:return top_up_fund(db,2,1000,'Initial reserve','request-00000001')[1]
+  with ThreadPoolExecutor(max_workers=4) as pool:created=list(pool.map(request,range(4)))
+  self.assertEqual(sum(created),1)
+  with self.sessions() as db:
+   self.assertEqual(db.get(RaceFund,1).balance,2000)
+   self.assertEqual(db.get(User,2).jera,10000)

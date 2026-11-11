@@ -54,6 +54,15 @@ class RaceFundTx(Base):
  amount=Column(Integer,nullable=False)
  reason=Column(String(100),nullable=False,unique=True)
  created_at=Column(DateTime,nullable=False,default=datetime.utcnow)
+class RaceFundTopUp(Base):
+ __tablename__='race_fund_topups'
+ id=Column(String(40),primary_key=True)
+ admin_id=Column(BigInteger,ForeignKey('users.id'),nullable=False)
+ amount=Column(Integer,nullable=False)
+ note=Column(String(120),nullable=False)
+ request_id=Column(String(64),nullable=False)
+ created_at=Column(DateTime,nullable=False,default=datetime.utcnow)
+ __table_args__=(UniqueConstraint('admin_id','request_id'),)
 class RaceShopFunding(Base):
  __tablename__='race_shop_funding'
  box_id=Column(String(40),ForeignKey('theme_box_purchases.id'),primary_key=True)
