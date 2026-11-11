@@ -19,6 +19,7 @@ export const THEMES = [
   { id: "terminal", name: "Терминал", bg: "#000000", card: "#050805", fg: "#33FF66" },
   { id: "nyan", name: "Nyan Cat", bg: "#003366", card: "#FF99FF", fg: "#2B0A3D" },
   { id: "tetris", name: "Тетрис", bg: "#0A0A1F", card: "#14143A", fg: "#F4F4FF" },
+  { id: "neon", name: "Неон Токио", bg: "#090F20", card: "#142138", fg: "#DCF4FF", rarity: "rare", tagline: "После полуночи" },
   { id: "poop", name: "Какашечки", bg: "#CFDBC1", card: "#FCF6DD", fg: "#40291E", rarity: "mythic", tagline: "Золотой смыв" },
 ];
 export const THEME_IDS = THEMES.map((t) => t.id);

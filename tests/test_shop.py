@@ -38,10 +38,10 @@ class ShopTest(unittest.TestCase):
 
     def test_exact_chance_distribution(self):
         counts={}
-        for draw in range(1000):
+        for draw in range(3000):
             with patch("shop_service.secrets.randbelow",return_value=draw):
                 theme=choose_theme();counts[theme]=counts.get(theme,0)+1
-        self.assertEqual(counts,{"retro":350,"terminal":350,"tetris":125,"nyan":125,"poop":50})
+        self.assertEqual(counts,{"retro":1050,"terminal":1050,"tetris":250,"nyan":250,"neon":250,"poop":150})
 
     def test_buy_replay_and_recovery_do_not_charge_twice(self):
         with self.sessions.begin() as db:first=buy_box(db,3,"one")
@@ -75,8 +75,26 @@ class ShopTest(unittest.TestCase):
                 self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),3)
                 self.assertEqual(shop_state(db,3)["history"][0]["refund"],100)
 
+    def test_neon_box_awards_theme_once_and_refunds_duplicate(self):
+        with patch("shop_service.choose_theme",return_value="neon"):
+            with self.sessions.begin() as db:first=buy_box(db,3,"neon-first")
+            with self.sessions.begin() as db:
+                answer=unlock_box(db,3,first["box_id"],first["runes"])
+                self.assertTrue(answer["ok"]);self.assertFalse(answer["isDupe"])
+                self.assertEqual(answer["refund"],0);self.assertIn("neon",owned_themes(db,3))
+            with self.sessions.begin() as db:
+                replay=unlock_box(db,3,first["box_id"],first["runes"])
+                self.assertEqual(replay["balance"],400)
+                self.assertEqual(db.scalar(select(func.count()).select_from(UserTheme).where(UserTheme.user_id==3,UserTheme.theme_id=="neon")),1)
+            with self.sessions.begin() as db:second=buy_box(db,3,"neon-second")
+            with self.sessions.begin() as db:
+                duplicate=unlock_box(db,3,second["box_id"],second["runes"])
+                self.assertTrue(duplicate["isDupe"]);self.assertEqual(duplicate["refund"],50)
+                self.assertEqual(duplicate["balance"],350)
+
     def test_ordinary_rare_duplicate_refunds(self):
-        for theme,refund in (("retro",25),("tetris",50)):
+        with self.sessions.begin() as db:db.add(UserTheme(user_id=1,theme_id="neon",source="test"))
+        for theme,refund in (("retro",25),("tetris",50),("neon",50)):
             with patch("shop_service.choose_theme",return_value=theme):
                 with self.sessions.begin() as db:box=buy_box(db,1,theme)
                 with self.sessions.begin() as db:

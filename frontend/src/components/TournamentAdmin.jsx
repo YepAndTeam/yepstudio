@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../api";
 import { appLink, copyLink, shareLink } from "../share";
 
-const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад"};
+const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад",drive:"После полуночи"};
 function CreateForm({first,winner,onClose,onCreated}){
   const dialog=useRef(null);
   const [title,setTitle]=useState(first?"Первый турнир Dino":"Турнир YAB STUDIO");

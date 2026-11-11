@@ -5,7 +5,7 @@ from database import AllTimeScore, GameScore, JeraTx, Meta, User, WeeklyResult
 from score_service import lock_scores, promote_alltime
 
 EPOCH = date(2026, 11, 9)
-NAMES = {"dino": "Дино", "flappy": "Flappy", "snake": "Змейка", "tetris": "Тетрис", "hell": "Ад"}
+NAMES = {"dino": "Дино", "flappy": "Flappy", "snake": "Змейка", "tetris": "Тетрис", "hell": "Ад", "drive": "После полуночи"}
 
 
 def period_now(now=None):

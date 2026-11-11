@@ -12,13 +12,14 @@ BOX_PRICE = 100
 RUNES = tuple("ᚠᚢᚦᚨᚱᚲᚷᚹᚺ")
 CATALOG = [
     {"key":"common","title":"Обычные","color":"var(--muted)","chance":70,"items":[
-        {"id":"retro","name":"Ретро","weight":350,"chance":35},
-        {"id":"terminal","name":"Терминал","weight":350,"chance":35}]},
+        {"id":"retro","name":"Ретро","weight":1050,"chance":35},
+        {"id":"terminal","name":"Терминал","weight":1050,"chance":35}]},
     {"key":"rare","title":"Редкие","color":"var(--coin)","chance":25,"items":[
-        {"id":"tetris","name":"Тетрис","weight":125,"chance":12.5},
-        {"id":"nyan","name":"Nyan Cat","weight":125,"chance":12.5}]},
+        {"id":"tetris","name":"Тетрис","weight":250,"chance":25/3},
+        {"id":"nyan","name":"Nyan Cat","weight":250,"chance":25/3},
+        {"id":"neon","name":"Неон Токио","weight":250,"chance":25/3}]},
     {"key":"mythic","title":"Мифические","color":"#E8BC66","chance":5,"items":[
-        {"id":"poop","name":"Какашечки","weight":50,"chance":5}]},
+        {"id":"poop","name":"Какашечки","weight":150,"chance":5}]},
 ]
 RARITY = {item["id"]:group["key"] for group in CATALOG for item in group["items"]}
 REFUND_PERCENT = {"common":25,"rare":50,"mythic":100}

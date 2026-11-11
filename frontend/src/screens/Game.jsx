@@ -18,9 +18,11 @@ import Chess from "./Chess";
 import Checkers from "./Checkers";
 import Hell from "./Hell";
 import Doom from "./Doom";
+import Drive from "./Drive";
 
 // Казуальные: играешь один, борешься за рекорд
 const CASUAL = [
+  { id: "drive", title: "После полуночи", hint: "Обгоняй поток и собирай монетки", View: Drive },
   { id: "dino", title: "Дино", hint: "Прыгай через кактусы и птиц", View: Dino },
   { id: "flappy", title: "Flappy", hint: "Пролетай между труб", View: Flappy },
   { id: "snake", title: "Змейка", hint: "Ешь и расти, не врезайся", View: Snake },

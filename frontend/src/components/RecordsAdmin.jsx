@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
-const games = { dino: "Дино", flappy: "Flappy", snake: "Змейка", tetris: "Тетрис", hell: "Ад" };
+const games = { dino: "Дино", flappy: "Flappy", snake: "Змейка", tetris: "Тетрис", hell: "Ад", drive: "После полуночи" };
 
 export default function RecordsAdmin({ onUpdated }) {
   const [state, setState] = useState(null);

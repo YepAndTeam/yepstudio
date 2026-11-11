@@ -22,7 +22,7 @@ if(inside){
   createRoot(document.getElementById("app")).render(<PreviewShell />);
 }
 function PreviewShell(){
-  const [scene,setScene]=useState(params.get("scene") || "registration"),[theme,setTheme]=useState("dark"),[size,setSize]=useState("360x640"),[revision,setRevision]=useState(0),[font,setFont]=useState("original");
+  const [scene,setScene]=useState(params.get("scene") || "registration"),[theme,setTheme]=useState(params.get("theme")||"dark"),[size,setSize]=useState("360x640"),[revision,setRevision]=useState(0),[font,setFont]=useState("original");
   const [width,height]=size.split("x").map(Number);
   return <main style={{width:"100%",height:"100dvh",overflow:"auto",padding:12,boxSizing:"border-box",background:"#161a1a",color:"#eee",fontFamily:"system-ui"}}>
     <div style={{maxWidth:1000,margin:"0 auto",display:"flex",flexDirection:"column",gap:10}}>
@@ -30,7 +30,7 @@ function PreviewShell(){
       <span style={{fontSize:12,color:"#b8c6be"}}>Настоящие экраны приложения, тестовые данные. Регистрация, баланс и запуск меняются только здесь.</span>
       <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
         <label style={{fontSize:12}}>Сценарий <select value={scene} onChange={e=>setScene(e.target.value)}>
-          <option value="race_betting">Скачки · ставки</option><option value="race_quarter">Скачки · перерыв / четвертьфинал</option><option value="race_running">Скачки · заезд</option><option value="race_finished">Скачки · финиш</option><option value="registration">Бесплатная регистрация</option><option value="active">Турнир идёт</option><option value="finished">Итоги и голосование</option><option value="paid">Платная регистрация</option><option value="empty">Пусто — создать в админке</option><option value="letter">Письмо — 5 игр</option><option value="daily">Ежедневная награда · 25 Йер</option><option value="daily7">Седьмой день · 50 Йер</option>
+          <option value="drive">После полуночи · новая игра</option><option value="race_betting">Скачки · ставки</option><option value="race_quarter">Скачки · перерыв / четвертьфинал</option><option value="race_running">Скачки · заезд</option><option value="race_finished">Скачки · финиш</option><option value="registration">Бесплатная регистрация</option><option value="active">Турнир идёт</option><option value="finished">Итоги и голосование</option><option value="paid">Платная регистрация</option><option value="empty">Пусто — создать в админке</option><option value="letter">Письмо — 5 игр</option><option value="daily">Ежедневная награда · 25 Йер</option><option value="daily7">Седьмой день · 50 Йер</option>
         </select></label>
         <button type="button" onClick={()=>setScene("race_betting")}>Скачки: ставки</button>
         <button type="button" onClick={()=>setScene("race_quarter")}>Скачки: четвертьфинал</button>

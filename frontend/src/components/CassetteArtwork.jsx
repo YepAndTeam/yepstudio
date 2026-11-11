@@ -1,7 +1,12 @@
 // Static pixel cover art shared by wall thumbnails, inspection and the player.
 export default function CassetteArtwork({theme}){
- if(!["nyan","tetris","poop"].includes(theme))return null;
+ if(!["nyan","tetris","poop","neon"].includes(theme))return null;
  return <svg className={`tape-front-art art-${theme}`} viewBox="0 0 80 64" aria-hidden="true" focusable="false" shapeRendering="crispEdges">
+  {theme==="neon"&&<>
+   <path fill="#0b132a" d="M0 0h80v64H0z"/><path fill="#27506b" d="M3 3h14v37H3zm61 4h12v34H64z"/><path fill="#6ae7ee" d="M5 9h8v2H5zm0 7h5v2H5zm63-3h5v2h-5zM0 57h80v2H0z"/><path fill="#f174c7" d="M2 33h17v3H2zm59-9h18v3H61z"/>
+   <path fill="#101b30" d="M5 45h70v12H5zM17 34h47v18H17z"/><path fill="#8ebddb" d="M9 43h62v9H9zM22 33h35v10H22zM15 39h49v6H15z"/><path fill="#d6e7ef" d="M13 43h53v3H13zM25 33h29v2H25z"/><path fill="#20344f" d="M25 36h27v7H25zM9 53h11v7H9zm49 0h11v7H58z"/>
+   <path fill="#ff6899" d="M12 47h4v4h-4zm6 0h4v4h-4zm39 0h4v4h-4zm6 0h4v4h-4z"/><path fill="#e8f8ff" d="M34 48h11v4H34z"/><path fill="#081022" d="M6 38h69v3H6z"/><path fill="#72e5e7" d="M29 60h20v2H29z"/>
+  </>}
   {theme==="nyan"&&<>
    <path fill="#fff5fb" d="M6 6h2v6H6zm-2 2h6v2H4zm61 0h2v6h-2zm-2 2h6v2h-6zM14 52h2v6h-2zm-2 2h6v2h-6z"/>
    {["#ff5454","#ffb33f","#ffec58","#6cde7c","#66b9ff","#c285ed"].map((fill,i)=><path key={fill} fill={fill} d={`M0 ${23+i*3}h26v3H0z`}/>)}

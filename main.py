@@ -39,7 +39,7 @@ TG_APP_LINK = "https://t.me/yab_studio_bot"
 CATEGORIES = ["Идеи", "Вопросы", "Баги", "Обсуждение"]
 STATUSES = {"new", "planned", "in_progress", "done", "none"}
 STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "В работе", "done": "Готово"}
-THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris", "poop"}
+THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris", "poop", "neon"}
 Base.metadata.create_all(engine)
 migrate()
 from weekly import ensure_period, week_ends_at, period_now
@@ -708,6 +708,7 @@ def react(comment_id: int, body: ReactIn, user: User = Depends(get_user), db=Dep
 # Теперь только верхний потолок очков. Явных читеров удаляем вручную
 # (DELETE /api/game/score/{user_id} или прямо в базе).
 GAMES = {
+    "drive": {"max": 100000},
     "dino": {"max": 20000},
     "flappy": {"max": 500},
     "snake": {"max": 3000},
@@ -959,6 +960,7 @@ def share_page(ref: str, db=Depends(get_db)):
             "snake": "Змейка",
             "tetris": "Тетрис",
             "hell": "Ад",
+            "drive": "После полуночи",
         }
         g = names.get(ref[5:], "игре")
         title = f"Сможешь побить мой рекорд в «{g}»?"
@@ -996,7 +998,7 @@ def tournament_share_page(event_id: str, db=Depends(get_db)):
         event = get_event(db, event_id)
     except TournamentError:
         raise HTTPException(404, "Турнир не найден")
-    names = {"dino":"Дино", "flappy":"Flappy", "snake":"Змейка", "tetris":"Тетрис", "hell":"Ад"}
+    names = {"dino":"Дино", "flappy":"Flappy", "snake":"Змейка", "tetris":"Тетрис", "hell":"Ад", "drive":"После полуночи"}
     game_name = names.get(event.game, event.game)
     fee = "Участие бесплатно" if event.entry_fee == 0 else f"Взнос {event.entry_fee} Йер"
     state = "Регистрация открыта" if event.status == "registration" else "Турнир идёт" if event.status == "active" and event.ends_at > datetime.utcnow() else "Турнир отменён" if event.cancelled else "Турнир завершён"

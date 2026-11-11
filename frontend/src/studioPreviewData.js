@@ -7,7 +7,7 @@ export function installStudioPreview(scene,theme){
   if(!import.meta.env.DEV)throw Error("Preview disabled");
   const nativeFetch=window.fetch.bind(window);
   const now=()=>new Date().toISOString();
-  const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад"};
+  const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад",drive:"После полуночи"};
   const receipt={id:"demo-compensation",created_at:now(),read:false,total:255,target_total:295,previous_total:40,entries:[
     {game:"dino",score:1250,place:1,target:100,already_paid:40,credit:60},
     {game:"flappy",score:35,place:3,target:75,already_paid:0,credit:75},
@@ -16,11 +16,12 @@ export function installStudioPreview(scene,theme){
     {game:"hell",score:300,place:12,target:20,already_paid:0,credit:20},
   ]};
   const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:540,theme,
-    owned_themes:["dark","light","retro","terminal","nyan","tetris","poop"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
+    owned_themes:["dark","light","retro","terminal","nyan","tetris","poop","neon"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
     daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?50:25,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
     compensation_letters:scene==="letter"?[receipt]:[]};
   const friendPreview=makeFriendPreview();
   const racePreview=makeRacePreview(scene,me);
+  if(scene==="drive")window.Telegram.WebApp.initDataUnsafe.start_param="game_drive";
   if(scene.startsWith("race_"))window.Telegram.WebApp.initDataUnsafe.start_param="races";
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
     starts_at:null,ends_at:null,server_now:now(),registered:false,participants:12,top:[],my_best:0,my_place:null,prize_theme:"poop",duplicate_prize:200,
@@ -34,7 +35,7 @@ export function installStudioPreview(scene,theme){
   if(scene==="paid")Object.assign(events[0],{id:"preview-paid",title:"Следующий турнир",entry_fee:50});
   let first=scene==="empty"||scene==="registration"||scene==="letter";
   let achievementBest=640;
-  const demoBests={flappy:12,snake:30,tetris:170,hell:0};
+  const demoBests={drive:0,flappy:12,snake:30,tetris:170,hell:0};
   const achievementItem=definition=>{const best=definition.game==="dino"?achievementBest:demoBests[definition.game];return {...definition,best,steps:definition.steps.map(step=>({...step,earned:best>=step.score})),total_earned:definition.steps.filter(step=>best>=step.score).reduce((sum,step)=>sum+step.amount,0)};};
   const achievementSteps=[[100,1],[500,5],[1000,10],[3000,25],[5000,50],[10000,100]];
   let maintenance=false,applied=false,pending=null,history=[];
@@ -42,7 +43,7 @@ export function installStudioPreview(scene,theme){
   const eventState=event=>({...event,server_now:now(),balance:me.jera});
   const shopState=()=>({price:100,failure_refund:50,balance:me.jera,owned_themes:me.owned_themes,active_box:pending?{id:pending.id}:null,history,
     rarities:[{key:"common",title:"Обычные",color:"var(--muted)",chance:70,items:[{id:"retro",name:"Ретро",chance:35},{id:"terminal",name:"Терминал",chance:35}]},
-      {key:"rare",title:"Редкие",color:"var(--coin)",chance:25,items:[{id:"tetris",name:"Тетрис",chance:12.5},{id:"nyan",name:"Nyan Cat",chance:12.5}]},
+      {key:"rare",title:"Редкие",color:"var(--coin)",chance:25,items:[{id:"tetris",name:"Тетрис",chance:25/3},{id:"nyan",name:"Nyan Cat",chance:25/3},{id:"neon",name:"Неон Токио",chance:25/3}]},
       {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]});
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
@@ -96,12 +97,13 @@ export function installStudioPreview(scene,theme){
       history.unshift({id:Date.now(),themeId:ok?"poop":null,success:ok,isDupe:ok,refund});
       return {ok,themeId:ok?"poop":null,isDupe:ok,left:0,refund,balance:me.jera,owned_themes:me.owned_themes,shop:shopState()};
     }
-    if(path.startsWith("/game/top"))return {top:[],my_best:0,my_rank:null,ends_at:null};
+    if(path.startsWith("/game/top")){const game=new URLSearchParams(path.split("?")[1]).get("game"),best=game==="drive"?demoBests.drive:0;return {top:best?[{user_id:me.id,name:me.first_name,best}]:[],my_best:best,my_rank:best?1:null,ends_at:null};}
     if(path==="/game/start")return {ok:true,run_id:"preview-run-"+Date.now()};
     if(path==="/game/score"){
       let reward=0;
+      if(body.game==="drive")demoBests.drive=Math.max(demoBests.drive,body.score);
       if(body.game==="dino"){reward=achievementSteps.filter(([score])=>score>achievementBest&&score<=body.score).reduce((sum,[,amount])=>sum+amount,0);achievementBest=Math.max(achievementBest,body.score);me.jera+=reward;}
-      return {best:body.score,record:true,rank:1,achievement_reward:reward};
+      return {best:body.game==="drive"?demoBests.drive:body.score,record:true,rank:1,achievement_reward:reward};
     }
     fail("Этот экран не входит в локальный стенд: "+path);
   }

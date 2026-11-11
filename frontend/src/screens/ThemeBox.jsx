@@ -201,7 +201,7 @@ export default function ThemeBox({ jera = 0, onBack }) {
                     </div>
 
                     <span className="muted small" style={{ flex: "none" }}>
-                      {item.chance}%
+                      {Number(item.chance.toFixed(2))!==item.chance?"≈ ":""}{Number(item.chance.toFixed(2)).toLocaleString("ru-RU")}%
                     </span>
                   </div>
                 ))}

@@ -866,3 +866,12 @@ select,.app-select{box-sizing:border-box;max-width:100%;min-height:44px;border:1
 .friend-actions summary::-webkit-details-marker{display:none}.friend-actions details[open]>button{box-shadow:0 8px 24px #0005;min-height:44px;font:inherit}
 .studio-events{display:grid;gap:12px;min-width:0}.studio-events-pair .studio-event{min-width:0;display:flex;flex-direction:column}.studio-events-pair .studio-event-footer{margin-top:auto}
 @media(min-width:380px){.studio-events-pair{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-events-pair .studio-event{padding:14px}.studio-events-pair .studio-event h3{font-size:17px}.studio-events-pair .studio-event-top{flex-direction:column;gap:6px}.studio-events-pair .studio-event-top>span:last-child{text-align:left}.studio-events-pair .studio-event-footer{align-items:stretch;flex-direction:column;gap:12px}.studio-events-pair .studio-event-clock{font-size:20px}.studio-events-pair .pub{width:100%}}
+
+/* NEON TOKYO — restrained night palette, no animated background layers. */
+:root[data-theme="neon"]{--ground:#090f20;--card:#142138;--card2:#1b2c46;--line:#345470;--fg:#dcf4ff;--muted:#aac2d6;--inv:#091522;--coin:#6ce4e9;--gbg:#0b1527;--gfg:#a8eef2;--r:10px;--rp:7px;--bw:1px;--bc:#345470;--sh:0 3px 0 #050b18;--font:'Onest',system-ui,sans-serif;--fd:'Tiny5',monospace;color-scheme:dark}
+:root[data-theme="neon"] body{background:linear-gradient(150deg,#101c34,#090f20 55%);color:var(--fg)}
+:root[data-theme="neon"] :is(h2,h3,.title){letter-spacing:.2px}:root[data-theme="neon"] .logo{color:#8beaf2}:root[data-theme="neon"] .logo .o{-webkit-text-stroke-color:#f38cc9}
+:root[data-theme="neon"] nav{background:#101c30;border-top:1px solid #43758b}:root[data-theme="neon"] nav button.on .pill{background:#234456;color:#b5fcff}
+:root[data-theme="neon"] .pub{background:#78e6ee;color:#0b1b2b;border-color:#a4f4f5}:root[data-theme="neon"] .pub.alt{background:var(--card2);color:var(--fg);border-color:var(--line)}
+:root[data-theme="neon"] .chip.on span,:root[data-theme="neon"] .seg button.on{background:#2b5065;color:#c5fbff}:root[data-theme="neon"] .topic{background:linear-gradient(125deg,#182940,#142138)}
+:root[data-theme="neon"] :is(input,textarea,select){background:var(--card2);color:var(--fg);border-color:var(--line)}:root[data-theme="neon"] .collection-tape{box-shadow:0 3px 0 #040813}

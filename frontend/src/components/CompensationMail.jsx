@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { JeraIcon } from "./JeraIcon";
 
-const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад"};
+const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад",drive:"После полуночи"};
 const number=value=>new Intl.NumberFormat("ru-RU").format(value);
 
 export default function CompensationMail({letter,onLater,onRead}) {

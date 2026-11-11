@@ -43,6 +43,20 @@ class RecordsTest(unittest.TestCase):
         with self.sessions.begin() as db:
             self.assertEqual(saved_preview(db), updated)
 
+    def test_drive_run_saves_both_boards_and_retry_is_idempotent(self):
+        now=datetime.utcnow()
+        with self.sessions.begin() as db:
+            run=begin_run(db,1,"drive",now=now-timedelta(seconds=30))
+            row,old,record=submit_result(db,1,"drive",240,now=now,run_id=run.id)
+            self.assertEqual((row.best,old,record),(240,0,True))
+            row,old,record=submit_result(db,1,"drive",240,now=now,run_id=run.id)
+            self.assertFalse(record)
+            self.assertEqual(row.plays,1)
+            self.assertEqual(db.scalar(select(AllTimeScore.best).where(AllTimeScore.game=="drive")),240)
+            self.assertEqual(db.scalar(select(func.count()).select_from(GameResult)),1)
+            self.assertEqual(db.get(User,1).jera,0)
+            self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),0)
+
     def test_alltime_repairs_without_weekly_record(self):
         with self.sessions.begin() as db:
             db.add(GameScore(user_id=1, game="dino", best=700, plays=1))

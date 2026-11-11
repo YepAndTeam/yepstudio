@@ -3,7 +3,7 @@ import { api } from "../api";
 import { useStore } from "../store";
 import { shareLink } from "../share";
 
-const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад"};
+const games={dino:"Дино",flappy:"Flappy",snake:"Змейка",tetris:"Тетрис",hell:"Ад",drive:"После полуночи"};
 function Countdown({end,serverNow}) {
   const [now,setNow]=useState(Date.now);
   const [offset]=useState(()=>Date.parse(serverNow)-Date.now());

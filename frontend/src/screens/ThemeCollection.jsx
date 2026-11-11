@@ -5,6 +5,7 @@ import CassetteSeal from "../components/CassetteSeal";
 import CassetteArtwork from "../components/CassetteArtwork";
 import "./ThemeCollection.css";
 const details={
+ neon:["Редкая","Ночной Токио: холодный неон, вывески гаражей и серебристо-синий Skyline R34 и зацикленная пиксельная мелодия в игре «После полуночи»."],
  dark:["Базовая","Тёмная палитра приложения и игровые цвета."],
  light:["Базовая","Светлая палитра приложения и игровые цвета."],
  retro:["Обычная","Окна, кнопки и палитра в духе компьютеров 1998 года."],
@@ -14,6 +15,7 @@ const details={
  poop:["Мифическая","Пиксельная ванная: персонажи в Дино и Flappy, бумажная Змейка, кафель и смыв в Тетрисе, оформление Ада. Фоновый пиксельный фанк «Золотой смыв»."]
 };
 const features={
+ neon:[["Оформление","Ночной город: тёмные панели, бирюзовые линии и розовый неон."],["После полуночи","Skyline R34, ночная трасса, городские вывески и отражения на асфальте."],["Музыка","Пиксельная мелодия в гонке с непрерывным повтором."],["Кассета","Пиксельная машина, дорожная разметка и редкая печать клуба."]],
  dark:[["Оформление","Тёмная палитра приложения и игровые цвета."]],
  light:[["Оформление","Светлая палитра приложения и игровые цвета."]],
  retro:[["Оформление","Окна, кнопки и палитра в духе компьютеров 1998 года."]],
@@ -23,7 +25,7 @@ const features={
  poop:[["Оформление","Пиксельная ванная и стиль «Золотого смыва»."],["Дино и Flappy","Свои пиксельные персонажи."],["Змейка","Бумажная змейка и вантузы."],["Тетрис","Кафельные блоки и анимация смыва."],["Ад","Туалетное оформление арены, врагов и оружия."],["Музыка","Фоновый пиксельный фанк «Золотой смыв» по всему приложению."]]
 };
 function Cassette({item,back=false}){
- return <div className={`collection-tape ${back?"back-side":""} cover-${item.id} ${!back&&["nyan","tetris","poop"].includes(item.id)?"illustrated-cover":""}`} style={{"--tape":item.bg,"--label":item.card,"--ink":item.fg}}><div className="tape-label"><small>YAB / AUDIO LAB</small><strong>{back?item.name+" / B":item.name}</strong>{!back&&<CassetteArtwork theme={item.id}/>}<span>{details[item.id][0]}</span>{back&&<><CassetteSeal id={item.id}/><p className="tape-tracklist">{details[item.id][1]}</p><div className="tape-catalog"><i aria-hidden="true"/>YAB / {item.id.toUpperCase()} / 01</div></>}</div><div className="tape-reels"><i/><span/><i/></div><div className="tape-bottom">{back?"COLLECTION / STUDIO":"SIDE A / THEME"}</div></div>;
+ return <div className={`collection-tape ${back?"back-side":""} cover-${item.id} ${!back&&["nyan","tetris","poop","neon"].includes(item.id)?"illustrated-cover":""}`} style={{"--tape":item.bg,"--label":item.card,"--ink":item.fg}}><div className="tape-label"><small>YAB / AUDIO LAB</small><strong>{back?item.name+" / B":item.name}</strong>{!back&&<CassetteArtwork theme={item.id}/>}<span>{details[item.id][0]}</span>{back&&<><CassetteSeal id={item.id}/><p className="tape-tracklist">{details[item.id][1]}</p><div className="tape-catalog"><i aria-hidden="true"/>YAB / {item.id.toUpperCase()} / 01</div></>}</div><div className="tape-reels"><i/><span/><i/></div><div className="tape-bottom">{back?"COLLECTION / STUDIO":"SIDE A / THEME"}</div></div>;
 }
 function CassetteBody({item,turned=false}) {
  return <div className={`cassette-body ${turned?"turned":""}`} style={{"--shell":item.bg}}>
