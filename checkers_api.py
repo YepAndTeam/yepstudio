@@ -80,6 +80,7 @@ def make_router(get_user, get_db):
             "turn": "w" if n % 2 == 0 else "b", "moves": n,
             "opponent": name_of(db, opp_id), "creator_id": g.creator_id,
             "creator": name_of(db, g.creator_id),
+            "white_name": name_of(db,g.white_id), "black_name": name_of(db,g.black_id),
             "updated_at": iso(g.updated_at),
         }
 
@@ -96,8 +97,9 @@ def make_router(get_user, get_db):
             .where(CheckersGame.status == "open", CheckersGame.creator_id != user.id)
             .order_by(CheckersGame.id.desc()).limit(20)
         ).all()
+        live=db.scalars(select(CheckersGame).where(CheckersGame.status=="active",CheckersGame.white_id!=user.id,CheckersGame.black_id!=user.id).order_by(CheckersGame.updated_at.desc()).limit(20)).all()
         return {"mine": [brief(db, g, user) for g in mine],
-                "lobby": [brief(db, g, user) for g in lobby]}
+                "lobby": [brief(db, g, user) for g in lobby], "live":[brief(db,g,user) for g in live]}
 
     @r.post("")
     def create(body: CreateIn, user: User = Depends(get_user), db=Depends(get_db)):

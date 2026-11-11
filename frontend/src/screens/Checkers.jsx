@@ -333,11 +333,11 @@ function Lobby({ onBack, open }) {
       .then((r) => open(r.id))
       .catch((e) => notify(e.message));
 
-  const row = (g, lobby) => {
+  const row = (g, lobby, watch=false) => {
     let badge = null;
     if (g.status === "finished") badge = outcome(g.result, g.my);
     else if (g.status === "active" && g.turn === g.my) badge = "Твой ход";
-    const title = lobby
+    const title = watch ? `${g.white_name || "Белые"} — ${g.black_name || "Чёрные"}` : lobby
       ? `Вызов от ${g.creator || "?"}`
       : g.opponent
       ? `С ${g.opponent}`
@@ -379,6 +379,7 @@ function Lobby({ onBack, open }) {
         <div className="empty">{err || "Загрузка…"}</div>
       ) : (
         <>
+          {data.live?.length>0&&<><div className="card small">Открытые партии · просмотр без права хода</div>{data.live.map(g=>row(g,false,true))}</>}
           {data.lobby.length > 0 && (
             <>
               <div className="small muted" style={{ padding: "0 4px" }}>Открытые вызовы</div>

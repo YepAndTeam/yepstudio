@@ -10,6 +10,7 @@ import Achievements from "../components/Achievements";
 import ThemeCollection from "./ThemeCollection";
 import { ST, THEMES } from "../constants";
 import Settings from "./Settings";
+import Accounting from "../components/Accounting";
 import Shop from "./Shop";
 
 export default function Profile({ openThread, onOpenLetter }) {
@@ -19,6 +20,7 @@ export default function Profile({ openThread, onOpenLetter }) {
 
   const cur = THEMES.find((t) => t.id === theme) || THEMES[0];
   if (!m) return <Loading />;
+  if (tab === "accounting" && m.role === "admin") return <Accounting local={import.meta.env.DEV} onBack={()=>setTab("profile")} />;
   if (tab === "settings") return <Settings onBack={()=>setTab("profile")} />;
   if (tab === "achievements") return <><button className="back" onClick={()=>setTab("profile")}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
   if (tab === "collection") return <ThemeCollection onBack={() => setTab("profile")} />;
@@ -156,6 +158,7 @@ export default function Profile({ openThread, onOpenLetter }) {
             </button>)}
           </div>}
           {m.role === "admin" && <TournamentAdmin />}
+          {m.role === "admin" && <button className="card achievement-entry" onClick={()=>setTab("accounting")}><span>Бухгалтерия</span><small className="muted">Йеры, кассеты и журнал операций →</small></button>}
           {m.role === "admin" && <AdminWallet />}
           {m.role === "admin" && <RecordsAdmin onUpdated={loadMe} />}
         </>

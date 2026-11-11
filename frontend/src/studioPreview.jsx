@@ -30,8 +30,12 @@ function PreviewShell(){
       <span style={{fontSize:12,color:"#b8c6be"}}>Настоящие экраны приложения, тестовые данные. Регистрация, баланс и запуск меняются только здесь.</span>
       <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
         <label style={{fontSize:12}}>Сценарий <select value={scene} onChange={e=>setScene(e.target.value)}>
-          <option value="registration">Бесплатная регистрация</option><option value="active">Турнир идёт</option><option value="finished">Итоги и голосование</option><option value="paid">Платная регистрация</option><option value="empty">Пусто — создать в админке</option><option value="letter">Письмо — 5 игр</option><option value="daily">Ежедневная награда · 25 Йер</option><option value="daily7">Седьмой день · 50 Йер</option>
+          <option value="race_betting">Скачки · ставки</option><option value="race_quarter">Скачки · перерыв / четвертьфинал</option><option value="race_running">Скачки · заезд</option><option value="race_finished">Скачки · финиш</option><option value="registration">Бесплатная регистрация</option><option value="active">Турнир идёт</option><option value="finished">Итоги и голосование</option><option value="paid">Платная регистрация</option><option value="empty">Пусто — создать в админке</option><option value="letter">Письмо — 5 игр</option><option value="daily">Ежедневная награда · 25 Йер</option><option value="daily7">Седьмой день · 50 Йер</option>
         </select></label>
+        <button type="button" onClick={()=>setScene("race_betting")}>Скачки: ставки</button>
+        <button type="button" onClick={()=>setScene("race_quarter")}>Скачки: четвертьфинал</button>
+        <button type="button" onClick={()=>setScene("race_running")}>Скачки: заезд</button>
+        <button type="button" onClick={()=>setScene("race_finished")}>Скачки: финиш</button>
         <label style={{fontSize:12}}>Тема <select value={theme} onChange={e=>setTheme(e.target.value)}>{THEMES.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
         <label style={{fontSize:12}}>Экран <select value={size} onChange={e=>setSize(e.target.value)}><option value="320x568">320 × 568</option><option value="360x640">360 × 640</option><option value="390x844">390 × 844</option><option value="430x932">430 × 932</option></select></label>
         <label style={{fontSize:12}}>Шрифт <select value={font} onChange={e=>setFont(e.target.value)}><option value="handjet">Handjet</option><option value="tiny5">Tiny5</option><option value="original">Текущий шрифт темы</option></select></label>

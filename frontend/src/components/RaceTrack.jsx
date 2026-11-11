@@ -1,0 +1,11 @@
+import { useEffect, useRef } from "react";
+export function HorseSprite({color,number=1}){return <svg className="race-horse-sprite" viewBox="0 0 48 32" aria-hidden="true" shapeRendering="crispEdges"><path fill="#302c33" d="M8 12h22V7h4V3h8v5h4v10h-9v7H11v-4H6v-5H2v-4h4V8h3z"/><path fill={color} d="M10 14h20v-4h5V6h5v4h3v5h-8v8H12v-5H8v-3h2z"/><path fill="#f4edcf" d="M18 13h9v8h-9z"/><path fill="#29282f" d="M36 8h3v3h-3z"/>{number%2===0&&<path fill="#f5eacb" d="M39 11h4v4h-4z"/>}{number%3===0&&<path fill="#f5eacb" d="M12 15h3v6h-3zm18-6h3v8h-3z"/>}{number%3===1&&<path fill="#775671" d="M19 14h7v3h-7z"/>}<path className="horse-leg leg-a" fill={color} d="M11 21h5v10h-5zm17 0h5v10h-5z"/><path className="horse-leg leg-b" fill="#302c33" d="M17 21h4v9h-4zm17 0h3v9h-3z"/></svg>;}
+export default function RaceTrack({race}){
+ const track=useRef(null);
+ useEffect(()=>{if(!track.current)return;let frame,last=0;const base=Date.now(),server=Date.parse(race.server_now),start=Date.parse(race.starts_at);const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const render=now=>{if(!document.hidden&&now-last>50){last=now;const t=race.status==='finished'?1:race.status==='running'?Math.max(0,Math.min(1,(server+Date.now()-base-start)/((race.rules?.duration_seconds||60)*1000))):0;
+   for(const node of track.current.querySelectorAll('.race-runner')){const n=Number(node.dataset.number),rank=Math.max(0,race.ranking.indexOf(n));let progress=t*(1-rank*(race.horses.length>2?.025:.055));if(t>0&&t<1&&!reduced)progress+=Math.sin(t*13+n)*.035*Math.sin(t*Math.PI);node.style.setProperty('--progress',Math.max(0,Math.min(1,progress)));}
+  }if(race.status==='running')frame=requestAnimationFrame(render);};render(performance.now()+100);return()=>cancelAnimationFrame(frame);
+ },[race.id,race.status,race.starts_at,race.server_now,race.ranking,race.rules?.duration_seconds,race.horses.length]);
+ return <div ref={track} className={`race-track ${race.status==='running'?'racing':''}`} aria-label="Пиксельный заезд лошадей">{race.horses.map(h=><div className="race-lane" key={h.number}><span className="race-lane-name">{h.number} · {h.name}</span><div className="race-runner" data-number={h.number}><HorseSprite color={h.color} number={h.number}/></div><span className="race-finish-mark"/></div>)}</div>;
+}

@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import race_models  # registers race tables before create_all
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
 import checkers_models  # noqa: F401  (регистрирует таблицу до create_all)
 from chess_api import make_router as make_chess_router
@@ -66,6 +67,47 @@ async def tournament_clock():
             logging.getLogger(__name__).exception("Tournament settlement failed; retrying on next tick")
 
 
+async def deliver_race_reminders(notices):
+    from race_models import RaceReminder
+    from aiogram.types import InlineKeyboardMarkup,InlineKeyboardButton,WebAppInfo
+    for race_id,user_id,message in notices:
+        try:
+            markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть скачки",web_app=WebAppInfo(url=WEBAPP_URL+"?ref=races"))]]) if WEBAPP_URL else None
+            await bot.send_message(user_id,message,reply_markup=markup)
+            with SessionLocal.begin() as db:
+                reminder=db.get(RaceReminder,(race_id,user_id))
+                if reminder:reminder.sent_at=datetime.utcnow()
+        except Exception:
+            logging.getLogger(__name__).warning("Race reminder delivery failed; in-app notice retained")
+
+
+def race_clock_tick():
+    from race_service import tick
+    from race_models import Race
+    with SessionLocal.begin() as db:
+        notices=tick(db)
+        pending=[(r.id,r.beacon_round,json.loads(r.proof_json) if r.proof_json else None) for r in db.scalars(select(Race).where(Race.status=="scheduled",Race.starts_at<=datetime.utcnow())).all()]
+    return notices,pending
+
+
+async def race_clock():
+    from race_fairness import fetch_beacon
+    from race_service import apply_beacon
+    while True:
+        try:
+            notices,pending=await asyncio.to_thread(race_clock_tick)
+            await deliver_race_reminders(notices)
+            for race_id,number,stored in pending:
+                beacon=stored or await asyncio.to_thread(fetch_beacon,number)
+                if beacon:
+                    def settle(race_id=race_id,beacon=beacon):
+                        with SessionLocal.begin() as db:apply_beacon(db,race_id,beacon)
+                    await asyncio.to_thread(settle)
+        except Exception:
+            logging.getLogger(__name__).exception("Race clock failed; retrying")
+        await asyncio.sleep(10)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if WEBAPP_URL:  # локально без ссылки просто пропускаем
@@ -74,9 +116,15 @@ async def lifespan(app: FastAPI):
             menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))
         )
     clock = asyncio.create_task(tournament_clock())
+    races_clock = asyncio.create_task(race_clock())
     try:
         yield
     finally:
+        races_clock.cancel()
+        try:
+            await races_clock
+        except asyncio.CancelledError:
+            pass
         clock.cancel()
         try:
             await clock
@@ -134,6 +182,8 @@ def get_admin(user: User = Depends(get_user)) -> User:
     return user
 
 
+from race_api import make_race_router
+app.include_router(make_race_router(get_user,get_admin,get_db,deliver_race_reminders))
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
 
@@ -188,6 +238,14 @@ def daily_tasks(user: User = Depends(get_user), db=Depends(get_db)):
 def achievements(user: User = Depends(get_user), db=Depends(get_db)):
     from activity_catalog import ACHIEVEMENTS
     return {**achievement_state(db,user.id),"items":[achievement_state(db,user.id,game) for game in ACHIEVEMENTS]}
+
+
+@app.get("/api/admin/accounting")
+def accounting(days: int = 30, include_admins: bool = False, admin: User = Depends(get_admin)):
+    if days not in (0,7,30,90):
+        raise HTTPException(422,"Выбери период: 7, 30, 90 дней или всё время")
+    from accounting_service import readonly_report
+    return readonly_report(SessionLocal,days,include_admins)
 
 
 @app.get("/api/hall-of-fame")

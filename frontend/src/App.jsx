@@ -22,6 +22,7 @@ const TABS = [
 export default function App() {
 const { loadHome, loadTopics, loadMe, loadNotifs, notifs, theme, me, acknowledgeCompensation } = useStore();
   const [tournamentId,setTournamentId]=useState(null);
+  const [studioSection,setStudioSection]=useState(null);
   const [selectedMail,setSelectedMail]=useState(null);
   const [dismissedMail,setDismissedMail]=useState([]);
   const letters=me?.compensation_letters || [];
@@ -43,7 +44,7 @@ const [gameRef, setGameRef] = useState(null);
     });
 
   const go = (t) => {
-    if(t==="news")setTournamentId(null);
+    if(t==="news"){setTournamentId(null);setStudioSection(null);}
     setTab(t);
     setThread(null);
     setInbox(false);
@@ -108,7 +109,9 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if (ref.startsWith("tour_")) {
+  if (ref==="races") {
+    setTab("news");setStudioSection("races");
+  } else if (ref.startsWith("tour_")) {
     setTab("news");setGameRef(null);setTournamentId(ref.slice(5));
   } else if (ref.startsWith("game")) {
     setTab("game");
@@ -171,9 +174,9 @@ const [gameRef, setGameRef] = useState(null);
           {thread ? (
             <Thread key={thread} refId={thread} onBack={back} />
           ) : inbox ? (
-            <Inbox openThread={openThread} onBack={back} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
+            <Inbox openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
-            <Studio openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
+            <Studio key={studioSection||"default"} initialSection={studioSection} openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
           ) : tab === "forum" ? (
             <Community
               openThread={openThread}

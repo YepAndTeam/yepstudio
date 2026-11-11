@@ -1,0 +1,114 @@
+{
+  "rules": {
+    "algorithm": "yab-race-v1",
+    "beacon_round": 1,
+    "chain": {
+      "genesis_time": 1595431050,
+      "hash": "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce",
+      "period": 30,
+      "public_key": "868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a569937c529eeda66c7293784a9402801af31",
+      "scheme": "pedersen-bls-chained"
+    },
+    "closes_at": "2020-07-22T15:17:29Z",
+    "duration_seconds": 60,
+    "format": "knockout-v2",
+    "horses": [
+      {
+        "color": "#ec85a0",
+        "name": "Сакура",
+        "number": 1,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#65b7d0",
+        "name": "Турбо",
+        "number": 2,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#d8d2b1",
+        "name": "Пломбир",
+        "number": 3,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#a88ad6",
+        "name": "Комета",
+        "number": 4,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#83bc80",
+        "name": "Ветер",
+        "number": 5,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#dc9a53",
+        "name": "Искра",
+        "number": 6,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#818ba4",
+        "name": "Тень",
+        "number": 7,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#b6cc5b",
+        "name": "Пиксель",
+        "number": 8,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#d5c66b",
+        "name": "Молния",
+        "number": 9,
+        "odds_bps": 10000,
+        "weight": 1000
+      },
+      {
+        "color": "#a17c60",
+        "name": "Бублик",
+        "number": 10,
+        "odds_bps": 10000,
+        "weight": 1000
+      }
+    ],
+    "meeting_id": "m20200722_2007_0",
+    "node_id": "PRE",
+    "opens_at": "2020-07-22T15:07:29Z",
+    "payout_rule": "floor(stake*odds_bps/10000)",
+    "race_id": "m20200722_2007_0_PRE",
+    "starts_at": "2020-07-22T15:17:29Z",
+    "winners_count": 8
+  },
+  "commitment": "efd58107a7b0d0f0f0c552f3d364447975f600927dd5b587063e1b7472e57b6d",
+  "beacon": {
+    "round": 1,
+    "randomness": "101297f1ca7dc44ef6088d94ad5fb7ba03455dc33d53ddb412bbc4564ed986ec",
+    "signature": "8d61d9100567de44682506aea1a7a6fa6e5491cd27a0a0ed349ef6910ac5ac20ff7bc3e09d7c046566c9f7f3c6f3b10104990e7cb424998203d8f7de586fb7fa5f60045417a432684f85093b06ca91c769f0e7ca19268375e659c2a2352b4655",
+    "previous_signature": "176f93498eac9ca337150b46d21dd58673ea4e3581185f869672e59fa4cb390a"
+  },
+  "ranking": [
+    9,
+    8,
+    7,
+    3,
+    4,
+    2,
+    10,
+    1,
+    6,
+    5
+  ]
+}

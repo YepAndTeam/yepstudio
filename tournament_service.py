@@ -8,6 +8,7 @@ from database import (Tournament,TournamentEntry,TournamentAward,TournamentScore
 from score_service import lock_scores
 from shop_service import owned_themes,RARITY
 from weekly import grant,NAMES
+from race_models import RaceTournamentFunding
 
 PRIZES={"2":150,"3":100,"4":75,"5":50}
 
@@ -45,6 +46,7 @@ def settle_due(db,now=None):
         if event.settled_at is not None:
             event.status="finished";changed=True;continue
         prizes=json.loads(event.prize_jera)
+        total_paid=0
         for place,(score,name) in enumerate(ranked(db,event)[:5],1):
             if db.get(TournamentAward,(event.id,score.user_id)):continue
             amount=int(prizes.get(str(place),0)) if place>1 else 0
@@ -55,9 +57,12 @@ def settle_due(db,now=None):
                     theme=event.prize_theme
                     db.add(UserTheme(user_id=score.user_id,theme_id=theme,source="tour:"+event.id))
             if amount:grant(db,score.user_id,amount,f"tour:prize:{event.id}:{place}")
+            total_paid+=amount
             db.add(TournamentAward(tournament_id=event.id,user_id=score.user_id,place=place,amount=amount,theme_id=theme))
             reward="тема «Какашечки»" if theme=="poop" else "тема "+theme if theme else f"{amount} Йер"
             db.add(Notification(user_id=score.user_id,kind="game",text=f"Турнир «{event.title}»: {place} место. Твой приз: {reward}.",ref="game"))
+        from race_service import close_tournament_funding
+        close_tournament_funding(db,event,total_paid)
         event.status="finished";event.settled_at=now;changed=True
     db.flush()
     return changed
@@ -133,6 +138,8 @@ def cancel_event(db,event_id):
         if entry.paid:
             grant(db,entry.user_id,entry.paid,"tour:refund:"+event.id)
             db.add(Notification(user_id=entry.user_id,kind="game",text=f"Турнир «{event.title}» отменён. Возвращено {entry.paid} Йер.",ref="game"))
+    from race_service import close_tournament_funding
+    close_tournament_funding(db,event,0)
     event.cancelled=True;event.status="cancelled";db.flush();return event
 
 

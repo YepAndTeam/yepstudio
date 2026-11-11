@@ -14,7 +14,7 @@ from weekly import NAMES, grant, period_now
 
 RESET_ID = "records-v2-2026-11"
 TABLES = ("game_scores", "alltime_scores", "weekly_results", "jera_tx", "users",
-          "meta", "game_results", "game_runs", "tournaments", "tournament_scores", "tournament_results", "user_themes", "theme_box_purchases", "tournament_entries", "tournament_awards", "tournament_votes", "achievement_progress", "achievement_awards", "daily_visits", "weekly_task_sets", "daily_task_sets", "daily_task_awards")
+          "meta", "game_results", "game_runs", "tournaments", "tournament_scores", "tournament_results", "user_themes", "theme_box_purchases", "tournament_entries", "tournament_awards", "tournament_votes", "achievement_progress", "achievement_awards", "daily_visits", "weekly_task_sets", "daily_task_sets", "daily_task_awards", "race_meetings", "races", "race_bets", "race_fund", "race_fund_tx", "race_shop_funding", "race_tournament_funding")
 
 
 def canonical(value):

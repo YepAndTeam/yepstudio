@@ -3,14 +3,15 @@ import { dayLabel } from "../constants";
 import { useStore } from "../store";
 import { BackIcon } from "../components/Icons";
 
-export default function Inbox({ openThread, openGame, onBack }) {
+export default function Inbox({ openThread, openGame, openRaces, onBack }) {
   const { notifs, loadNotifs, readNotifs } = useStore();
 
   // при выходе из ленты (в том числе при переходе в тему) помечаем прочитанным
   useEffect(() => { loadNotifs(); return () => { readNotifs(); }; }, []); // eslint-disable-line
 
    const open = (n) => {
-    if (n.ref === "game") openGame();
+    if (n.ref === "races") openRaces?.();
+    else if (n.ref === "game") openGame();
     else if (n.ref && /^[tn]\d+$/.test(n.ref)) openThread(n.ref);
   };
 
