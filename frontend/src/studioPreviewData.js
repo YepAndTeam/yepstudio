@@ -53,7 +53,11 @@ export function installStudioPreview(scene,theme){
     if(path==="/achievements")return {...achievementItem(activityCatalog.achievements[0]),items:activityCatalog.achievements.map(achievementItem)};
     if(path==="/hall-of-fame")return {winners:events.filter(e=>e.status==="finished").flatMap(e=>e.top.slice(0,5).map(row=>({tournament_id:e.id,title:e.title,game:e.game,user_id:row.user_id,name:row.name,place:row.place,amount:e.prize_jera[row.place]||0,theme_id:row.place===1?"poop":null,ended_at:e.ends_at})))};
     if(path==="/me")return me;
-    if(path==="/home")return {projects:[],latest:null,posts:[{id:1,title:"Проверка обновления",text:"Это локальный стенд. Все турниры, письма, покупки и начисления здесь тестовые.",created_at:now(),comments:0}]};
+    if(path==="/home"){
+      const event=events.find(e=>['active','registration'].includes(e.status));
+      const featured=scene.startsWith('race_')?{kind:'races',id:'demo-race',title:'Скачки · Предварительный заезд',status:'До начала заезда',label:'До старта',ends_at:new Date(Date.now()+480000).toISOString(),server_now:now()}:event?{kind:'tournament',id:event.id,title:event.title,status:event.status==='active'?'Турнир идёт':'Регистрация открыта',label:event.status==='active'?'До завершения':'48 часов после старта',ends_at:event.status==='active'?event.ends_at:null,server_now:now()}:null;
+      return {event:featured,projects:[{id:1,name:'Пиксельные гонки',status:'planned',stage:1}],latest:null,posts:[{id:1,title:'Проверка обновления',text:'Это локальный стенд. Все турниры, письма, покупки и начисления здесь тестовые.',created_at:now(),comments:0},{id:2,title:'В студии появились друзья',text:'Добавляй знакомых, следи за онлайн-статусом и приглашай в шахматы и шашки.',created_at:now(),comments:3},{id:3,title:'Коллекция кассет',text:'Выбирай оформление под настроение. Все особенности темы — в коллекции профиля.',created_at:now(),comments:2},{id:4,title:'Архив новостей',text:'Эта новость доступна через раздел «Все новости».',created_at:now(),comments:1}]};
+    }
     if(path==="/topics")return [];
     if(path.startsWith("/notifications"))return {unread:0,items:[]};
     if(path.startsWith("/me/compensation/")){receipt.read=true;return {ok:true};}

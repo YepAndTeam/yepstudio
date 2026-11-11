@@ -422,6 +422,7 @@ def admin_test_balance(body: BuyThemeBoxIn, admin: User = Depends(get_admin), db
 
 @app.get("/api/home")
 def home(user: User = Depends(get_user), db=Depends(get_db)):
+    from studio_service import event_summary
     projects = db.scalars(select(Project).order_by(Project.id)).all()
 
     cm = (select(Comment.ref_id.label("pid"), func.count().label("n"))
@@ -442,6 +443,7 @@ def home(user: User = Depends(get_user), db=Depends(get_db)):
     ).first()
 
     return {
+        "event": event_summary(db),
         "projects": [{"id": p.id, "name": p.name, "status": p.status, "stage": p.stage} for p in projects],
         "posts": [
             {"id": p.id, "title": p.title, "text": p.text, "created_at": iso(p.created_at), "comments": n}
