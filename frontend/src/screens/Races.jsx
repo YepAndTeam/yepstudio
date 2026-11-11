@@ -1,3 +1,4 @@
+import AppSelect from '../components/AppSelect';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -41,7 +42,7 @@ setData(result);setRace(detail);if(detail)pick(value=>detail.horses.some(h=>h.nu
  {betDialog&&race?.id===selected&&<RaceBetDialog race={race} horse={horse} pick={pick} amount={amount} setAmount={setAmount} busy={busy} canBet={data?.can_bet} error={error} editing={Boolean(editTarget)} onEdit={()=>{const b=race.my_bets[0];setEditTarget(b.id);pick(b.horse);setAmount(b.amount);}} onBet={bet} onClose={()=>{setBetDialog(false);setEditTarget(null);}}/>}
  </div>;
 }
-function FundTournament({allocate,disabled}){const [events,setEvents]=useState([]),[id,setId]=useState('');useEffect(()=>{let alive=true;api('/tournaments').then(data=>{if(alive)setEvents(data.events.filter(e=>['registration','active'].includes(e.status)));}).catch(()=>{});return()=>{alive=false;};},[]);return <div className="race-fund-tournament"><select aria-label="Турнир для финансирования" value={id} onChange={e=>setId(e.target.value)}><option value="">Выбери турнир</option>{events.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}</select><button className="pub alt" disabled={disabled||!id} onClick={()=>allocate(id)}>Обеспечить призы турнира из фонда</button></div>;}
+function FundTournament({allocate,disabled}){const [events,setEvents]=useState([]),[id,setId]=useState('');useEffect(()=>{let alive=true;api('/tournaments').then(data=>{if(alive)setEvents(data.events.filter(e=>['registration','active'].includes(e.status)));}).catch(()=>{});return()=>{alive=false;};},[]);return <div className="race-fund-tournament"><AppSelect aria-label="Турнир для финансирования" value={id} onChange={e=>setId(e.target.value)}><option value="">Выбери турнир</option>{events.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}</AppSelect><button className="pub alt" disabled={disabled||!id} onClick={()=>allocate(id)}>Обеспечить призы турнира из фонда</button></div>;}
 
 function RaceBracket({nodes,selected,open}){
  const initial=nodes.find(n=>n.id===selected)?.stage||0;

@@ -434,7 +434,9 @@ def home(user: User = Depends(get_user), db=Depends(get_db)):
     from public_reads import home_snapshot
     data=cached_read(db,'home','news',30,lambda:home_snapshot(db))
     data['event']=cached_read(db,'studio_event','nearest',15,lambda:event_summary(db))
-    if data['event']:data['event']['server_now']=datetime.utcnow().isoformat()+'Z'
+    if data['event']:
+        data['event']['server_now']=datetime.utcnow().isoformat()+'Z'
+        if data['event'].get('dino_tournament'):data['event']['dino_tournament']['server_now']=data['event']['server_now']
     return data
 
 

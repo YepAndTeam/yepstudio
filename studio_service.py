@@ -27,5 +27,14 @@ def event_summary(db,now=None):
  else:
   tour=next((t for t in tours if t.status=='registration'),None)
   result={'kind':'tournament','id':tour.id,'title':tour.title,'status':'Регистрация открыта','label':str(tour.duration_hours)+' часов после старта','ends_at':None} if tour else None
- if result:result['server_now']=now.isoformat()+'Z'
+ if result:
+  result['server_now']=now.isoformat()+'Z'
+  dino_ids={t.id for t in tours if t.game=='dino'}
+  dino=next((dto for _,dto in sorted(options,key=lambda item:item[0]) if dto['kind']=='tournament' and dto['id'] in dino_ids),None)
+  race_card=next((dto for _,dto in options if dto['kind']=='races'),None)
+  if dino and race_card:
+   result=race_card
+   result['server_now']=now.isoformat()+'Z'
+  if dino and not (result['kind']=='tournament' and result['id']==dino['id']):
+   result['dino_tournament']={**dino,'server_now':now.isoformat()+'Z'}
  return result

@@ -1,3 +1,4 @@
+import AppSelect from './AppSelect';
 import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../api";
 import { appLink, copyLink, shareLink } from "../share";
@@ -18,7 +19,7 @@ function CreateForm({first,winner,onClose,onCreated}){
     <form onSubmit={submit} className="col" style={{gap:14}}>
       <h3>Создать турнир</h3>
       <label>Название<input type="text" maxLength={120} required value={title} onChange={e=>setTitle(e.target.value)} /></label>
-      <label>Игра<select value={game} disabled={first||Boolean(winner)} onChange={e=>setGame(e.target.value)}>{Object.entries(games).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
+      <label>Игра<AppSelect value={game} disabled={first||Boolean(winner)} onChange={e=>setGame(e.target.value)}>{Object.entries(games).map(([id,name])=><option key={id} value={id}>{name}</option>)}</AppSelect></label>
       {winner&&!first&&<span className="small muted">Игра выбрана голосованием игроков.</span>}
       <label>Длительность, часов<input type="number" min={1} max={168} required disabled={first} value={hours} onChange={e=>setHours(e.target.value)} /></label>
       <label>Взнос, Йер<input type="number" min={first?0:1} max={10000} required disabled={first} value={fee} onChange={e=>setFee(e.target.value)} /></label>
