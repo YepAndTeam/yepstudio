@@ -7,17 +7,27 @@ const initData = () => tg?.initData || (import.meta.env.DEV ? "dev" : "");
 const gameRuns = new Map();
 
 async function request(path, method = "GET", body) {
+  const controller = method === "GET" && path.startsWith("/races") ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+  try {
   const r = await fetch("/api" + path, {
     method,
     headers: { "X-Init-Data": initData(), "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
+    signal: controller?.signal,
   });
   if (!r.ok) {
     let detail = "";
     try { detail = JSON.stringify((await r.json()).detail || ""); } catch {}
     throw new Error(r.status + " " + detail);
   }
-  return r.json();
+  return await r.json();
+  } catch (error) {
+    if (controller?.signal.aborted) throw new Error("Сервер не ответил за 15 секунд. Повторяем загрузку скачек…");
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 // Keep each score tied to its server-issued run, including slow start requests.

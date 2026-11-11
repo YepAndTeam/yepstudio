@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter,Depends,HTTPException,BackgroundTasks
 from pydantic import BaseModel,Field,StrictInt
-from race_service import (RaceError,tick,race_list,state,get_race,accept_bet,post_chat,seed_from_shop,top_up_fund,fund_tournament,enabled,treasury,is_test_account,update_schedule)
+from race_service import (RaceError,schedule,race_list,state,get_race,accept_bet,post_chat,seed_from_shop,top_up_fund,fund_tournament,enabled,treasury,is_test_account,update_schedule)
 from race_fairness import commitment,verify_beacon,draw
 from database import Meta,User
 from score_service import lock_scores
@@ -23,16 +23,12 @@ class FundTopUpIn(BaseModel):
 
 def make_race_router(get_user,get_admin,get_db,deliver):
  router=APIRouter(prefix='/api')
- def advance(db,bg):
-  notices=tick(db);db.commit()
-  if notices:bg.add_task(deliver,notices)
  def fail(error):raise HTTPException(error.status,str(error))
  @router.get('/races')
  def listing(bg:BackgroundTasks,user=Depends(get_user),db=Depends(get_db)):
-  advance(db,bg);return {**race_list(db,user.id),'can_bet':not is_test_account(db,user)}
+  return {**race_list(db,user.id),'can_bet':not is_test_account(db,user)}
  @router.get('/races/{race_id}')
  def detail(race_id:str,bg:BackgroundTasks,user=Depends(get_user),db=Depends(get_db)):
-  advance(db,bg)
   try:return state(db,get_race(db,race_id),user.id)
   except RaceError as error:fail(error)
  @router.post('/races/{race_id}/bet')
@@ -63,7 +59,9 @@ def make_race_router(get_user,get_admin,get_db,deliver):
  def enable(body:EnabledIn,admin=Depends(get_admin),db=Depends(get_db)):
   lock_scores(db)
   if body.enabled and treasury(db)['available']<25:raise HTTPException(409,'Сначала пополни фонд (нужно минимум 25 свободных Йер)')
-  db.merge(Meta(key='races_enabled',value='1' if body.enabled else '0'));db.commit();return {'enabled':body.enabled}
+  db.merge(Meta(key='races_enabled',value='1' if body.enabled else '0'));db.flush()
+  if body.enabled:schedule(db)
+  db.commit();return {'enabled':body.enabled}
  @router.post('/admin/races/fund-shop')
  def seed(admin=Depends(get_admin),db=Depends(get_db)):
   try:

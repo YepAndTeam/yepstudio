@@ -131,21 +131,24 @@ def phase_for(race,now):
 
 def meeting_bracket(db,meeting_id,now=None,user_id=None):
  now=now or datetime.utcnow();rows={r.node_id:r for r in db.scalars(select(Race).where(Race.meeting_id==meeting_id)).all()}
+ bets={b.race_id:b for b in db.scalars(select(RaceBet).where(RaceBet.race_id.in_([r.id for r in rows.values()]),RaceBet.user_id==user_id,RaceBet.status!='replaced')).all()} if user_id and rows else {}
  result=[]
  for node,title,stage in (NEW_NODES if 'PRE' in rows else NODES):
   r=rows.get(node);phase='unknown'
   if r:phase=phase_for(r,now)
-  my_bet=db.scalar(select(RaceBet).where(RaceBet.race_id==r.id,RaceBet.user_id==user_id,RaceBet.status!='replaced')) if r and user_id else None
+  my_bet=bets.get(r.id) if r else None
   result.append({'my_bet':{'horse':my_bet.horse,'amount':my_bet.amount,'status':my_bet.status} if my_bet else None,'node':node,'title':title,'stage':stage,'id':r.id if r else None,'status':phase,'horses':json.loads(r.rules_json)['horses'] if r else [],'starts_at':r.starts_at.isoformat()+'Z' if r else None,'winner':json.loads(r.result_json)[0] if r and r.result_json else None})
  return result
 
 def advance_meetings(db,now):
- for meeting in db.scalars(select(RaceMeeting).where(RaceMeeting.status=='scheduled')).all():
+ changed=False
+ for meeting in db.scalars(select(RaceMeeting).where(RaceMeeting.status=='scheduled',RaceMeeting.opens_at<=now)).all():
   races=db.scalars(select(Race).where(Race.meeting_id==meeting.id)).all();by_node={r.node_id:r for r in races}
   if 'PRE' in by_node:
-   advance_modern(db,meeting,by_node,now);continue
+   changed=advance_modern(db,meeting,by_node,now) or changed;continue
   has_bets=db.scalar(select(RaceBet.id).join(Race,Race.id==RaceBet.race_id).where(Race.meeting_id==meeting.id).limit(1)) is not None
   if now>=meeting.opens_at+timedelta(minutes=30) and not has_bets:
+   changed=True
    meeting.status='skipped'
    for r in races:r.status='skipped';r.reserved=0;r.settled_at=now
    next_open=meeting.opens_at+timedelta(hours=1);local=meeting.root_slot+timedelta(hours=5)
@@ -153,6 +156,7 @@ def advance_meetings(db,now):
    if next_open<cutoff:make_meeting(db,meeting.root_slot,meeting.attempt+1)
    db.flush();continue
   if any(r.status=='refunded' for r in races):
+   changed=True
    for r in races:refund_race(db,r,now)
    meeting.status='refunded';meeting.chat_until=now;continue
   for target,left,right in [('Q1','P1',5),('Q2','P2',6),('S1','Q1','Q2'),('S2','Q3','Q4'),('F','S1','S2')]:
@@ -163,6 +167,7 @@ def advance_meetings(db,now):
     return json.loads(race.result_json)[0] if race and race.status=='finished' else None
    a,b=winner(left),winner(right)
    if a and b:
+    changed=True
     opening=now;start=opening+timedelta(minutes=15)
     r=make_match(db,meeting,target,[a,b],opening,opening+timedelta(minutes=5),start);by_node[target]=r
     meeting.chat_until=max(meeting.chat_until,start+timedelta(minutes=8))
@@ -170,6 +175,7 @@ def advance_meetings(db,now):
   if final and final.status=='finished':meeting.status='finished'
   for r in races:r.chat_until=meeting.chat_until
  db.flush()
+ return changed
 
 def advance_modern(db,meeting,rows,now):
  pre=rows['PRE']
@@ -178,10 +184,10 @@ def advance_modern(db,meeting,rows,now):
   meeting.status='skipped'
   for r in rows.values():r.status='skipped';r.reserved=0;r.settled_at=now
   if meeting.opens_at+timedelta(hours=1)<next_slot(db,meeting.root_slot):make_meeting(db,meeting.root_slot,meeting.attempt+1)
-  db.flush();return
+  db.flush();return True
  if any(r.status=='refunded' for r in rows.values()):
   for r in rows.values():refund_race(db,r,now)
-  meeting.status='refunded';meeting.chat_until=now;return
+  meeting.status='refunded';meeting.chat_until=now;return True
  specs=None
  if pre.status=='finished' and 'Q1' not in rows:
   qualified=json.loads(pre.result_json)[:8]
@@ -198,6 +204,7 @@ def advance_modern(db,meeting,rows,now):
  if 'F' in rows and rows['F'].status=='finished':meeting.status='finished'
  for r in rows.values():r.chat_until=meeting.chat_until
  db.flush()
+ return bool(specs)
 
 def chat_anchor(db,race):
  if not race.meeting_id:return race.id
@@ -220,7 +227,8 @@ def refund_race(db,race,now):
 
 def tick(db,now=None):
  now=now or datetime.utcnow();lock_scores(db);schedule(db,now)
- for _ in range(9):advance_meetings(db,now)
+ for _ in range(9):
+  if not advance_meetings(db,now):break
  # bounded retries; no event is moved if any stake was accepted.
  for _ in range(9):
   changed=False
@@ -361,4 +369,5 @@ def race_list(db,user_id,now=None):
  rows=db.scalars(select(Race).where(or_(Race.status=='scheduled',and_(Race.status=='finished',Race.chat_until>now))).order_by(Race.opens_at,Race.starts_at,Race.id)).all()
  current=next((r for r in rows if r.status=='scheduled' and r.opens_at<=now<r.closes_at),None) or next((r for r in rows if r.status=='scheduled' and r.opens_at<=now<r.chat_until),None) or next((r for r in reversed(rows) if r.status=='finished' and r.chat_until>now),None) or next((r for r in rows if r.chat_until>now),None)
  past=db.scalars(select(Race).where(Race.status.in_(['finished','refunded','skipped'])).order_by(Race.opens_at.desc()).limit(30)).all()
- return {'schedule':schedule_times(db),'enabled':enabled(db),'fund':treasury(db),'current':state(db,current,user_id,now) if current else None,'bracket':meeting_bracket(db,current.meeting_id,now,user_id) if current and current.meeting_id else [],'history':[{'id':r.id,'status':r.status,'node_id':r.node_id,'starts_at':r.starts_at.isoformat()+'Z','winner':json.loads(r.result_json)[0] if r.result_json else None,'attempt':r.attempt} for r in past]}
+ view=state(db,current,user_id,now) if current else None
+ return {'schedule':schedule_times(db),'enabled':enabled(db),'fund':treasury(db),'current':view,'bracket':view['bracket'] if view else [],'history':[{'id':r.id,'status':r.status,'node_id':r.node_id,'starts_at':r.starts_at.isoformat()+'Z','winner':json.loads(r.result_json)[0] if r.result_json else None,'attempt':r.attempt} for r in past]}
