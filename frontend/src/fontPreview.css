@@ -1,0 +1,3 @@
+:root[data-preview-font="handjet"]{--font:Handjet,monospace!important;--fd:Handjet,monospace!important;--preview-type:Handjet}
+:root[data-preview-font="tiny5"]{--font:Tiny5,monospace!important;--fd:Tiny5,monospace!important;--preview-type:Tiny5}
+:root[data-preview-font] body,:root[data-preview-font] body :is(button,input,textarea,select,h1,h2,h3,h4,p,small,strong,span,b,dt,dd,div){font-family:var(--preview-type),monospace!important;-webkit-font-smoothing:antialiased}

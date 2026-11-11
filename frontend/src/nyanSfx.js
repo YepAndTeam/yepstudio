@@ -143,7 +143,7 @@ let timer = null;
 let index = 0;
 let nextTime = 0;
 let playing = false;
-let runId = 0;
+const voices = new Set();
 
 const NOTE_GAP = 1.30 * (1 / 0.7);
 
@@ -155,7 +155,7 @@ function ctx() {
     )();
 
     if (ac.state === "suspended") {
-      ac.resume();
+      void ac.resume().catch(() => {});
     }
 
     return ac;
@@ -164,7 +164,7 @@ function ctx() {
   }
 }
 
-function playNote(frequency, time, duration) {
+function playNote(frequency, time, duration, volume = 0.065, waveform = "square") {
   if (!frequency || sfx.muted) return;
 
   const c = ctx();
@@ -173,16 +173,16 @@ function playNote(frequency, time, duration) {
   const osc = c.createOscillator();
   const gain = c.createGain();
 
-  osc.type = "square";
+  osc.type = waveform;
 
   osc.frequency.setValueAtTime(frequency, time);
 
   gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.linearRampToValueAtTime(0.065, time + 0.003);
+  gain.gain.linearRampToValueAtTime(volume, time + 0.008);
 
   gain.gain.setValueAtTime(
-    0.065,
-    time + duration * 0.85
+    volume,
+    time + duration * 0.65
   );
 
   gain.gain.exponentialRampToValueAtTime(
@@ -193,6 +193,8 @@ function playNote(frequency, time, duration) {
   osc.connect(gain);
   gain.connect(c.destination);
 
+  voices.add(osc);
+  osc.onended = () => { voices.delete(osc); osc.disconnect(); gain.disconnect(); };
   osc.start(time);
   osc.stop(time + duration + 0.01);
 }
@@ -201,58 +203,61 @@ function playNote(frequency, time, duration) {
 // 5. SEQUENCER
 // ========================================
 
+function silence() {
+  for (const voice of voices) { try { voice.stop(); } catch {} }
+}
+
 function schedule() {
+  if (!playing || document.hidden) return;
   const c = ctx();
-
-  if (!c || !playing) return;
-
+  if (!c || c.state !== "running") return;
+  // Skip elapsed wall time after a suspended tab instead of scheduling a burst.
+  nextTime = Math.max(nextTime, c.currentTime);
   const horizon = c.currentTime + 0.2;
-
-  while (
-    index < melody.length &&
-    nextTime < horizon
-  ) {
-    const frequency = melody[index];
-
-    const duration =
-      (1000 / noteDurations[index]) / 1000;
-
-    playNote(
-      frequency,
-      nextTime,
-      duration
-    );
-
+  while (nextTime < horizon) {
+    const duration = 1 / (noteDurations[index] || 16);
+    playNote(melody[index], nextTime, duration);
     nextTime += duration * NOTE_GAP;
-
-    index++;
-  }
-
-  if (index >= melody.length) {
-    stopPlayback();
+    index = (index + 1) % melody.length;
   }
 }
 
 function stopPlayback() {
   playing = false;
-
   clearInterval(timer);
   timer = null;
+  silence();
 }
+
+// Leave the game responsible for stopping playback on death/unmount.
+// Hidden pages retain their musical position without running a timer.
+document.addEventListener("visibilitychange", () => {
+  clearInterval(timer);
+  timer = null;
+  if (document.hidden) { silence(); return; }
+  if (playing) {
+    const c = ctx();
+    if (c) nextTime = c.currentTime + 0.05;
+    schedule();
+    timer = setInterval(schedule, 25);
+  }
+});
 
 // ========================================
 // 6. PUBLIC API
 // ========================================
 
 export const nyanSfx = {
+  unlock() { ctx(); },
+  muteChanged() {
+    if (sfx.muted) silence();
+    else ctx();
+  },
   start() {
+    const c = ctx();
     if (playing) return;
 
-    const c = ctx();
-
     if (!c) return;
-
-    runId++;
 
     index = 0;
     playing = true;
@@ -265,8 +270,6 @@ export const nyanSfx = {
   },
 
   stop() {
-    runId++;
-
     stopPlayback();
 
     index = 0;
@@ -281,8 +284,8 @@ export const nyanSfx = {
 
     const t = c.currentTime;
 
-    playNote(520, t, 0.07);
-    playNote(980, t + 0.07, 0.1);
+    playNote(520, t, 0.055, 0.016, "sine");
+    playNote(780, t + 0.045, 0.065, 0.012, "sine");
   }
 };
 

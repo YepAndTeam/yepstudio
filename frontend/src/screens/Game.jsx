@@ -4,8 +4,7 @@ import { useStore } from "../store";
 import { shareLink } from "../share";
 import { nyanSfx } from "../nyanSfx";
 import { tetrisSfx } from "../tetrisSfx";
-import TournamentBanner from "../components/TournamentBanner";
-import TournamentList from "../components/TournamentList";
+import TasksDialog from "../components/TasksDialog";
 import Leaderboard from "../components/Leaderboard";
 import NyanRunner from "../components/NyanRunner";
 import { Chip } from "../components/Common";
@@ -61,8 +60,9 @@ function timeLeft(iso) {
   return d > 0 ? `${d} д ${h} ч` : `${h} ч`;
 }
 
-export default function Game({ initial, tournamentId, onTournamentChange }) {
-  const { me, theme } = useStore();
+export default function Game({ initial }) {
+  const { me, theme, loadMe } = useStore();
+  const [goals,setGoals]=useState(false);
   const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
   const inSecret = SECRET.some((g) => g.id === initGame);
 
@@ -71,11 +71,8 @@ export default function Game({ initial, tournamentId, onTournamentChange }) {
     ALL.some((g) => g.id === initGame && g.View) ? initGame : null
   );
   const [section, setSection] = useState(
-    tournamentId ? "versus" : inSecret ? "secret" : VERSUS.some((g) => g.id === initGame) ? "versus" : "casual"
+    inSecret ? "secret" : VERSUS.some((g) => g.id === initGame) ? "versus" : "casual"
   );
-  const [tournament,setTournament]=useState(tournamentId || null);
-  const openTournament=id=>{setTournament(id);setGame(null);setArg(null);setSection("versus");onTournamentChange?.(id);};
-  const closeTournament=()=>{setTournament(null);onTournamentChange?.(null);};
   const [unlocked, setUnlocked] = useState(() => inSecret || readUnlocked());
   const [board, setBoard] = useState(CASUAL[0].id);
   const [scope, setScope] = useState("week"); // "week" | "all"
@@ -146,6 +143,7 @@ export default function Game({ initial, tournamentId, onTournamentChange }) {
           onBack={() => {
             setGame(null);
             setArg(null);
+            void loadMe();
           }}
           arg={arg}
         />
@@ -229,7 +227,7 @@ export default function Game({ initial, tournamentId, onTournamentChange }) {
   return (
     <>
       <div className="fhead">
-        <h2>Игры</h2>
+        <h2>Игры</h2><button className="pub alt goals-trigger" onClick={()=>setGoals(true)}>Задания</button>
       </div>
 
       <div className="filters">
@@ -303,13 +301,8 @@ export default function Game({ initial, tournamentId, onTournamentChange }) {
         </>
       )}
 
-      {section === "versus" && (tournament ? <>
-        <button type="button" className="back" onClick={closeTournament}>‹ Все состязания</button>
-        <TournamentBanner eventId={tournament} onPlay={id=>setGame(id)} />
-      </> : <>
-        <TournamentList onOpen={openTournament} />
-        <div className="ggrid">{VERSUS.map((g) => tile(g, false))}</div>
-      </>)}
+      {section === "versus" && <div className="ggrid">{VERSUS.map((g) => tile(g, false))}</div>}
+      {goals&&<TasksDialog onClose={()=>setGoals(false)}/>}
 
       {section === "secret" && unlocked && (
         <>

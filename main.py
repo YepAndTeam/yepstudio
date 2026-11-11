@@ -1,4 +1,6 @@
 import os
+from daily_service import reward_visit
+from achievement_service import achievement_state
 import asyncio
 import logging
 import time
@@ -154,8 +156,10 @@ def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db))
 
 @app.get("/api/me")
 def me(user: User = Depends(get_user), db=Depends(get_db)):
-    if settle_due(db):
-        db.commit()
+    settle_due(db)
+    daily = reward_visit(db, user.id)
+    db.commit()
+    db.refresh(user)
     def count(*where, model):
         return db.scalar(select(func.count()).select_from(model).where(*where)) or 0
 
@@ -168,7 +172,33 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "theme": user.theme or "dark", "jera": user.jera,
         "owned_themes": sorted(owned_themes(db, user.id)), "theme_box_price": BOX_PRICE,
         "compensation_letters": list_letters(db, user.id),
+        "daily_reward": daily,
     }
+
+
+@app.get("/api/tasks")
+def daily_tasks(user: User = Depends(get_user), db=Depends(get_db)):
+    from task_service import daily_task_state
+    data=daily_task_state(db,user.id)
+    db.commit()
+    return data
+
+
+@app.get("/api/achievements")
+def achievements(user: User = Depends(get_user), db=Depends(get_db)):
+    from activity_catalog import ACHIEVEMENTS
+    return {**achievement_state(db,user.id),"items":[achievement_state(db,user.id,game) for game in ACHIEVEMENTS]}
+
+
+@app.get("/api/hall-of-fame")
+def hall_of_fame(user: User = Depends(get_user), db=Depends(get_db)):
+    from database import TournamentAward
+    rows=db.execute(select(TournamentAward,Tournament,User).join(Tournament,Tournament.id==TournamentAward.tournament_id)
+        .join(User,User.id==TournamentAward.user_id).where(Tournament.status=="finished")
+        .order_by(Tournament.ends_at.desc(),TournamentAward.place)).all()
+    return {"winners":[{"tournament_id":event.id,"title":event.title,"game":event.game,
+        "user_id":winner.id,"name":winner.first_name,"place":award.place,"amount":award.amount,
+        "theme_id":award.theme_id,"ended_at":event.ends_at.isoformat()+"Z"} for award,event,winner in rows]}
 
 
 @app.post("/api/me/compensation/{reset_id}/read")
@@ -659,8 +689,11 @@ def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user
     if body.score > GAMES[game]["max"]:
         raise HTTPException(422, "Подозрительный результат")
 
+    earned_before = achievement_state(db,user.id)["total_earned"] if game == "dino" else 0
     try:
         row, old, record = submit_result(db, user.id, game, body.score, run_id=body.run_id)
+        from task_service import daily_task_state
+        daily_task_state(db,user.id)
     except ScoreError as error:
         raise HTTPException(error.status, str(error))
     if record:
@@ -685,6 +718,8 @@ def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user
         .where(GameScore.game == game, GameScore.best > row.best)
     ) or 0)
     response = {"best": row.best, "record": record, "rank": rank}
+    if game == "dino":
+        response["achievement_reward"] = achievement_state(db,user.id)["total_earned"]-earned_before
     db.commit()
     return response
 

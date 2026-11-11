@@ -1,3 +1,4 @@
+import DailyReward from "../components/DailyReward";
 import TournamentBanner from "../components/TournamentBanner";
 import { STAGES, ST, dayLabel } from "../constants";
 import { useStore } from "../store";
@@ -5,12 +6,13 @@ import { Dot, Loading } from "../components/Common";
 import { Chevron } from "../components/Icons";
 
 export default function News({ openThread, tournamentId, onOpenTournament }) {
-  const { home: h } = useStore();
+  const { home: h, me, loadMe } = useStore();
   if (!h) return <Loading />;
 
   return (
     <>
       <TournamentBanner compact eventId={tournamentId} onOpen={onOpenTournament} />
+      <DailyReward userId={me?.id} reward={me?.daily_reward} refresh={loadMe} />
       {h.latest && (
         <div className="card banner">
           <span className="pt" />

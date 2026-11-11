@@ -116,6 +116,8 @@ def submit_result(db, user_id, game, score, now=None, run_id=None):
             db.add(TournamentScore(tournament_id=event.id, user_id=user_id, best=score, achieved_at=now))
         elif score > best.best:
             best.best, best.achieved_at = score, now
+    from achievement_service import accept_achievement
+    accept_achievement(db,user_id,game,score,run,now)
     db.flush()
     return row, old, record
 

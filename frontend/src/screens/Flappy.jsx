@@ -209,6 +209,7 @@ export default function Flappy({ onBack }) {
   dieRef.current = die;
 
   const press = () => {
+    if(isNyan())nyanSfx.unlock();
     const s = g.current;
      if (s.phase === "run") {
       s.vy = FLAP;
@@ -284,7 +285,7 @@ export default function Flappy({ onBack }) {
         <button
   type="button"
   className="snd"
-  onClick={() => setMuted(sfx.toggle())}
+  onClick={() => {setMuted(sfx.toggle());nyanSfx.muteChanged();}}
   aria-label={muted ? "Включить звук" : "Выключить звук"}
 >
   {muted ? <SoundOff /> : <Sound />}

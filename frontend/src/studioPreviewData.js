@@ -1,3 +1,4 @@
+import activityCatalog from "../../activity_catalog.json";
 // Imported only by studio-preview.html, never by the production application.
 export function installStudioPreview(scene,theme){
   if(!import.meta.env.DEV)throw Error("Preview disabled");
@@ -12,6 +13,7 @@ export function installStudioPreview(scene,theme){
   ]};
   const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:540,theme,
     owned_themes:["dark","light","retro","terminal","nyan","tetris","poop"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
+    daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?50:25,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
     compensation_letters:scene==="letter"?[receipt]:[]};
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
     starts_at:null,ends_at:null,server_now:now(),registered:false,participants:12,top:[],my_best:0,my_place:null,prize_theme:"poop",duplicate_prize:200,
@@ -24,6 +26,10 @@ export function installStudioPreview(scene,theme){
   }
   if(scene==="paid")Object.assign(events[0],{id:"preview-paid",title:"Следующий турнир",entry_fee:50});
   let first=scene==="empty"||scene==="registration"||scene==="letter";
+  let achievementBest=640;
+  const demoBests={flappy:12,snake:30,tetris:170,hell:0};
+  const achievementItem=definition=>{const best=definition.game==="dino"?achievementBest:demoBests[definition.game];return {...definition,best,steps:definition.steps.map(step=>({...step,earned:best>=step.score})),total_earned:definition.steps.filter(step=>best>=step.score).reduce((sum,step)=>sum+step.amount,0)};};
+  const achievementSteps=[[100,1],[500,5],[1000,10],[3000,25],[5000,50],[10000,100]];
   let maintenance=false,applied=false,pending=null,history=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
   const eventState=event=>({...event,server_now:now(),balance:me.jera});
@@ -33,6 +39,9 @@ export function installStudioPreview(scene,theme){
       {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]});
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
+    if(path==="/tasks")return {earned_today:3,daily_limit:10,balance:me.jera,ends_at:new Date(Date.now()+3600000).toISOString(),tasks:["participation","variety","score"].map((category,i)=>{const candidates=activityCatalog.tasks.filter(task=>task.category===category);const task=candidates[(Math.floor(Date.now()/86400000)+i)%candidates.length];return {...task,amount:[3,3,4][i],earned:i===0,current:i===0?task.target:Math.floor(task.target*.4)};})};
+    if(path==="/achievements")return {...achievementItem(activityCatalog.achievements[0]),items:activityCatalog.achievements.map(achievementItem)};
+    if(path==="/hall-of-fame")return {winners:events.filter(e=>e.status==="finished").flatMap(e=>e.top.slice(0,5).map(row=>({tournament_id:e.id,title:e.title,game:e.game,user_id:row.user_id,name:row.name,place:row.place,amount:e.prize_jera[row.place]||0,theme_id:row.place===1?"poop":null,ended_at:e.ends_at})))};
     if(path==="/me")return me;
     if(path==="/home")return {projects:[],latest:null,posts:[{id:1,title:"Проверка обновления",text:"Это локальный стенд. Все турниры, письма, покупки и начисления здесь тестовые.",created_at:now(),comments:0}]};
     if(path==="/topics")return [];
@@ -73,7 +82,11 @@ export function installStudioPreview(scene,theme){
     }
     if(path.startsWith("/game/top"))return {top:[],my_best:0,my_rank:null,ends_at:null};
     if(path==="/game/start")return {ok:true,run_id:"preview-run-"+Date.now()};
-    if(path==="/game/score")return {best:body.score,record:true,rank:1};
+    if(path==="/game/score"){
+      let reward=0;
+      if(body.game==="dino"){reward=achievementSteps.filter(([score])=>score>achievementBest&&score<=body.score).reduce((sum,[,amount])=>sum+amount,0);achievementBest=Math.max(achievementBest,body.score);me.jera+=reward;}
+      return {best:body.score,record:true,rank:1,achievement_reward:reward};
+    }
     fail("Этот экран не входит в локальный стенд: "+path);
   }
   window.fetch=async(input,options={})=>{

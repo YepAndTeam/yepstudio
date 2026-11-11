@@ -246,6 +246,50 @@ class RecordReset(Base):
     archive_json: Mapped[str] = mapped_column(Text)
 
 
+class DailyTaskSet(Base):
+    __tablename__ = "daily_task_sets"
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    definitions_json: Mapped[str] = mapped_column(Text)
+
+
+class DailyTaskAward(Base):
+    __tablename__ = "daily_task_awards"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    task_id: Mapped[str] = mapped_column(String(60), primary_key=True)
+    amount: Mapped[int] = mapped_column(Integer)
+
+
+class WeeklyTaskSet(Base):
+    __tablename__ = "weekly_task_sets"
+    period: Mapped[int] = mapped_column(Integer, primary_key=True)
+    definitions_json: Mapped[str] = mapped_column(Text)
+
+
+class AchievementProgress(Base):
+    __tablename__ = "achievement_progress"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    game: Mapped[str] = mapped_column(String(20), primary_key=True)
+    best: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AchievementAward(Base):
+    __tablename__ = "achievement_awards"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    game: Mapped[str] = mapped_column(String(20), primary_key=True)
+    threshold: Mapped[int] = mapped_column(Integer, primary_key=True)
+    amount: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class DailyVisit(Base):
+    __tablename__ = "daily_visits"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    streak: Mapped[int] = mapped_column(Integer)
+    amount: Mapped[int] = mapped_column(Integer)
+
+
 class RecordResetDraft(Base):
     __tablename__ = "record_reset_drafts"
     id: Mapped[str] = mapped_column(String(40), primary_key=True)

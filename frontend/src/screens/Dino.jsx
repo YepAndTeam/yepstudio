@@ -238,6 +238,7 @@ export default function Dino({ onBack }) {
   dieRef.current = die;
 
   const press = async () => {
+    if(isNyan())nyanSfx.unlock();
     if(starting.current)return;
     const s = g.current;
     if (s.phase === "run") {
@@ -325,7 +326,7 @@ export default function Dino({ onBack }) {
         <button
   type="button"
   className="snd"
-  onClick={() => setMuted(sfx.toggle())}
+  onClick={() => {setMuted(sfx.toggle());nyanSfx.muteChanged();}}
   aria-label={muted ? "Включить звук" : "Выключить звук"}
 >
   {muted ? <SoundOff /> : <Sound />}
@@ -356,6 +357,7 @@ export default function Dino({ onBack }) {
             </button>)}
           </span>
         </div>
+        {result?.achievement_reward>0&&<div className="gm-rec">Новая ступень достижения · +{result.achievement_reward} Йер</div>}
         {result?.record && (
           <div className="gm-rec">Новый рекорд! Ты #{result.rank}</div>
         )}

@@ -156,7 +156,7 @@ def event_state(db,event,user_id=None,now=None):
 
 def list_events(db,user_id=None):
     settle_due(db)
-    rows=db.scalars(select(Tournament).order_by(Tournament.created_at.desc(),Tournament.starts_at.desc()).limit(12)).all()
+    rows=db.scalars(select(Tournament).order_by(Tournament.created_at.desc(),Tournament.starts_at.desc())).all()
     latest=next((event for event in rows if event.status=="finished"),None)
     return {"events":[event_state(db,row,user_id) for row in rows],"next_free":next_is_free(db),"next_game":vote_winner(db,latest.id) if latest else None}
 

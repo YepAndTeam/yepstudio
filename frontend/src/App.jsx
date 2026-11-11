@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "./store";
 import { tg } from "./tg";
-import News from "./screens/News";
-import Forum from "./screens/Forum";
+import Studio from "./screens/Studio";
+import Community from "./screens/Community";
 import Profile from "./screens/Profile";
 import Thread from "./screens/Thread";
 import Inbox from "./screens/Inbox";
@@ -12,9 +12,9 @@ import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons
 import Game from "./screens/Game";
 import NyanRunner from "./components/NyanRunner";
 const TABS = [
-  ["news", "Новости", <NavNews />],
-  ["forum", "Форум", <NavForum />],
-  ["game", "Игра", <NavGame />],
+  ["news", "Студия", <NavNews />],
+  ["forum", "Сообщество", <NavForum />],
+  ["game", "Игры", <NavGame />],
   ["profile", "Профиль", <NavProfile />],
 ];
 
@@ -100,7 +100,7 @@ const [gameRef, setGameRef] = useState(null);
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
   if (ref.startsWith("tour_")) {
-    setTab("game");setGameRef(null);setTournamentId(ref.slice(5));
+    setTab("news");setGameRef(null);setTournamentId(ref.slice(5));
   } else if (ref.startsWith("game")) {
     setTab("game");
     setGameRef(ref.slice(5) || null);
@@ -163,9 +163,9 @@ const [gameRef, setGameRef] = useState(null);
           ) : inbox ? (
             <Inbox openThread={openThread} onBack={back} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
-            <News openThread={openThread} tournamentId={tournamentId} onOpenTournament={id=>{setTournamentId(id);setGameRef(null);setTab("game");}} />
+            <Studio openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
           ) : tab === "forum" ? (
-            <Forum
+            <Community
               openThread={openThread}
               openSheet={() => setSheet(true)}
               cat={cat}
@@ -173,7 +173,7 @@ const [gameRef, setGameRef] = useState(null);
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "game" ? <Game initial={gameRef} tournamentId={tournamentId} onTournamentChange={setTournamentId} />
+          ) : tab === "game" ? <Game initial={gameRef} />
             : (
             <Profile openThread={openThread} onOpenLetter={setSelectedMail} />
           )}

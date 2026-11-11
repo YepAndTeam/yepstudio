@@ -5,18 +5,21 @@ import { JeraIcon } from "../components/JeraIcon";
 import TournamentAdmin from "../components/TournamentAdmin";
 import AdminWallet from "../components/AdminWallet";
 import RecordsAdmin from "../components/RecordsAdmin";
-import PoopIcon from "../components/PoopIcon";
+import DailyReward from "../components/DailyReward";
+import Achievements from "../components/Achievements";
+import ThemeCollection from "./ThemeCollection";
 import { ST, THEMES } from "../constants";
-import { haptic } from "../tg";
 import Shop from "./Shop";
 
 export default function Profile({ openThread, onOpenLetter }) {
-  const { me: m, topics, mod, toggleMod, theme, setTheme, setPush, loadMe } = useStore();
+  const { me: m, topics, mod, toggleMod, theme, setPush, loadMe } = useStore();
   const [tab, setTab] = useState("profile"); // "profile" | "shop"
-  const [themeOpen, setThemeOpen] = useState(false);
+
 
   const cur = THEMES.find((t) => t.id === theme) || THEMES[0];
   if (!m) return <Loading />;
+  if (tab === "achievements") return <><button className="back" onClick={()=>setTab("profile")}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
+  if (tab === "collection") return <ThemeCollection onBack={() => setTab("profile")} />;
 
   const mine = (topics || []).filter((t) => t.author_id === m.id);
   const rated = mine.filter((t) => t.rated).length || m.rated;
@@ -72,6 +75,8 @@ export default function Profile({ openThread, onOpenLetter }) {
             </div>
           </div>
 
+          <DailyReward userId={m.id} reward={m.daily_reward} refresh={loadMe} />
+
           <div className="card stats">
             <div>
               <b>{m.topics}</b>
@@ -118,11 +123,13 @@ export default function Profile({ openThread, onOpenLetter }) {
             ))}
           </div>
 
+          <button className="card achievement-entry" onClick={()=>setTab("achievements")}><span>Достижения</span><small className="muted">Прогресс, цели и награды →</small></button>
+
           {/* Тема оформления */}
           <button
             type="button"
             className="card themerow"
-            onClick={() => setThemeOpen(true)}
+            onClick={() => setTab("collection")}
           >
             <span className="pv" style={{ background: cur.bg }}>
               <i style={{ background: cur.card }}>
@@ -130,50 +137,13 @@ export default function Profile({ openThread, onOpenLetter }) {
               </i>
             </span>
             <span className="col" style={{ minWidth: 0, gap: 2, flex: 1 }}>
-              <span className="muted small">Тема оформления</span>
+              <span className="muted small">Коллекция кассет</span>
               <span style={{ fontWeight: 600 }}>{cur.name}</span>
             </span>
             <svg width="20" height="20" viewBox="0 0 24 24" className="chev">
               <path d="M9 6l6 6-6 6" />
             </svg>
           </button>
-
-          {themeOpen && (
-            <div className="sheet-wrap">
-              <button
-                type="button"
-                className="scrim"
-                aria-label="Закрыть"
-                onClick={() => setThemeOpen(false)}
-              />
-              <div className="sheet" role="dialog" aria-modal="true">
-                <h3>Тема оформления</h3>
-                <div className="themes">
-                  {THEMES.map((t) => (
-                    <button
-                      type="button"
-                      key={t.id}
-                      className={`th ${theme === t.id ? "on" : ""} ${t.rarity === "mythic" ? "mythic-theme" : ""}`}
-                      aria-pressed={theme === t.id}
-                      disabled={!m.owned_themes?.includes(t.id)}
-                      aria-label={t.name + (m.owned_themes?.includes(t.id) ? "" : " — ещё не получена")}
-                      onClick={async () => {
-                        haptic();
-                        if(await setTheme(t.id)) setThemeOpen(false);
-                      }}
-                    >
-                      <span className="pv" style={{ background: t.bg }}>
-                        <i style={{ background: t.card }}>
-                          <b style={{ background: t.fg }} />
-                        </i>
-                      </span>
-                      <span>{t.name}{!m.owned_themes?.includes(t.id) && <span className="small muted"> · не получена</span>}{t.rarity === "mythic" && <span className="mythic-caption"><PoopIcon size={24} /> Мифическая · Золотой смыв</span>}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="card" style={{ padding: "6px 16px 14px" }}>
             <button

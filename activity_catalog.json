@@ -1,0 +1,467 @@
+{
+  "version": 1,
+  "weekly_categories": [
+    "participation",
+    "variety",
+    "score"
+  ],
+  "tasks": [
+    {
+      "id": "runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "title": "Заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "runs-5",
+      "category": "participation",
+      "kind": "runs",
+      "title": "Заверши 5 забегов",
+      "target": 5
+    },
+    {
+      "id": "runs-10",
+      "category": "participation",
+      "kind": "runs",
+      "title": "Заверши 10 забегов",
+      "target": 10
+    },
+    {
+      "id": "runs-15",
+      "category": "participation",
+      "kind": "runs",
+      "title": "Заверши 15 забегов",
+      "target": 15
+    },
+    {
+      "id": "dino-runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "game": "dino",
+      "title": "Дино: заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "dino-runs-7",
+      "category": "participation",
+      "kind": "runs",
+      "game": "dino",
+      "title": "Дино: заверши 7 забегов",
+      "target": 7
+    },
+    {
+      "id": "flappy-runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "game": "flappy",
+      "title": "Flappy: заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "flappy-runs-7",
+      "category": "participation",
+      "kind": "runs",
+      "game": "flappy",
+      "title": "Flappy: заверши 7 забегов",
+      "target": 7
+    },
+    {
+      "id": "snake-runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "game": "snake",
+      "title": "Змейка: заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "snake-runs-7",
+      "category": "participation",
+      "kind": "runs",
+      "game": "snake",
+      "title": "Змейка: заверши 7 забегов",
+      "target": 7
+    },
+    {
+      "id": "tetris-runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "game": "tetris",
+      "title": "Тетрис: заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "tetris-runs-7",
+      "category": "participation",
+      "kind": "runs",
+      "game": "tetris",
+      "title": "Тетрис: заверши 7 забегов",
+      "target": 7
+    },
+    {
+      "id": "hell-runs-3",
+      "category": "participation",
+      "kind": "runs",
+      "game": "hell",
+      "title": "Ад: заверши 3 забега",
+      "target": 3
+    },
+    {
+      "id": "hell-runs-7",
+      "category": "participation",
+      "kind": "runs",
+      "game": "hell",
+      "title": "Ад: заверши 7 забегов",
+      "target": 7
+    },
+    {
+      "id": "variety-2",
+      "category": "variety",
+      "kind": "distinct_games",
+      "title": "Сыграй в 2 разные игры",
+      "target": 2
+    },
+    {
+      "id": "variety-3",
+      "category": "variety",
+      "kind": "distinct_games",
+      "title": "Сыграй в 3 разные игры",
+      "target": 3
+    },
+    {
+      "id": "variety-5",
+      "category": "variety",
+      "kind": "distinct_games",
+      "title": "Сыграй во все 5 игр",
+      "target": 5
+    },
+    {
+      "id": "dino-best-100",
+      "category": "score",
+      "kind": "best",
+      "game": "dino",
+      "title": "Дино: набери 100 очков за забег",
+      "target": 100
+    },
+    {
+      "id": "dino-best-300",
+      "category": "score",
+      "kind": "best",
+      "game": "dino",
+      "title": "Дино: набери 300 очков за забег",
+      "target": 300
+    },
+    {
+      "id": "dino-best-500",
+      "category": "score",
+      "kind": "best",
+      "game": "dino",
+      "title": "Дино: набери 500 очков за забег",
+      "target": 500
+    },
+    {
+      "id": "flappy-best-3",
+      "category": "score",
+      "kind": "best",
+      "game": "flappy",
+      "title": "Flappy: набери 3 очков за забег",
+      "target": 3
+    },
+    {
+      "id": "flappy-best-5",
+      "category": "score",
+      "kind": "best",
+      "game": "flappy",
+      "title": "Flappy: набери 5 очков за забег",
+      "target": 5
+    },
+    {
+      "id": "flappy-best-10",
+      "category": "score",
+      "kind": "best",
+      "game": "flappy",
+      "title": "Flappy: набери 10 очков за забег",
+      "target": 10
+    },
+    {
+      "id": "snake-best-5",
+      "category": "score",
+      "kind": "best",
+      "game": "snake",
+      "title": "Змейка: набери 5 очков за забег",
+      "target": 5
+    },
+    {
+      "id": "snake-best-10",
+      "category": "score",
+      "kind": "best",
+      "game": "snake",
+      "title": "Змейка: набери 10 очков за забег",
+      "target": 10
+    },
+    {
+      "id": "snake-best-20",
+      "category": "score",
+      "kind": "best",
+      "game": "snake",
+      "title": "Змейка: набери 20 очков за забег",
+      "target": 20
+    },
+    {
+      "id": "tetris-best-100",
+      "category": "score",
+      "kind": "best",
+      "game": "tetris",
+      "title": "Тетрис: набери 100 очков за забег",
+      "target": 100
+    },
+    {
+      "id": "tetris-best-300",
+      "category": "score",
+      "kind": "best",
+      "game": "tetris",
+      "title": "Тетрис: набери 300 очков за забег",
+      "target": 300
+    },
+    {
+      "id": "tetris-best-500",
+      "category": "score",
+      "kind": "best",
+      "game": "tetris",
+      "title": "Тетрис: набери 500 очков за забег",
+      "target": 500
+    },
+    {
+      "id": "hell-best-50",
+      "category": "score",
+      "kind": "best",
+      "game": "hell",
+      "title": "Ад: набери 50 очков за забег",
+      "target": 50
+    },
+    {
+      "id": "hell-best-150",
+      "category": "score",
+      "kind": "best",
+      "game": "hell",
+      "title": "Ад: набери 150 очков за забег",
+      "target": 150
+    },
+    {
+      "id": "hell-best-300",
+      "category": "score",
+      "kind": "best",
+      "game": "hell",
+      "title": "Ад: набери 300 очков за забег",
+      "target": 300
+    },
+    {
+      "id": "dino-total-1000",
+      "category": "score",
+      "kind": "total",
+      "game": "dino",
+      "title": "Дино: собери 1000 очков за день",
+      "target": 1000
+    },
+    {
+      "id": "flappy-total-20",
+      "category": "score",
+      "kind": "total",
+      "game": "flappy",
+      "title": "Flappy: собери 20 очков за день",
+      "target": 20
+    },
+    {
+      "id": "snake-total-40",
+      "category": "score",
+      "kind": "total",
+      "game": "snake",
+      "title": "Змейка: собери 40 очков за день",
+      "target": 40
+    },
+    {
+      "id": "tetris-total-1000",
+      "category": "score",
+      "kind": "total",
+      "game": "tetris",
+      "title": "Тетрис: собери 1000 очков за день",
+      "target": 1000
+    },
+    {
+      "id": "hell-total-1000",
+      "category": "score",
+      "kind": "total",
+      "game": "hell",
+      "title": "Ад: собери 1000 очков за день",
+      "target": 1000
+    }
+  ],
+  "achievements": [
+    {
+      "game": "dino",
+      "game_name": "Дино",
+      "title": "Дино: путь к легенде",
+      "steps": [
+        {
+          "score": 100,
+          "amount": 1
+        },
+        {
+          "score": 500,
+          "amount": 5
+        },
+        {
+          "score": 1000,
+          "amount": 10
+        },
+        {
+          "score": 3000,
+          "amount": 25
+        },
+        {
+          "score": 5000,
+          "amount": 50
+        },
+        {
+          "score": 10000,
+          "amount": 100
+        }
+      ]
+    },
+    {
+      "game": "flappy",
+      "game_name": "Flappy",
+      "title": "Flappy: выше облаков",
+      "steps": [
+        {
+          "score": 5,
+          "amount": 0
+        },
+        {
+          "score": 10,
+          "amount": 0
+        },
+        {
+          "score": 25,
+          "amount": 0
+        },
+        {
+          "score": 50,
+          "amount": 0
+        },
+        {
+          "score": 100,
+          "amount": 0
+        },
+        {
+          "score": 200,
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "game": "snake",
+      "game_name": "Змейка",
+      "title": "Змейка: длинная история",
+      "steps": [
+        {
+          "score": 10,
+          "amount": 0
+        },
+        {
+          "score": 25,
+          "amount": 0
+        },
+        {
+          "score": 50,
+          "amount": 0
+        },
+        {
+          "score": 100,
+          "amount": 0
+        },
+        {
+          "score": 200,
+          "amount": 0
+        },
+        {
+          "score": 300,
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "game": "tetris",
+      "game_name": "Тетрис",
+      "title": "Тетрис: архитектор",
+      "steps": [
+        {
+          "score": 10,
+          "amount": 0
+        },
+        {
+          "score": 25,
+          "amount": 0
+        },
+        {
+          "score": 50,
+          "amount": 0
+        },
+        {
+          "score": 100,
+          "amount": 0
+        },
+        {
+          "score": 200,
+          "amount": 0
+        },
+        {
+          "score": 500,
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "game": "hell",
+      "game_name": "Ад",
+      "title": "Ад: охотник на демонов",
+      "steps": [
+        {
+          "score": 25,
+          "amount": 0
+        },
+        {
+          "score": 100,
+          "amount": 0
+        },
+        {
+          "score": 250,
+          "amount": 0
+        },
+        {
+          "score": 500,
+          "amount": 0
+        },
+        {
+          "score": 1000,
+          "amount": 0
+        },
+        {
+          "score": 2000,
+          "amount": 0
+        }
+      ]
+    }
+  ],
+  "daily_categories": [
+    "participation",
+    "variety",
+    "score"
+  ],
+  "daily_rewards": [
+    3,
+    3,
+    4
+  ]
+}
+
