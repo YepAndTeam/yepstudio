@@ -6,6 +6,7 @@ import Community from "./screens/Community";
 import Profile from "./screens/Profile";
 import Thread from "./screens/Thread";
 import Inbox from "./screens/Inbox";
+import BackgroundMusic from "./components/BackgroundMusic";
 import CompensationMail from "./components/CompensationMail";
 import NewTopicSheet from "./components/NewTopicSheet";
 import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons";
@@ -73,6 +74,14 @@ const [gameRef, setGameRef] = useState(null);
     }
   };
 
+  // Keep content gestures from collapsing the Mini App on every screen.
+  useEffect(()=>{
+    const lock=()=>{try{if(!tg?.isVersionAtLeast||tg.isVersionAtLeast("7.7"))tg?.disableVerticalSwipes?.();}catch{}};
+    const resume=()=>{if(!document.hidden)lock();};
+    lock();tg?.onEvent?.("viewportChanged",lock);document.addEventListener("visibilitychange",resume);
+    return()=>{tg?.offEvent?.("viewportChanged",lock);document.removeEventListener("visibilitychange",resume);};
+  },[]);
+
   // Telegram BackButton
   useEffect(() => {
     try {
@@ -134,6 +143,7 @@ const [gameRef, setGameRef] = useState(null);
 
   return (
     <>
+      <BackgroundMusic />
       <header>
         <div className="logo">
           <span>YAB</span>

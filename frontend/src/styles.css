@@ -844,3 +844,4 @@ html,body{overscroll-behavior:none}
 /* Text placed directly on the Nyan star field needs a light foreground. */
 :root[data-theme="nyan"] .page>p.muted:not(.card),:root[data-theme="nyan"] .collection-page>p.muted{color:#dcecff}
 .task-budget{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--line);border-radius:7px;font-size:11px}.weekly-task .between>small{font-size:10px;color:var(--muted)}.weekly-task .task-prize{font-size:11px;white-space:nowrap}
+html,body,#app{overscroll-behavior-y:none}.scroll{overscroll-behavior-y:contain}.settings-option+.settings-option{border-top:1px solid var(--line)}.settings-option .modrow{gap:12px}.settings-option .modrow>span:first-child{text-align:left}.settings-option p{margin:0 0 14px;line-height:1.55}.settings-option .sw{flex-shrink:0}

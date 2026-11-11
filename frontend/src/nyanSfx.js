@@ -1,5 +1,6 @@
 
 import { sfx } from "./sfx";
+import { getPreferences, subscribePreferences } from "./preferences";
 
 /*
   Nyan Cat with Bass
@@ -165,7 +166,7 @@ function ctx() {
 }
 
 function playNote(frequency, time, duration, volume = 0.065, waveform = "square") {
-  if (!frequency || sfx.muted) return;
+  if (!frequency) return;
 
   const c = ctx();
   if (!c) return;
@@ -249,11 +250,9 @@ document.addEventListener("visibilitychange", () => {
 
 export const nyanSfx = {
   unlock() { ctx(); },
-  muteChanged() {
-    if (sfx.muted) silence();
-    else ctx();
-  },
+  muteChanged() { if(!sfx.muted)ctx(); },
   start() {
+    if(!getPreferences().musicEnabled)return;
     const c = ctx();
     if (playing) return;
 
@@ -295,3 +294,5 @@ export const nyanSfx = {
 
 export const isNyan = () =>
   document.documentElement.dataset.theme === "nyan";
+
+subscribePreferences(()=>{if(!getPreferences().musicEnabled)nyanSfx.stop();});

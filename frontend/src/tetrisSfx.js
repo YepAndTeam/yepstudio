@@ -1,4 +1,4 @@
-import { sfx } from "./sfx";
+import { getPreferences, subscribePreferences } from "./preferences";
 
 // ВСТАВЬ СЮДА массив melody[] из ардуино-скетча как есть (комментарии и скобки можно оставить)
 const RAW = `
@@ -76,7 +76,7 @@ function schedule() {
   if (!c || !EVENTS.length) return;
   while (nextT < c.currentTime + 0.2) {
     const e = EVENTS[idx % EVENTS.length];
-    if (e.f && !sfx.muted) note(c, e.f, nextT, e.dur * 0.9);
+    if (e.f) note(c, e.f, nextT, e.dur * 0.9);
     nextT += e.dur;
     idx++;
   }
@@ -84,6 +84,7 @@ function schedule() {
 
 export const tetrisSfx = {
   start() {
+    if(!getPreferences().musicEnabled)return;
     if (timer || !EVENTS.length) return;
     const c = ctx();
     if (!c) return;
@@ -107,3 +108,4 @@ export const isTetrisTheme = () => document.documentElement.dataset.theme === "t
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) tetrisSfx.stop();
 });
+subscribePreferences(()=>{if(!getPreferences().musicEnabled)tetrisSfx.stop();});

@@ -125,15 +125,6 @@ export default function Game({ initial }) {
     };
   }, [game]);
 
-  // отключаем свайп-закрытие Telegram, пока открыта игра
-  useEffect(() => {
-    if (!game) return;
-    try { tg.disableVerticalSwipes?.(); } catch {}
-    return () => {
-      try { tg.enableVerticalSwipes?.(); } catch {}
-    };
-  }, [game]);
-
   const current = ALL.find((g) => g.id === game);
   if (current?.View) {
     const View = current.View;

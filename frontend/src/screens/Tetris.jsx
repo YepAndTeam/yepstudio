@@ -9,6 +9,7 @@ import Leaderboard from "../components/Leaderboard";
 import { BackIcon } from "../components/Icons";
 import { Sound, SoundOff } from "../components/Icons";
 import { tetrisSfx, isTetrisTheme } from "../tetrisSfx";
+import { usePreferences } from "../preferences";
 import Pad from "../components/Pad";
 import { drawCeramic, drawWcFloor, drawToilet, drawFlush } from "../wcGames";
 const GAME = "tetris";
@@ -207,6 +208,7 @@ function draw(ctx, s, col) {
 
 export default function Tetris({ onBack }) {
   const { me } = useStore();
+  const {tetrisController}=usePreferences();
   const cv = useRef(null);
   const g = useRef(fresh());
   const col = useRef({ fg: "#fff", bg: "#000", font: "monospace", nyan: false });
@@ -405,12 +407,12 @@ tetris: document.documentElement.dataset.theme === "tetris",
             touchAction: "none",
           }}
         />
-        <Pad row keys={[
+        {tetrisController&&<Pad always row keys={[
   { label: "◀", on: () => act((s) => move(s, -1)) },
   { label: "⟳", on: () => act(rotate) },
   { label: "▶", on: () => act((s) => move(s, 1)) },
   { label: "⤓", on: () => act(hardDrop) },
-]} />
+]} />}
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
             {phase === "dead" ? `Результат: ${score}` : "Свайп ↔ двигает, ↓ роняет, тап вращает"}

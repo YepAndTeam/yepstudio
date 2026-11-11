@@ -7,6 +7,7 @@ import { nyanSfx, isNyan } from "../nyanSfx";
 import { drawNyanHead, drawStars } from "../nyan";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
+import { usePreferences } from "../preferences";
 import Pad from "../components/Pad";
 import { drawWcFloor, drawRollSegment } from "../wcGames";
 import { drawPlunger } from "../bathroom";
@@ -144,6 +145,7 @@ function draw(ctx, s, col) {
 
 export default function Snake({ onBack }) {
   const { me } = useStore();
+  const {snakeController}=usePreferences();
   const cv = useRef(null);
   const g = useRef(fresh());
   const col = useRef({ fg: "#fff", bg: "#000", font: "monospace", nyan: false });
@@ -317,12 +319,12 @@ export default function Snake({ onBack }) {
             touchAction: "none",
           }}
         />
-        <Pad keys={[
+        {snakeController&&<Pad always keys={[
   { label: "▲", pos: "1 / 2", on: () => press(0, -1) },
   { label: "◀", pos: "2 / 1", on: () => press(-1, 0) },
   { label: "▼", pos: "2 / 2", on: () => press(0, 1) },
   { label: "▶", pos: "2 / 3", on: () => press(1, 0) },
-]} />
+]} />}
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
             {phase === "dead" ? `Результат: ${score}` : "Свайпай или стрелки / WASD"}

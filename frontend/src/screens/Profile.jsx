@@ -9,15 +9,17 @@ import DailyReward from "../components/DailyReward";
 import Achievements from "../components/Achievements";
 import ThemeCollection from "./ThemeCollection";
 import { ST, THEMES } from "../constants";
+import Settings from "./Settings";
 import Shop from "./Shop";
 
 export default function Profile({ openThread, onOpenLetter }) {
-  const { me: m, topics, mod, toggleMod, theme, setPush, loadMe } = useStore();
+  const { me: m, topics, theme, loadMe } = useStore();
   const [tab, setTab] = useState("profile"); // "profile" | "shop"
 
 
   const cur = THEMES.find((t) => t.id === theme) || THEMES[0];
   if (!m) return <Loading />;
+  if (tab === "settings") return <Settings onBack={()=>setTab("profile")} />;
   if (tab === "achievements") return <><button className="back" onClick={()=>setTab("profile")}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
   if (tab === "collection") return <ThemeCollection onBack={() => setTab("profile")} />;
 
@@ -145,23 +147,7 @@ export default function Profile({ openThread, onOpenLetter }) {
             </svg>
           </button>
 
-          <div className="card" style={{ padding: "6px 16px 14px" }}>
-            <button
-              type="button"
-              className="modrow"
-              aria-pressed={m.notify}
-              onClick={() => setPush(!m.notify)}
-            >
-              <span>Уведомления от бота</span>
-              <span className={`sw ${m.notify ? "on" : ""}`}>
-                <i />
-              </span>
-            </button>
-            <div className="small muted">
-              Ответы и статусы приходят в Telegram. В колокольчике они остаются
-              всегда.
-            </div>
-          </div>
+          <button className="card achievement-entry" onClick={()=>setTab("settings")}><span>Настройки</span><small className="muted">Звук, управление и уведомления →</small></button>
 
           {m.compensation_letters?.length>0 && <div className="card col" style={{gap:10}}>
             <h3>Письма от студии</h3>
@@ -172,24 +158,6 @@ export default function Profile({ openThread, onOpenLetter }) {
           {m.role === "admin" && <TournamentAdmin />}
           {m.role === "admin" && <AdminWallet />}
           {m.role === "admin" && <RecordsAdmin onUpdated={loadMe} />}
-          {m.role === "admin" && (
-            <div className="card" style={{ padding: "6px 16px 14px" }}>
-              <button
-                type="button"
-                className="modrow"
-                aria-pressed={mod}
-                onClick={toggleMod}
-              >
-                <span>Режим модератора</span>
-                <span className={`sw ${mod ? "on" : ""}`}>
-                  <i />
-                </span>
-              </button>
-              <div className="small muted">
-                Показывает кнопки управления в темах. Видно только тебе.
-              </div>
-            </div>
-          )}
         </>
       )}
     </>
