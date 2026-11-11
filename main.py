@@ -39,7 +39,7 @@ Base.metadata.create_all(engine)
 migrate()
 from weekly import ensure_period, week_ends_at
 from score_service import initialize_score_state, submit_result, invalidate_scores, lock_scores, begin_run, ScoreError
-from reset_records import preview as reset_preview, summary as reset_summary, apply_plan as apply_record_reset, RESET_ID
+from reset_records import preview as reset_preview, saved_preview, apply_plan as apply_record_reset, RESET_ID
 from database import Meta, RecordReset
 initialize_score_state(SessionLocal)
 from shop_service import (initialize_shop_state, owned_themes, buy_box, unlock_box,
@@ -751,19 +751,28 @@ class RecordsResetIn(BaseModel):
 
 @app.get("/api/admin/records/status")
 def records_status(admin: User = Depends(get_admin), db=Depends(get_db)):
-    return {"maintenance": db.scalar(select(Meta.value).where(Meta.key == "score_maintenance")) == "1",
-            "applied": db.get(RecordReset, RESET_ID) is not None}
+    maintenance = db.scalar(select(Meta.value).where(Meta.key == "score_maintenance")) == "1"
+    applied = db.get(RecordReset, RESET_ID) is not None
+    plan = None
+    if maintenance and not applied:
+        lock_scores(db)
+        plan = saved_preview(db)
+        db.commit()
+    return {"maintenance": maintenance, "applied": applied, "plan": plan}
 
 
 @app.post("/api/admin/records/maintenance")
 def records_maintenance(body: RecordsMaintenanceIn, admin: User = Depends(get_admin), db=Depends(get_db)):
     lock_scores(db)
+    was_closed = db.scalar(select(Meta.value).where(Meta.key == "score_maintenance")) == "1"
     settle_due(db)
     if body.enabled and db.scalar(select(Tournament.id).where(Tournament.cancelled.is_(False), Tournament.status.in_(["registration", "active"])).limit(1)):
         raise HTTPException(409, "Сначала заверши или отмени текущий турнир")
     db.merge(Meta(key="score_maintenance", value="1" if body.enabled else "0"))
+    db.flush()
+    plan = saved_preview(db, refresh=not was_closed) if body.enabled and not db.get(RecordReset, RESET_ID) else None
     db.commit()
-    return {"ok": True, "maintenance": body.enabled}
+    return {"ok": True, "maintenance": body.enabled, "plan": plan}
 
 
 @app.get("/api/admin/records/reset-preview")
@@ -771,8 +780,7 @@ def records_preview(admin: User = Depends(get_admin), db=Depends(get_db)):
     lock_scores(db)
     if db.get(RecordReset, RESET_ID):
         raise HTTPException(409, "Однократный сброс уже выполнен")
-    plan = reset_preview(db)
-    plan["summary"] = reset_summary(plan)
+    plan = saved_preview(db, refresh=True)
     db.commit()
     return plan
 

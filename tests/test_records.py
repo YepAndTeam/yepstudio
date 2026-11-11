@@ -12,7 +12,7 @@ from database import (Base, User, GameScore, AllTimeScore, GameResult, GameRun, 
                       Tournament, TournamentScore, TournamentResult, TournamentEntry, RecordReset, JeraTx, WeeklyResult)
 from score_service import initialize_score_state, submit_result, begin_run, invalidate_scores, ScoreError
 from weekly import ensure_period, period_now
-from reset_records import preview, apply_plan, calculate
+from reset_records import preview, saved_preview, apply_plan, calculate
 
 
 class RecordsTest(unittest.TestCase):
@@ -26,6 +26,22 @@ class RecordsTest(unittest.TestCase):
 
     def tearDown(self):
         self.engine.dispose()
+
+    def test_saved_calculation_survives_sessions_and_explicit_refresh(self):
+        with self.sessions.begin() as db:
+            db.add(GameScore(user_id=1, game="dino", best=123, plays=1))
+        with self.sessions.begin() as db:
+            original = saved_preview(db)
+        with self.sessions.begin() as db:
+            self.assertEqual(saved_preview(db), original)
+            self.assertEqual(preview(db)["archive_hash"], original["archive_hash"])
+            db.add(GameScore(user_id=2, game="dino", best=456, plays=1))
+        with self.sessions.begin() as db:
+            self.assertEqual(saved_preview(db), original)
+            updated = saved_preview(db, refresh=True)
+            self.assertNotEqual(updated["archive_hash"], original["archive_hash"])
+        with self.sessions.begin() as db:
+            self.assertEqual(saved_preview(db), updated)
 
     def test_alltime_repairs_without_weekly_record(self):
         with self.sessions.begin() as db:

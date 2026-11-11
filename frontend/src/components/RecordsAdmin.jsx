@@ -10,7 +10,7 @@ export default function RecordsAdmin({ onUpdated }) {
   const [message, setMessage] = useState("");
   useEffect(() => {
     let alive = true;
-    api("/admin/records/status").then(value => { if (alive) setState(value); })
+    api("/admin/records/status").then(value => { if (alive) { setState(value); setPlan(value.plan || null); } })
       .catch(error => { if (alive) setMessage(error.message); });
     return () => { alive = false; };
   }, []);
@@ -21,10 +21,13 @@ export default function RecordsAdmin({ onUpdated }) {
     finally { setBusy(false); }
   }
   async function prepare() {
-    await api("/admin/records/maintenance", "POST", { enabled: true });
+    if (plan) {
+      setPlan(await api("/admin/records/reset-preview"));
+      return;
+    }
+    const result = await api("/admin/records/maintenance", "POST", { enabled: true });
     setState(value => ({ ...value, maintenance: true }));
-    const result = await api("/admin/records/reset-preview");
-    setPlan(result);
+    setPlan(result.plan || null);
   }
   function download() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(plan, null, 2)], { type: "application/json" }));

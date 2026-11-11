@@ -246,6 +246,12 @@ class RecordReset(Base):
     archive_json: Mapped[str] = mapped_column(Text)
 
 
+class RecordResetDraft(Base):
+    __tablename__ = "record_reset_drafts"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    plan_json: Mapped[str] = mapped_column(Text)
+
+
 class UserTheme(Base):
     __tablename__ = "user_themes"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)

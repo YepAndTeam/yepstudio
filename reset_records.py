@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy import MetaData, Table, delete, inspect, select
 from sqlalchemy.orm import Session
 from database import (engine, SessionLocal, AllTimeScore, GameScore, JeraTx, Meta,
-                      Notification, RecordReset, Tournament)
+                      Notification, RecordReset, RecordResetDraft, Tournament)
 from score_service import lock_scores
 from weekly import NAMES, grant, period_now
 
@@ -80,6 +80,18 @@ def preview(db):
     archive = capture(db)
     return {"version": 2, "reset_id": RESET_ID, "created_at": datetime.utcnow().isoformat()+"Z",
             "archive": archive, "archive_hash": digest(archive), "awards": calculate(archive)}
+
+
+def saved_preview(db, refresh=False):
+    """Persist the reviewed calculation across devices; caller holds score lock."""
+    draft = db.get(RecordResetDraft, RESET_ID)
+    if draft is not None and not refresh:
+        return json.loads(draft.plan_json)
+    plan = preview(db)
+    plan["summary"] = summary(plan)
+    db.merge(RecordResetDraft(id=RESET_ID, plan_json=canonical(plan)))
+    db.flush()
+    return plan
 
 
 def summary(plan):
