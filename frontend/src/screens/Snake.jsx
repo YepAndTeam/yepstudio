@@ -1,3 +1,4 @@
+import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -306,7 +307,7 @@ export default function Snake({ onBack }) {
       </div>
 
       <div className="card gm">
-        <canvas
+        <GameCanvas
           ref={cv}
           onPointerDown={onDown}
           onPointerMove={onMove}

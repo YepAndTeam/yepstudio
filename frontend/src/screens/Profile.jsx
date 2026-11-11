@@ -149,7 +149,7 @@ export default function Profile({ openThread, onOpenLetter }) {
             </svg>
           </button>
 
-          <button className="card achievement-entry" onClick={()=>setTab("settings")}><span>Настройки</span><small className="muted">Звук, управление и уведомления →</small></button>
+          <button className="card achievement-entry" onClick={()=>setTab("settings")}><span>Настройки</span><small className="muted">Звук, размер поля и управление →</small></button>
 
           {m.compensation_letters?.length>0 && <div className="card col" style={{gap:10}}>
             <h3>Письма от студии</h3>

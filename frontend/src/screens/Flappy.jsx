@@ -1,3 +1,4 @@
+import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -293,7 +294,7 @@ export default function Flappy({ onBack }) {
       </div>
 
       <div className="card gm">
-        <canvas
+        <GameCanvas
           ref={cv}
           onPointerDown={press}
           style={{

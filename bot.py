@@ -12,6 +12,7 @@ from pathlib import Path
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import ChatMemberUpdated
 from dotenv import load_dotenv
 from sqlalchemy import select
 
@@ -36,15 +37,35 @@ def is_admin(user_id: int) -> bool:
         return bool(u and u.role == "admin")
 
 
+@dp.message(Command("play"))
 @dp.message(CommandStart())
 async def start(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть YAB STUDIO", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
     await message.answer(
-        "Привет! Здесь новости студии, форум с идеями и голосованием.",
+        "Привет! Здесь игры, турниры, новости и сообщество YAB STUDIO.",
         reply_markup=kb,
     )
+    if message.chat.type=="private" and message.from_user:
+        from widget_bot import start_widget
+        from widget_service import WidgetError
+        try:
+            await start_widget(bot,SessionLocal,message.from_user,message.from_user.id in ADMIN_IDS)
+        except WidgetError:
+            await message.answer("Виджет пока недоступен. Обнови Telegram и попробуй /play ещё раз. Игры доступны по кнопке «Открыть YAB STUDIO».")
+
+
+
+@dp.my_chat_member()
+async def contact_status(event: ChatMemberUpdated):
+    if event.chat.type!="private":return
+    from widget_bot import in_db
+    from widget_models import BotContact
+    def update_contact(db):
+        contact=db.get(BotContact,event.chat.id)
+        if contact:contact.available=event.new_chat_member.status not in ("kicked","left")
+    await in_db(SessionLocal,update_contact)
 
 
 @dp.message(Command("news"))

@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{font-family:system-ui;margin:12px;color:var(--tg-theme-text-color)}h3{margin:0 0 10px;font-size:17px}p{font-size:13px;line-height:1.45;margin:8px 0}button{display:block;width:100%;box-sizing:border-box;margin:7px 0;padding:10px;border:1px solid var(--tg-theme-section-separator-color);border-radius:9px;background:var(--tg-theme-secondary-bg-color);color:var(--tg-theme-text-color);font-size:13px;text-align:left}small{color:var(--tg-theme-hint-color)}.primary{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}#error{font-size:12px;color:var(--tg-theme-destructive-text-color)}</style></head><body><h3>YAB · Партия с другом</h3><div id="view"></div><p id="error"></p><script>
+var W=TelegramWidget,root=document.getElementById('view'),error=document.getElementById('error'),busy=false;
+function text(value){var p=document.createElement('p');p.textContent=value;root.appendChild(p)}
+function button(label,action,primary){var b=document.createElement('button');b.textContent=label;if(primary)b.className='primary';b.onclick=action;root.appendChild(b)}
+function ask(action){if(busy)return;busy=true;error.textContent='';W.request(action).then(function(a){busy=false;if(a.result){var s=JSON.parse(a.result);if(s.error)error.textContent=s.error;else render(s)}},function(){busy=false;error.textContent='Не удалось связаться с ботом. Попробуй обновить.'})}
+function render(s){root.textContent='';var kind=s.kind==='checkers'?'Шашки':'Шахматы';
+if(s.screen==='choose'){text('Выбери игру и пригласи соперника.');button('Шахматы',function(){ask('kind:chess')},true);button('Шашки',function(){ask('kind:checkers')},true)}
+else if(s.screen==='players'){text(kind+' · выбери соперника');if(!s.players.length)text('Пока нет доступных игроков. Попроси друга нажать /start у бота и включить уведомления в студии.');s.players.forEach(function(u){button(u.name,function(){ask('invite:'+u.id)})});if(s.page>0)button('← Предыдущие',function(){ask('page:'+(s.page-1))});if(s.page+1<s.pages)button('Следующие →',function(){ask('page:'+(s.page+1))});text('Страница '+(s.page+1)+' / '+s.pages);button('Выбрать другую игру',function(){ask('home')})}
+else if(s.screen==='invitation'){text(kind+' · '+s.name);if(s.status==='pending'){text(s.incoming?'Тебя приглашают сыграть. Приглашение действует 30 минут.':s.delivery==='failed'?'Не удалось доставить приглашение. Можно повторить отправку.':'Приглашение отправляется или уже доставлено. Ждём ответа.');if(s.incoming){button('Принять',function(){ask('accept')},true);button('Отклонить',function(){ask('decline')})}else{if(s.delivery==='failed')button('Повторить отправку',function(){ask('retry')});button('Отменить приглашение',function(){ask('cancel')})}}
+else if(s.status==='accepted'){text('Партия готова! Цвета выбраны случайно.');button('Открыть партию',function(){W.openTelegramLink(s.link)},true)}
+else{text(s.status==='expired'?'Время приглашения истекло.':s.status==='declined'?'Приглашение отклонено.':'Приглашение отменено.');button('Создать новую партию',function(){ask('home')})}}
+button('Обновить',function(){ask('refresh')})}
+function sync(){try{render(JSON.parse(W.chatData||'{"screen":"choose"}'))}catch(e){error.textContent='Нажми «Обновить»'}}
+W.onEvent('chatDataChanged',sync);sync();W.ready();
+</script></body></html>

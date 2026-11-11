@@ -1,3 +1,5 @@
+import GameCanvas from '../components/GameCanvas';
+import { setSoftDrop as setSoft } from '../tetrisInput';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -123,7 +125,7 @@ function step(s, dt) {
   s.t += dt;
   s.acc += dt;
   const level = Math.floor(s.lines / 10);
-  const interval = s.soft ? 0.04 : Math.max(0.09, 0.8 - level * 0.07);
+  const interval = s.soft ? 0.065 : Math.max(0.09, 0.8 - level * 0.07);
   while (s.acc >= interval && s.phase === "run") {
     s.acc -= interval;
     down(s);
@@ -324,24 +326,29 @@ tetris: document.documentElement.dataset.theme === "tetris",
       if (e.code === "ArrowLeft" || e.code === "KeyA") move(s, -1);
       else if (e.code === "ArrowRight" || e.code === "KeyD") move(s, 1);
       else if (e.code === "ArrowUp" || e.code === "KeyW") rotate(s);
-      else if (e.code === "ArrowDown" || e.code === "KeyS") s.soft = true;
+      else if (e.code === "ArrowDown" || e.code === "KeyS") setSoft(s,true);
       else if (e.code === "Space") hardDrop(s);
     };
     const keyUp = (e) => {
-      if (e.code === "ArrowDown" || e.code === "KeyS") g.current.soft = false;
+      if (e.code === "ArrowDown" || e.code === "KeyS") setSoft(g.current,false);
     };
+    const releaseSoft=()=>{setSoft(g.current,false);ptr.current=null;};
+    window.addEventListener("blur",releaseSoft);
+    document.addEventListener("visibilitychange",releaseSoft);
     window.addEventListener("keydown", key);
     window.addEventListener("keyup", keyUp);
     return () => {
     tetrisSfx.stop();
       nyanSfx.stop();
       cancelAnimationFrame(raf);
+      window.removeEventListener("blur",releaseSoft);
+      document.removeEventListener("visibilitychange",releaseSoft);
       window.removeEventListener("keydown", key);
       window.removeEventListener("keyup", keyUp);
     };
   }, []);
 
-  // тач: свайп влево/вправо двигает, свайп вниз роняет, тап вращает
+  // тач: свайп влево/вправо двигает, свайп вниз ускоряет, тап вращает
   const onDown = (e) => {
     if (g.current.phase !== "run") {
       start();
@@ -362,14 +369,15 @@ tetris: document.documentElement.dataset.theme === "tetris",
       p.moved = true;
     }
     if (!p.dropped && e.clientY - p.sy > 50 && e.clientY - p.sy > Math.abs(e.clientX - p.x) * 1.5) {
-      hardDrop(s);
+      setSoft(s,true);
       p.dropped = true;
     }
   };
-  const onUp = () => {
+  const onUp = (e) => {
+    setSoft(g.current,false);
     const p = ptr.current;
     ptr.current = null;
-    if (p && !p.moved && !p.dropped && g.current.phase === "run") {
+    if (e?.type!=='pointercancel' && e?.type!=='lostpointercapture' && p && !p.moved && !p.dropped && g.current.phase === "run") {
       rotate(g.current);
       haptic();
     }
@@ -392,12 +400,13 @@ tetris: document.documentElement.dataset.theme === "tetris",
       </div>
 
       <div className="card gm">
-        <canvas
+        <GameCanvas
           ref={cv}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
+          onLostPointerCapture={onUp}
           style={{
             width: "100%",
             maxWidth: 320,
@@ -411,11 +420,11 @@ tetris: document.documentElement.dataset.theme === "tetris",
   { label: "◀", on: () => act((s) => move(s, -1)) },
   { label: "⟳", on: () => act(rotate) },
   { label: "▶", on: () => act((s) => move(s, 1)) },
-  { label: "⤓", on: () => act(hardDrop) },
+  { label: "▼", on: () => act(s=>setSoft(s,true)), off: () => setSoft(g.current,false) },
 ]} />}
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
-            {phase === "dead" ? `Результат: ${score}` : "Свайп ↔ двигает, ↓ роняет, тап вращает"}
+            {phase === "dead" ? `Результат: ${score}` : "Свайп ↔ двигает, ↓ ускоряет при удержании, тап вращает"}
           </span>
           <span className="small muted">
             Рекорд: {result?.best ?? top?.my_best ?? 0}

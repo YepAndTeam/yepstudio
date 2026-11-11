@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import widget_models  # registers private-chat widget tables
 import race_models  # registers race tables before create_all
 import chess_models  # noqa: F401  (регистрирует таблицу до create_all)
 import checkers_models  # noqa: F401  (регистрирует таблицу до create_all)
@@ -45,6 +46,8 @@ from score_service import initialize_score_state, submit_result, invalidate_scor
 from reset_records import preview as reset_preview, saved_preview, apply_plan as apply_record_reset, RESET_ID
 from database import Meta, RecordReset
 initialize_score_state(SessionLocal)
+from widget_service import initialize_widget_state
+initialize_widget_state(SessionLocal)
 from shop_service import (initialize_shop_state, owned_themes, buy_box, unlock_box,
                           shop_state, ShopError, BOX_PRICE)
 initialize_shop_state(SessionLocal)
@@ -111,7 +114,8 @@ async def race_clock():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if WEBAPP_URL:  # локально без ссылки просто пропускаем
-        await bot.set_webhook(f"{WEBAPP_URL}/webhook", secret_token=WEBHOOK_SECRET)
+        await bot.set_webhook(f"{WEBAPP_URL}/webhook", secret_token=WEBHOOK_SECRET,
+            allowed_updates=list(set(dp.resolve_used_update_types()) | {"widget_query", "my_chat_member"}))
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))
         )
@@ -897,10 +901,15 @@ def records_apply(body: RecordsResetIn, admin: User = Depends(get_admin), db=Dep
 # ---------- Telegram ----------
 
 @app.post("/webhook")
-async def webhook(request: Request):
+async def webhook(request: Request, background_tasks: BackgroundTasks):
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
         raise HTTPException(403)
-    update = Update.model_validate(await request.json(), context={"bot": bot})
+    raw=await request.json()
+    if "widget_query" in raw:
+        from widget_bot import handle_widget_query
+        background_tasks.add_task(handle_widget_query,bot,SessionLocal,raw["widget_query"])
+        return {"ok": True}
+    update = Update.model_validate(raw, context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
 

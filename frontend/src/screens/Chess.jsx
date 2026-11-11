@@ -1,3 +1,4 @@
+import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -287,7 +288,7 @@ function Match({ id, onBack }) {
 
       <div className="card gm">
         <div style={{ paddingBottom: 10 }}>{flip ? bar(st.white, "w") : bar(st.black, "b")}</div>
-        <canvas
+        <GameCanvas
           ref={cv}
           onPointerDown={onDown}
           style={{ width: "100%", maxWidth: 420, margin: "0 auto", aspectRatio: "1 / 1", display: "block", touchAction: "none" }}
