@@ -42,7 +42,7 @@ STATUS_RU = {"new": "Новая", "planned": "В планах", "in_progress": "
 THEMES = {"dark", "light", "retro", "terminal", "nyan", "tetris", "poop"}
 Base.metadata.create_all(engine)
 migrate()
-from weekly import ensure_period, week_ends_at
+from weekly import ensure_period, week_ends_at, period_now
 from score_service import initialize_score_state, submit_result, invalidate_scores, lock_scores, begin_run, ScoreError
 from reset_records import preview as reset_preview, saved_preview, apply_plan as apply_record_reset, RESET_ID
 from database import Meta, RecordReset
@@ -139,6 +139,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+from performance import PerformanceMiddleware,performance_snapshot
+from server_cache import cached_read,public_cache
+app.add_middleware(PerformanceMiddleware)
 @app.middleware("http")
 async def isolation_headers(request: Request, call_next):
     response = await call_next(request)
@@ -249,6 +252,11 @@ def daily_tasks(user: User = Depends(get_user), db=Depends(get_db)):
 def achievements(user: User = Depends(get_user), db=Depends(get_db)):
     from activity_catalog import ACHIEVEMENTS
     return {**achievement_state(db,user.id),"items":[achievement_state(db,user.id,game) for game in ACHIEVEMENTS]}
+
+
+@app.get("/api/admin/performance")
+def admin_performance(admin: User = Depends(get_admin)):
+    return {**performance_snapshot(),"cache":public_cache.stats()}
 
 
 @app.get("/api/admin/accounting")
@@ -423,34 +431,12 @@ def admin_test_balance(body: BuyThemeBoxIn, admin: User = Depends(get_admin), db
 @app.get("/api/home")
 def home(user: User = Depends(get_user), db=Depends(get_db)):
     from studio_service import event_summary
-    projects = db.scalars(select(Project).order_by(Project.id)).all()
+    from public_reads import home_snapshot
+    data=cached_read(db,'home','news',30,lambda:home_snapshot(db))
+    data['event']=cached_read(db,'studio_event','nearest',15,lambda:event_summary(db))
+    if data['event']:data['event']['server_now']=datetime.utcnow().isoformat()+'Z'
+    return data
 
-    cm = (select(Comment.ref_id.label("pid"), func.count().label("n"))
-          .where(Comment.ref_type == "post").group_by(Comment.ref_id).subquery())
-    posts = db.execute(
-        select(Post, func.coalesce(cm.c.n, 0))
-        .outerjoin(cm, cm.c.pid == Post.id)
-        .order_by(Post.created_at.desc(), Post.id.desc())
-        .limit(30)
-    ).all()
-
-    latest = db.execute(
-        select(Topic, User.first_name)
-        .join(User, User.id == Topic.user_id)
-        .where(Topic.rated.is_(True), Topic.deleted.is_(False), Topic.rated_at.is_not(None))
-        .order_by(Topic.rated_at.desc())
-        .limit(1)
-    ).first()
-
-    return {
-        "event": event_summary(db),
-        "projects": [{"id": p.id, "name": p.name, "status": p.status, "stage": p.stage} for p in projects],
-        "posts": [
-            {"id": p.id, "title": p.title, "text": p.text, "created_at": iso(p.created_at), "comments": n}
-            for p, n in posts
-        ],
-        "latest": {"title": latest[0].title, "author": latest[1]} if latest else None,
-    }
 
 
 # ---------- темы форума ----------
@@ -813,7 +799,7 @@ def game_top(bg: BackgroundTasks, game: str = "dino", scope: Literal["week", "al
              tournament_id: Optional[str] = None,
              user: User = Depends(get_user), db=Depends(get_db)):
     game = check_game(game)
-    ensure_period(db, bg)
+    ensure_period(db, bg, fast_if_current=True)
     event = None
     if scope == "tournament":
         event = db.get(Tournament, tournament_id) if tournament_id else None
@@ -824,10 +810,9 @@ def game_top(bg: BackgroundTasks, game: str = "dino", scope: Literal["week", "al
         M = AllTimeScore if scope == "all" else GameScore
         condition = M.game == game
         order = M.achieved_at if scope == "all" else M.updated_at
-    rows = db.execute(
-        select(M.user_id, User.first_name, M.best).join(User, User.id == M.user_id)
-        .where(condition, M.best > 0).order_by(M.best.desc(), order, M.user_id).limit(20)
-    ).all()
+    from public_reads import leaderboard_snapshot
+    key=(scope,game,event.id if event else '',period_now() if scope=='week' else '')
+    top=cached_read(db,'leaders',key,15,lambda:leaderboard_snapshot(db,M,condition,order,scope=='tournament'))
     mine = db.scalar(select(M).where(M.user_id == user.id, condition))
     rank = None
     if mine and mine.best > 0:
@@ -838,11 +823,6 @@ def game_top(bg: BackgroundTasks, game: str = "dino", scope: Literal["week", "al
                 and_(M.achieved_at == mine.achieved_at, M.user_id < user.id))))
         rank = 1 + (db.scalar(select(func.count()).select_from(M)
                     .where(condition, higher)) or 0)
-    top, last_best, place = [], None, 0
-    for index, (uid, name, best) in enumerate(rows, 1):
-        if scope == "tournament" or best != last_best:
-            place, last_best = index, best
-        top.append({"user_id": uid, "name": name, "best": best, "place": place})
     response = {
         "top": top, "my_best": mine.best if mine else 0, "my_rank": rank,
         "ends_at": iso(event.ends_at) if event else iso(week_ends_at()) if scope == "week" else None,

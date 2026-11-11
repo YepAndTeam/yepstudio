@@ -20,6 +20,10 @@ engine = create_engine(
     pool_recycle=300,
 )
 SessionLocal = sessionmaker(bind=engine)
+from performance import install_sql_timings
+from server_cache import install_invalidation
+install_sql_timings(engine)
+install_invalidation(SessionLocal)
 
 
 class Base(DeclarativeBase):

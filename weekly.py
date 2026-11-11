@@ -29,8 +29,11 @@ def grant(db, user_id, amount, reason):
     db.add(JeraTx(user_id=user_id, amount=amount, reason=reason))
 
 
-def ensure_period(db, bg=None):
+def ensure_period(db, bg=None, fast_if_current=False):
     """No internal commit: closure and the next game stay in one transaction."""
+    if fast_if_current:
+        current=db.scalar(select(Meta.value).where(Meta.key=='period'))
+        if current is not None and int(current)==period_now():return
     lock_scores(db)
     if db.scalar(select(Meta.value).where(Meta.key == "score_maintenance")) == "1":
         return
