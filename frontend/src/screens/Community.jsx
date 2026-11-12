@@ -1,18 +1,15 @@
-import { useState } from "react";
-import Forum from "./Forum";
-const questions=[
- ["Сколько Йер дают задания?","В «Игры → Задания» каждый день появляются три цели. Награды — 3, 3 и 4 Йеры, суммарно не больше 10 за сутки. Начисляются автоматически. Новый набор в 00:00 UTC+5. Награды за вход и достижения считаются отдельно."],
- ["Что такое Йеры?","Внутренняя валюта студии. Её можно получить за ежедневные входы, достижения, недельные места и призовые места на турнирах. Йеры тратятся на кассеты и участие в платных турнирах."],
- ["Как работает ежедневный вход?","При первом входе за день награда приходит автоматически: по 25 Йер первые шесть дней и 50 на седьмой. Новый день начинается в 00:00 UTC+5. Пропуск начинает серию заново, полученные Йеры сохраняются. После седьмого дня начинается новый круг."],
- ["Что находится в кассетах?","Кассета стоит 100 Йер. Шанс обычной темы — 70%, редкой — 25%, мифической — 5%. Обычные меняют оформление, редкие добавляют особенности отдельных игр, мифические — оформление всех основных игр. Точные особенности описаны в коллекции профиля."],
- ["Что будет, если выпадет повторка?","Повторная тема автоматически утилизируется: обычная возвращает 25 Йер, редкая — 50, мифическая — 100. За неверную последовательность рун возвращается половина стоимости кассеты."],
- ["Как попасть на турнир?","Открой «Студия → Турниры», выбери турнир и зарегистрируйся. Присоединиться можно и после старта, до окончания. Первый турнир бесплатный, стоимость следующих указана в карточке. Взнос платится один раз, попытки не ограничены."],
- ["Какие забеги считаются турнирными?","Забег должен начаться после регистрации и старта турнира, а закончиться до его завершения. Засчитывается лучший результат. При равенстве выше тот, кто достиг результата раньше. У всех участников общий срок окончания."],
- ["Как выбрать следующую игру?","После завершения турнира в его карточке открывается голосование. У каждого игрока один голос, который можно изменить до закрытия голосования."],
- ["Как работают рекорды и достижения?","Недельная таблица и рекорды за всё время показаны отдельно в играх. Достижения находятся в профиле и не сбрасываются с таблицами. Ступени Дино: 100, 500, 1 000, 3 000, 5 000 и 10 000 очков за один забег. Каждая награда выдаётся один раз по новым подтверждённым забегам."],
- ["Где сообщить об ошибке или предложить идею?","В «Сообщество → Форум» создай тему в категории «Баги», «Идеи» или «Вопросы». Для ошибки напиши игру, устройство и что произошло; скриншот и текст ошибки помогут разобраться."]
-];
-export default function Community(props){
- const [section,setSection]=useState("forum");
- return <><h2>Сообщество</h2><div className="filters"><div className="seg"><button className={section==="forum"?"on":""} onClick={()=>setSection("forum")}>Форум</button><button className={section==="faq"?"on":""} onClick={()=>setSection("faq")}>FAQ</button></div></div>{section==="forum"?<Forum {...props}/>:<section className="card faq-list"><h3>Как устроена студия</h3>{questions.map(([title,text])=><details key={title}><summary>{title}</summary><p>{text}</p></details>)}</section>}</>;
+import {useState} from 'react';
+import {useStore} from '../store';
+import Forum from './Forum';
+import Friends from './Friends';
+import Mail from './Mail';
+import Activity from './Activity';
+export default function Community({initialSection,targetId,onOpenLetter,onOpenGift,...forumProps}){
+ const [section,setSection]=useState(initialSection||'hub'),[future,setFuture]=useState('chat');const {me}=useStore();
+ const back=()=>setSection('hub'),gifts=[...(me?.disc_gift?[me.disc_gift]:[]),...(me?.theme_gifts||[])],unread=gifts.filter(g=>!g.claimed).length+(me?.compensation_letters||[]).filter(l=>!l.read).length;
+ if(section==='friends')return <Friends onBack={back} targetId={targetId}/>;
+ if(section==='letters')return <Mail onBack={back} onOpenLetter={onOpenLetter} onOpenGift={onOpenGift}/>;
+ if(section==='activity')return <Activity onBack={back} openThread={forumProps.openThread}/>;
+ if(section==='forum')return <><button className="back" onClick={back}>‹ Сообщество</button><h2>Архив форума</h2><Forum {...forumProps}/></>;
+ return <section className="community-hub"><div className="community-heading"><small>YAB / TOGETHER</small><h2>Сообщество</h2><p className="muted small">Друзья, письма и место для будущих встреч.</p></div><div className="community-links">{[['friends','Друзья','Кто в сети и совместные игры'],['letters','Почта',unread?'Новых писем: '+unread:'Подарки и письма от студии'],['activity','Моя активность','Темы, ответы и голоса']].map(([id,title,description])=><button className="card community-link" key={id} onClick={()=>setSection(id)}><span><b>{title}</b><small>{description}</small></span><span aria-hidden="true">›</span></button>)}</div><section className="card community-future"><div className="community-future-heading"><h3>Место встречи</h3><span className="badge">Эскиз · скоро</span></div><div className="seg" aria-label="Будущие разделы"><button className={future==='chat'?'on':''} onClick={()=>setFuture('chat')}>Общий чат</button><button className={future==='trading'?'on':''} onClick={()=>setFuture('trading')}>Трейдинг</button></div>{future==='chat'?<div className="community-chat-draft"><div className="chat-draft-icon" aria-hidden="true">···</div><h3>Одна комната для всей студии</h3><p className="small muted">Здесь будем обсуждать игры, делиться находками и договариваться о партиях.</p><div className="chat-draft-compose"><span>Будущий общий чат</span><span aria-hidden="true">↑</span></div><small className="muted">Пока это макет. Отправка сообщений появится позже.</small></div>:<div className="community-trade-draft"><div className="trade-draft-art" aria-hidden="true"><i/><span>⇄</span><i/></div><h3>Находкам найдётся новый хозяин</h3><p className="small muted">Будущее место обмена коллекционными дисками. Здесь появятся предложения и подтверждение обменов.</p><span className="badge">Обмены пока недоступны</span></div>}</section><details className="community-archive"><summary>Ещё</summary><button className="card community-link" onClick={()=>setSection('forum')}><span><b>Архив форума</b><small>Старые обсуждения, идеи и сообщения об ошибках</small></span><span>›</span></button></details></section>;
 }

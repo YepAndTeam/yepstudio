@@ -26,7 +26,7 @@ export function installStudioPreview(scene,theme){
   const discPreview=makeDiscPreview(me);
   const friendPreview=makeFriendPreview();
   const racePreview=makeRacePreview(scene,me);
-  if(scene==="drive")window.Telegram.WebApp.initDataUnsafe.start_param="game_drive";
+  if(["drive","dino","tetris"].includes(scene))window.Telegram.WebApp.initDataUnsafe.start_param="game_"+scene;
   if(scene.startsWith("race_"))window.Telegram.WebApp.initDataUnsafe.start_param="races";
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
     starts_at:null,ends_at:null,server_now:now(),registered:false,participants:12,top:[],my_best:0,my_place:null,prize_theme:"poop",duplicate_prize:200,

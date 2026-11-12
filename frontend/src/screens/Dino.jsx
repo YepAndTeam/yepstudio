@@ -1,3 +1,4 @@
+import {advanceDino} from '../dinoTiming';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
@@ -75,10 +76,9 @@ function step(s, dt) {
     s.gap = (280 + Math.random() * 280) / s.speed;
   }
 
-  s.obs.forEach((o) => {
-    o.x -= s.speed * dt;
-  });
-  s.obs = s.obs.filter((o) => o.x + o.w > -10);
+  let kept=0;
+  for(const o of s.obs){o.x-=s.speed*dt;if(o.x+o.w>-10)s.obs[kept++]=o;}
+  s.obs.length=kept;
   s.score = Math.floor(s.t * 10);
 
   // Звук каждые 100 очков
@@ -202,7 +202,7 @@ function draw(ctx, s, col) {
 }
 
 export default function Dino({ onBack }) {
-  const { me } = useStore();
+  const { me,theme } = useStore();
   const cv = useRef(null);
   const starting = useRef(false);
   const alive = useRef(true);
@@ -214,7 +214,7 @@ export default function Dino({ onBack }) {
   const [top, setTop] = useState(null);
   const [muted, setMuted] = useState(sfx.muted);
 
-  const loadTop = () => api(`/game/top?game=${GAME}`).then(setTop).catch(() => {});
+  const loadTop = () => api(`/game/top?game=${GAME}`).then(value=>{if(alive.current)setTop(value);}).catch(() => {});
   useEffect(() => {
     loadTop();
   }, []);
@@ -228,6 +228,7 @@ export default function Dino({ onBack }) {
     if (sc < 1) return;
     try {
       const r = await api("/game/score", "POST", { game: GAME, score: sc });
+      if(!alive.current)return;
       setResult(r);
       loadTop();
       if (r.record) haptic();
@@ -266,43 +267,42 @@ export default function Dino({ onBack }) {
   const pressRef = useRef(press);
   pressRef.current = press;
 
+  useEffect(()=>{
+    const cs=getComputedStyle(document.documentElement);
+    col.current={fg:cs.getPropertyValue('--gfg').trim()||cs.getPropertyValue('--fg').trim()||'#fff',bg:cs.getPropertyValue('--gbg').trim()||cs.getPropertyValue('--card2').trim()||'#000',font:getComputedStyle(document.body).fontFamily,nyan:theme==='nyan',poop:theme==='poop'};
+  },[theme]);
+
   useEffect(() => {
     alive.current=true;
     // Чёткая картинка на экранах с высокой плотностью пикселей
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1,2);
     cv.current.width = W * dpr;
     cv.current.height = H * dpr;
-    const ctx = cv.current.getContext("2d");
+    const ctx = cv.current.getContext("2d",{alpha:false});
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = false;
 
-    let raf,
-      last = performance.now(),
-      lastCol = 0;
+    let raf=null,last=performance.now(),paintedState=null,paintedPhase=null,paintedColors=null,previousState=null;
+    const clock={acc:0};
     const frame = (now) => {
-      const dt = Math.min((now - last) / 1000, 0.05);
-      last = now;
-      if (now - lastCol > 500) {
-        const cs = getComputedStyle(document.documentElement);
-        col.current = {
-          fg: cs.getPropertyValue("--gfg").trim() || cs.getPropertyValue("--fg").trim() || "#fff",
-          bg: cs.getPropertyValue("--gbg").trim() || cs.getPropertyValue("--card2").trim() || "#000",
-          font: getComputedStyle(document.body).fontFamily,
-          nyan: document.documentElement.dataset.theme === "nyan",
-          poop: document.documentElement.dataset.theme === "poop",
-        };
-        lastCol = now;
+      raf=null;
+      if(document.hidden)return;
+      const s=g.current,elapsed=Math.max(0,(now-last)/1000);last=now;
+      if(previousState!==s){clock.acc=0;previousState=s;}
+      else if(s.phase==='run')advanceDino(clock,elapsed,dt=>{step(s,dt);return s.phase==='run';});
+      else clock.acc=0;
+      if(s.phase==='run'||paintedState!==s||paintedPhase!==s.phase||paintedColors!==col.current){
+        draw(ctx,s,col.current);paintedState=s;paintedPhase=s.phase;paintedColors=col.current;
       }
-      const s = g.current;
-      if (s.phase === "run") step(s, dt);
-      draw(ctx, s, col.current);
-      if (s.justDied) {
-        s.justDied = false;
-        dieRef.current();
-      }
-      raf = requestAnimationFrame(frame);
+      if(s.justDied){s.justDied=false;void dieRef.current();}
+      raf=requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
+    const visibility=()=>{
+      if(raf!==null)cancelAnimationFrame(raf);raf=null;clock.acc=0;last=performance.now();
+      if(!document.hidden)raf=requestAnimationFrame(frame);
+    };
+    document.addEventListener('visibilitychange',visibility);
+    if(!document.hidden)raf=requestAnimationFrame(frame);
     const key = (e) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
@@ -314,6 +314,7 @@ export default function Dino({ onBack }) {
      alive.current=false;
      nyanSfx.stop();
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange",visibility);
       window.removeEventListener("keydown", key);
     };
   }, []);

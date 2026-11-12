@@ -26,6 +26,7 @@ export default function App() {
 const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, syncEconomy, acknowledgeCompensation } = useStore();
   const [tournamentId,setTournamentId]=useState(null);
   const [studioSection,setStudioSection]=useState(null);
+  const [communitySection,setCommunitySection]=useState(null);
   const [friendTarget,setFriendTarget]=useState(null),[profileSection,setProfileSection]=useState(null);
   const [selectedGift,setSelectedGift]=useState(null),[giftDismissed,setGiftDismissed]=useState([]);
   const gifts=[...(me?.disc_gift?[{...me.disc_gift,target:"discs"}]:[]),...(me?.theme_gifts||[])];
@@ -57,10 +58,10 @@ const [gameRef, setGameRef] = useState(null);
     setThread(null);
     setInbox(false);
     setGameRef(null);
-    setProfileSection(null);setFriendTarget(null);
+    setProfileSection(null);setCommunitySection(null);setFriendTarget(null);
     scrollTo(0);
     if (t === "news") loadHome();
-    if (t === "forum") loadTopics();
+    if (t === "forum") loadMe(false);
     if (t === "profile") {
       loadMe(false);
     }
@@ -118,7 +119,7 @@ const [gameRef, setGameRef] = useState(null);
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
   if (ref.startsWith("friend_") && /^friend_\d+$/.test(ref)){
-    setTab("profile");setProfileSection("friends");setFriendTarget(Number(ref.slice(7)));
+    setTab("forum");setCommunitySection("friends");setFriendTarget(Number(ref.slice(7)));
   } else if (ref==="races") {
     setTab("news");setStudioSection("races");
   } else if (ref.startsWith("tour_")) {
@@ -184,11 +185,11 @@ const [gameRef, setGameRef] = useState(null);
           {thread ? (
             <Thread key={thread} refId={thread} onBack={back} />
           ) : inbox ? (
-            <Inbox openFriends={()=>{setInbox(false);setTab("profile");setProfileSection("friends");setFriendTarget(null);}} openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
+            <Inbox openFriends={()=>{setInbox(false);setTab("forum");setCommunitySection("friends");setFriendTarget(null);}} openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
             <Studio key={studioSection||"default"} initialSection={studioSection} openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
           ) : tab === "forum" ? (
-            <Community
+            <Community key={communitySection||"community"} initialSection={communitySection} targetId={friendTarget} onOpenLetter={setSelectedMail} onOpenGift={setSelectedGift}
               openThread={openThread}
               openSheet={() => setSheet(true)}
               cat={cat}
@@ -219,7 +220,7 @@ const [gameRef, setGameRef] = useState(null);
 
       {letter && <CompensationMail key={letter.id} letter={letter} onLater={closeMail} onRead={async()=>{await acknowledgeCompensation(letter.id);closeMail();}} />}
 
-      {!letter && gift && <DiscGiftMail key={gift.id} gift={gift} onLater={closeGift} onClaim={async()=>{if(!gift.claimed){const state=await api(gift.target==='themes'?'/shop/gift/'+gift.id+'/claim':'/discs/gift/claim','POST');syncEconomy(state);}closeGift();setTab('profile');setThread(null);setInbox(false);setProfileSection(gift.target==='themes'?'theme-box':'discs');scrollTo(0);}}/>}
+      {!letter && gift && <DiscGiftMail key={gift.id} gift={gift} onLater={closeGift} onClaim={async()=>{if(!gift.claimed){const state=await api(gift.target==='themes'?'/shop/gift/'+gift.id+'/claim':'/discs/gift/claim','POST');syncEconomy(state);}closeGift();setTab('profile');setThread(null);setInbox(false);setProfileSection(gift.target==='themes'?'theme-box':'dvd');scrollTo(0);}}/>}
 
       {sheet && (
         <NewTopicSheet onClose={() => setSheet(false)} onCreated={onCreated} />

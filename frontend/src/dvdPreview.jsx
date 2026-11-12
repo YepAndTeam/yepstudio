@@ -11,7 +11,7 @@ if(!import.meta.env.DEV)throw Error('Local DVD preview only');
 const params=new URLSearchParams(location.search),inside=params.get('device')==='1';
 if(inside){
  const theme=params.get('theme')||'dark';installStudioPreview('discs',theme);document.documentElement.dataset.theme=theme;try{localStorage.setItem('yab_theme',theme);}catch{}
- createRoot(document.getElementById('app')).render(<StoreProvider><main className="page" style={{height:'100dvh',overflowY:'auto',display:'block'}}><DiscCollection previewGift={params.get("gift")==="1"} onBack={()=>{location.href='/studio-preview.html';}} backLabel="Студия" initialTab={params.get("view")==="shelf"?"shelf":"player"}/></main></StoreProvider>);
+ createRoot(document.getElementById('app')).render(<StoreProvider><main className="page" style={{height:'100dvh',overflowY:'auto',display:'block'}}><DiscCollection mode={params.get("view")==="shelf"?"shelf":"player"} previewGift={params.get("gift")==="1"} onBack={()=>{location.href='/studio-preview.html';}} backLabel="Студия" initialTab={params.get("view")==="shelf"?"shelf":"player"}/></main></StoreProvider>);
 }else createRoot(document.getElementById('app')).render(<Shell/>);
 export function Shell(){
  const [rarity,setRarity]=useState('random'),[disc,setDisc]=useState('random'),[theme,setTheme]=useState('dark'),[width,setWidth]=useState(390),[revision,setRevision]=useState(0),[galleryRarity,setGalleryRarity]=useState('secret'),[galleryDisc,setGalleryDisc]=useState('minecraft'),[view,setView]=useState('player'),[giftPreview,setGiftPreview]=useState(false);

@@ -52,7 +52,7 @@ function RotatableCassette({item,disabled}) {
   <div className="rotation-actions"><button className="pub alt" disabled={disabled} onClick={()=>{angle.current={x:0,y:angle.current.y+180};draw();}}>Повернуть кассету</button><button className="pub alt" disabled={disabled} onClick={()=>{angle.current={x:12,y:-24};draw();}}>Сбросить угол</button></div>
  </>;
 }
-export default function ThemeCollection({onBack}){
+export default function ThemeCollection({onBack,backLabel="Профиль"}){
  const {me,theme,setTheme}=useStore();
  const [selected,select]=useState(theme),[phase,setPhase]=useState("idle"),[error,setError]=useState("");
  const locked=useRef(false),alive=useRef(true),waiter=useRef(null),deck=useRef(null);
@@ -81,7 +81,7 @@ export default function ThemeCollection({onBack}){
   if(!ok)setError("Не удалось установить тему. Попробуй ещё раз.");
   locked.current=false;
  }
- return <div className="collection-page"><button className="back" onClick={onBack}>‹ Профиль</button><h2>Коллекция кассет</h2><p className="small muted">Выбери запись на стенде. Каждая кассета меняет атмосферу студии.</p>
+ return <div className="collection-page"><button className="back" onClick={onBack}>‹ {backLabel}</button><h2>Коллекция кассет</h2><p className="small muted">Выбери запись на стенде. Каждая кассета меняет атмосферу студии.</p>
  <div className="cassette-wall">{THEMES.map(t=>{const has=me?.owned_themes?.includes(t.id);return <button key={t.id} className={`cassette-stand ${selected===t.id?"selected":""} ${has?"":"unowned"}`} disabled={phase==="loading"} aria-pressed={selected===t.id} onClick={()=>{select(t.id);setPhase("idle");setError("");}}><Cassette item={t}/><span>{t.name}</span><small>{has?(theme===t.id?"В аппарате":details[t.id][0]):"Ещё не получена"}</small></button>;})}</div>
  <section className="card tape-inspector">
  <RotatableCassette key={item.id} item={item} disabled={phase==="loading"}/>

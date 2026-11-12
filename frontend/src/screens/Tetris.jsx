@@ -210,7 +210,7 @@ function draw(ctx, s, col) {
 
 export default function Tetris({ onBack }) {
   const { me } = useStore();
-  const {tetrisController}=usePreferences();
+  const {tetrisController,tetrisGap,tetrisOrder}=usePreferences();
   const cv = useRef(null);
   const g = useRef(fresh());
   const col = useRef({ fg: "#fff", bg: "#000", font: "monospace", nyan: false });
@@ -416,12 +416,12 @@ tetris: document.documentElement.dataset.theme === "tetris",
             touchAction: "none",
           }}
         />
-        {tetrisController&&<Pad always row keys={[
-  { label: "◀", on: () => act((s) => move(s, -1)) },
-  { label: "⟳", on: () => act(rotate) },
-  { label: "▶", on: () => act((s) => move(s, 1)) },
-  { label: "▼", on: () => act(s=>setSoft(s,true)), off: () => setSoft(g.current,false) },
-]} />}
+        {tetrisController&&<Pad always row className="tetris-custom-pad" style={{gap:tetrisGap}} keys={tetrisOrder.split(',').map(id=>({
+ left:{label:'◀',on:()=>act(s=>move(s,-1))},
+ rotate:{label:'⟳',on:()=>act(rotate)},
+ right:{label:'▶',on:()=>act(s=>move(s,1))},
+ down:{label:'▼',on:()=>act(s=>setSoft(s,true)),off:()=>setSoft(g.current,false)},
+})[id])}/>}
         <div className="between" style={{ paddingTop: 12 }}>
           <span className="small muted">
             {phase === "dead" ? `Результат: ${score}` : "Свайп ↔ двигает, ↓ ускоряет при удержании, тап вращает"}

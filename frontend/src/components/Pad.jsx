@@ -28,7 +28,7 @@ const isTouch = () =>
  *  - всё отпускается при сворачивании аппа, чтобы не залипали клавиши;
  *  - on/off берутся из актуального props в момент вызова (нет устаревших замыканий).
  */
-export default function Pad({ keys, row, always, className = "" }) {
+export default function Pad({ keys, row, always, className = "", style }) {
   const active = useRef(new Map()); // pointerId -> { label, d, i }
   const keysRef = useRef(keys);
   keysRef.current = keys;
@@ -71,7 +71,7 @@ export default function Pad({ keys, row, always, className = "" }) {
   };
 
   return (
-    <div className={`pad ${row ? "row" : ""} ${className}`}>
+    <div className={`pad ${row ? "row" : ""} ${className}`} style={style}>
       {keys.map((k) => (
         <button
           key={k.label}
