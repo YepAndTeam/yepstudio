@@ -1,3 +1,4 @@
+import GameTimers from '../components/GameTimers';
 import GameCanvas from '../components/GameCanvas';
 import { setSoftDrop as setSoft } from '../tetrisInput';
 import { useEffect, useRef, useState } from "react";
@@ -399,6 +400,7 @@ tetris: document.documentElement.dataset.theme === "tetris",
 </button>
       </div>
 
+      <GameTimers stateRef={g}/>
       <div className="card gm">
         <GameCanvas
           ref={cv}

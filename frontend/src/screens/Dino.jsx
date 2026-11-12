@@ -1,3 +1,4 @@
+import GameTimers from '../components/GameTimers';
 import {advanceDino} from '../dinoTiming';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
@@ -289,7 +290,7 @@ export default function Dino({ onBack }) {
       if(document.hidden)return;
       const s=g.current,elapsed=Math.max(0,(now-last)/1000);last=now;
       if(previousState!==s){clock.acc=0;previousState=s;}
-      else if(s.phase==='run')advanceDino(clock,elapsed*discTempo(),dt=>{step(s,dt);return s.phase==='run';});
+      else if(s.phase==='run')advanceDino(clock,elapsed,dt=>{step(s,dt);return s.phase==='run';},discTempo());
       else clock.acc=0;
       if(s.phase==='run'||paintedState!==s||paintedPhase!==s.phase||paintedColors!==col.current){
         draw(ctx,s,col.current);paintedState=s;paintedPhase=s.phase;paintedColors=col.current;
@@ -335,6 +336,7 @@ export default function Dino({ onBack }) {
 </button>
       </div>
 
+      <GameTimers stateRef={g}/>
       <div className="card gm">
         <GameCanvas
           ref={cv}

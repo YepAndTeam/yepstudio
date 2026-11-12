@@ -1,7 +1,8 @@
+import {tempoMultiplier} from './discTempo.js';
 export function createDiscBridge(api,now=()=>Date.now()){
 let scope=null;
 function attachDiscSession(value){scope=value;return()=>{if(scope===value)scope=null;};}
-function discTempo(){return scope&&now()<scope.deadline?scope.effects.tempo||1:1;}
+function discTempo(){return scope&&now()<scope.deadline?tempoMultiplier(scope.effects.tempo||1):1;}
 async function gameApi(path,method='GET',body){
  const session=scope;if(!session)return api(path,method,body);
  if(path.startsWith('/game/top'))return api(path.replace('/game/top','/disc-play/top'),method,body);

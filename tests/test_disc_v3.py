@@ -6,7 +6,7 @@ from sqlalchemy import select,func
 import test_disc_equipment as equipment_fixture
 from database import User,Notification,GameScore,Meta
 from disc_models import DiscInstance,DiscEquipment,DiscListing,DiscTradeNotice
-from disc_equipment import effect_for,instance_effects,equip,reward_bonus,settle_expired,wear_events,acknowledge_wear,start_practice,finish_practice,practice_top,EquipmentError
+from disc_equipment import effect_for,instance_effects,equip,reward_bonus,settle_expired,wear_events,acknowledge_wear,start_practice,finish_practice,practice_top,EquipmentError,tempo_multiplier,valid_dino_score
 from disc_market import publish_listing,reply_listing,close_listing,claim_notice,market_state
 from community_service import resolve_trade
 from disc_odds import boosted_chances
@@ -15,6 +15,24 @@ class DiscV3Test(unittest.TestCase):
  setUp=equipment_fixture.EquipmentTest.setUp
  tearDown=equipment_fixture.EquipmentTest.tearDown
  disc=equipment_fixture.EquipmentTest.disc
+ def test_speed_curve_and_dino_validation_use_actual_multiplier(self):
+  for rating,speed in [(1,1),(1.05,1.2),(1.1,1.5),(1.15,2),(1.3,3.5),(.95,.95),(.9,.9)]:
+   self.assertAlmostEqual(tempo_multiplier(rating),speed)
+  from database import GameRun
+  run=GameRun(started_at=self.now)
+  with self.sessions.begin() as db:
+   end=self.now+timedelta(seconds=10)
+   self.assertTrue(valid_dino_score(db,run,250,end,1.15))
+   self.assertFalse(valid_dino_score(db,run,251,end,1.15))
+ def test_admin_can_change_discs_repeatedly_without_bypassing_ownership(self):
+  from disc_equipment import equipment_state
+  with self.sessions.begin() as db:
+   db.get(User,1).role='admin';one=self.disc(db);two=self.disc(db,disc='doom');foreign=self.disc(db,uid=2)
+   for identity in [one.id,two.id,None,one.id,None,two.id]:
+    result=equip(db,1,identity,self.now);self.assertTrue(result['can_remove']);self.assertTrue(result['admin_unlimited'])
+   self.assertIsNone(db.get(Meta,'disc_swap_day:1'))
+   with self.assertRaises(EquipmentError):equip(db,1,foreign.id,self.now)
+   self.assertEqual(equipment_state(db,1,self.now)['active']['id'],two.id)
  def test_portal_chances_are_relative_and_round_up_to_tenths(self):
   chances=boosted_chances(CATALOG['rarities'],10)
   self.assertEqual(chances['secret'],.2);self.assertEqual(chances['mythic'],4.4);self.assertEqual(chances['rare'],27.5);self.assertEqual(chances['legendary'],1)

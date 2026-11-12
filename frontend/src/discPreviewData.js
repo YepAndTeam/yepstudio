@@ -16,7 +16,7 @@ export function makeDiscPreview(me){
  const giftView=()=>({id:'dvd-launch-usb-v1',total:10,...state.gift});
  const viewInstance=d=>({id:d.id,item:item(d.disc_id),rarity:d.rarity,status:d.status,created_at:d.created_at,activated_at:d.activated_at||null,expires_at:d.expires_at||null,lifetime_seconds:hours[d.rarity]*3600,survival_percent:survival[d.rarity],effects:d.rarity==='secret'?null:d.effects,hidden_effects:d.rarity==='secret',cracked:d.status==='cracked'});
  const settle=()=>{for(const d of state.instances){if(d.status==='active'&&Date.parse(d.expires_at)<=Date.now()){d.status=d.roll<survival[d.rarity]?'cracked':'lost';if(d.rarity==='secret')delete d.effects[Object.keys(d.effects).filter(k=>!k.startsWith('_'))[0]];if(!state.wear_events.some(e=>e.id===d.id))state.wear_events.push({...viewInstance(d),outcome:d.status});if(state.equipped===d.id)state.equipped=null;}}};
- const equipment=()=>{settle();const d=state.instances.find(d=>d.id===state.equipped&&d.user_id===me.id&&d.status==='active');return {active:d?viewInstance(d):null,server_now:now(),can_remove:state.swap_day!==new Date(Date.now()+5*3600000).toISOString().slice(0,10)};};
+ const equipment=()=>{settle();const d=state.instances.find(d=>d.id===state.equipped&&d.user_id===me.id&&d.status==='active');return {active:d?viewInstance(d):null,server_now:now(),admin_unlimited:me.role==='admin',can_remove:me.role==='admin'||state.swap_day!==new Date(Date.now()+5*3600000).toISOString().slice(0,10)};};
  const save=()=>{me.disc_gift=giftView();me.jera=state.balance;me.disc_equipment=equipment();try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}};save();
  const boostedRarities=()=>{const luck=state.instances.find(d=>d.id===state.equipped&&d.status==='active')?.effects.luck_percent||0,values=catalog.rarities.map(({weight:_weight,...rest})=>({...rest}));if(luck){let used=0;for(const r of values)if(r.id!=='common'){r.chance=Math.ceil(r.chance*(1+luck/100)*10-1e-8)/10;used+=r.chance;}values.find(r=>r.id==='common').chance=Math.round((100-used)*10)/10;}return values;};
  const view=row=>{const v={id:row.id,item:item(row.disc_id),serial:row.id.slice(0,8).toUpperCase(),price:row.price??catalog.price,free:row.price===0,created_at:row.created_at,revealed:row.revealed};if(row.revealed)Object.assign(v,{rarity:row.rarity,copy_number:row.copy_number,is_dupe:row.copy_number>1,revealed_at:row.revealed_at});return v;};
@@ -28,7 +28,7 @@ export function makeDiscPreview(me){
   if(path.startsWith('/discs/wear/')&&method==='POST'){const identity=path.split('/')[3];if(wearDemo?.id===identity)demoSeen=true;state.wear_events=state.wear_events.filter(e=>e.id!==identity);save();return {ok:true};}
   if(path==='/discs/equip'&&method==='POST'){
    const current=state.instances.find(d=>d.id===state.equipped&&d.status==='active');
-   if(current&&current.id!==body.instance_id){const day=new Date(Date.now()+5*3600000).toISOString().slice(0,10);if(state.swap_day===day)throw Error('Снять или сменить диск можно один раз за день');state.swap_day=day;}
+   if(current&&current.id!==body.instance_id&&me.role!=='admin'){const day=new Date(Date.now()+5*3600000).toISOString().slice(0,10);if(state.swap_day===day)throw Error('Снять или сменить диск можно один раз за день');state.swap_day=day;}
 
    if(!body.instance_id){state.equipped=null;save();return equipment();}
    const d=state.instances.find(d=>d.id===body.instance_id&&d.user_id===me.id);if(!d||!['ready','active'].includes(d.status))throw Error('Этот диск не может быть активирован');

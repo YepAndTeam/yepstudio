@@ -11,5 +11,5 @@ test('disc starts, scores and leaderboard requests stay outside ranked routes',a
  await bridge.gameApi('/game/start','POST',{game:'dino'});assert.equal(calls[3][0],'/game/start');assert.equal(bridge.discTempo(),1);
 });
 test('expiry removes tempo and prevents starting another disc run',async()=>{
- let time=0;const bridge=createDiscBridge(async()=>{},()=>time);bridge.attachDiscSession({deadline:10,effects:{tempo:1.3}});assert.equal(bridge.discTempo(),1.3);time=10;assert.equal(bridge.discTempo(),1);await assert.rejects(bridge.gameApi('/game/start','POST',{game:'dino'}));
+ let time=0;const bridge=createDiscBridge(async()=>{},()=>time);bridge.attachDiscSession({deadline:10,effects:{tempo:1.3}});assert.equal(bridge.discTempo(),3.5);time=10;assert.equal(bridge.discTempo(),1);await assert.rejects(bridge.gameApi('/game/start','POST',{game:'dino'}));
 });

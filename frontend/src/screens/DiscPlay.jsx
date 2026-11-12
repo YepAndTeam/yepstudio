@@ -1,3 +1,4 @@
+import {tempoMultiplier} from '../discTempo.js';
 import {useEffect,useRef,useState} from 'react';
 import {api} from '../api';
 import {attachDiscSession} from '../discPlaySession';
@@ -5,7 +6,7 @@ import {useStore} from '../store';
 function Session({game,run,onBack}){
  const [ready,setReady]=useState(false),[left,setLeft]=useState(1);const session=useRef(null),View=game.View;
  useEffect(()=>{const duration=Date.parse(run.expires_at)-Date.parse(run.server_now);const value={first:run,effects:run.effects,deadline:Date.now()+duration};session.current=value;const detach=attachDiscSession(value);setReady(true);const tick=()=>setLeft(Math.max(0,Math.ceil((value.deadline-Date.now())/1000)));tick();const timer=setInterval(tick,1000);return()=>{detach();clearInterval(timer);};},[run]);
- return <section className="disc-play-session"><div className="card disc-mode-banner"><b>Режим с диском</b><span>Осталось {Math.floor(left/3600)} ч {Math.floor(left%3600/60)} мин</span><small>Отдельный рейтинг · без обычных рекордов и турниров</small></div>{left===0?<section className="card"><h3>Срок диска истёк</h3><p className="small muted">Текущий забег завершён без сохранения. Проверь состояние диска в инвентаре.</p><button className="pub" onClick={onBack}>К выбору игры</button></section>:ready&&<View onBack={onBack}/>}</section>;
+ return <section className="disc-play-session"><div className="card disc-mode-banner"><b>Режим с диском · скорость ×{Number(tempoMultiplier(run.effects.tempo).toFixed(2))}</b><span>Осталось {Math.floor(left/3600)} ч {Math.floor(left%3600/60)} мин</span><small>Отдельный рейтинг · без обычных рекордов и турниров</small></div>{left===0?<section className="card"><h3>Срок диска истёк</h3><p className="small muted">Текущий забег завершён без сохранения. Проверь состояние диска в инвентаре.</p><button className="pub" onClick={onBack}>К выбору игры</button></section>:ready&&<View onBack={onBack}/>}</section>;
 }
 export default function DiscPlay({games,onBack}){
  const {loadMe}=useStore(),[data,setData]=useState(null),[error,setError]=useState(''),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false);const alive=useRef(true),working=useRef(false);

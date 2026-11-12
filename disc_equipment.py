@@ -20,6 +20,13 @@ PROFILES={
  'stardew':(.95,.95,10,0),'halflife':(1.1,1.1,0,0),
  'underground':(1.15,1.15,0,0),'sanandreas':(1.1,1.05,5,0),'skyrim':(.95,1.05,5,0),
 }
+def tempo_multiplier(tempo=1):
+ points=round((tempo-1)*100,2)
+ if points<=0:return max(.1,tempo)
+ if points<=5:return 1+points*.04
+ if points<=10:return 1.2+(points-5)*.06
+ return 1.5+(min(points,30)-10)*.1
+
 def effect_for(disc,rarity,previous_tempo=None):
  tempo,score,jera,luck=PROFILES.get(disc,(1,1,0,0))
  if disc=='counterstrike':tempo=previous_tempo if previous_tempo is not None else 1+(5+secrets.randbelow(26))/100;score=1.1
@@ -87,19 +94,23 @@ def active_disc(db,uid,now=None):
  row=db.get(DiscInstance,equipment.instance_id) if equipment and equipment.instance_id else None
  return row if row and row.user_id==uid and row.status=='active' and row.expires_at>now else None
 
+def admin_equipment_access(db,uid):
+ user=db.get(User,uid)
+ return bool(user and user.role=='admin')
+
 def equipment_state(db,uid,now=None):
  now=now or datetime.utcnow();settle_expired(db,uid,now);row=active_disc(db,uid,now)
  from datetime import timezone
  from daily_service import KZ
  day=now.replace(tzinfo=timezone.utc).astimezone(KZ).date().isoformat();last=db.get(Meta,'disc_swap_day:'+str(uid))
- return {'active':instance_view(row) if row else None,'server_now':iso(now),'can_remove':not last or last.value!=day,'removal_day':last.value if last else None}
+ return {'active':instance_view(row) if row else None,'server_now':iso(now),'admin_unlimited':admin_equipment_access(db,uid),'can_remove':admin_equipment_access(db,uid) or not last or last.value!=day,'removal_day':last.value if last else None}
 
 def equip(db,uid,identity,now=None):
  now=now or datetime.utcnow();lock_scores(db);ensure_inventory(db,uid);settle_expired(db,uid,now)
  if db.scalar(select(Meta.value).where(Meta.key=='score_maintenance'))=='1':raise EquipmentError(503,'Идёт обновление. Попробуй позже.')
  equipment=db.get(DiscEquipment,uid)
  if equipment is None:equipment=DiscEquipment(user_id=uid);db.add(equipment)
- if equipment.instance_id and equipment.instance_id!=identity:
+ if equipment.instance_id and equipment.instance_id!=identity and not admin_equipment_access(db,uid):
   from datetime import timezone
   from daily_service import KZ
   day=now.replace(tzinfo=timezone.utc).astimezone(KZ).date().isoformat();key='disc_swap_day:'+str(uid);last=db.get(Meta,key)
@@ -146,7 +157,7 @@ def finish_practice(db,uid,game,run_id,score,now=None):
  if now>details.expires_at:raise EquipmentError(409,'Срок диска истёк. Этот забег уже закрыт.')
  if run.epoch!=(db.scalar(select(Meta.value).where(Meta.key=='score_epoch')) or 'initial'):raise EquipmentError(409,'Таблица обновлена, начни новый забег')
  effects=json.loads(details.effects_json);elapsed=(now-run.started_at).total_seconds()
- if elapsed<0 or (game=='dino' and score>elapsed*10*effects.get('tempo',1)+50):raise EquipmentError(422,'Результат не соответствует длительности забега')
+ if elapsed<0 or (game=='dino' and score>elapsed*10*tempo_multiplier(effects.get('tempo',1))+50):raise EquipmentError(422,'Результат не соответствует длительности забега')
  details.raw_score=score;details.score=int(score*effects.get('score',1));details.completed_at=now
  # Practice can progress tasks and achievements but must never enter ranked caches.
  from weekly import period_now
@@ -163,7 +174,7 @@ def valid_dino_score(db,run,score,now,tempo=None):
  if tempo is None:
   details=db.get(DiscRun,run.id)
   tempo=json.loads(details.effects_json).get('tempo',1) if details else 1
- return score<=max(0,(now-run.started_at).total_seconds())*10*tempo+50
+ return score<=max(0,(now-run.started_at).total_seconds())*10*tempo_multiplier(tempo)+50
 
 
 def wear_events(db,uid):

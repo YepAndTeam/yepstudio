@@ -1,3 +1,4 @@
+import GameTimers from '../components/GameTimers';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { gameApi as api,discTempo } from "../discPlaySession";
@@ -362,6 +363,7 @@ export default function Hell({ onBack }) {
         </button>
       </div>
 
+      <GameTimers stateRef={g}/>
       <div className="card gm">
         <GameCanvas
           ref={cv}
