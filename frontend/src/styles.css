@@ -918,7 +918,7 @@ select,.app-select{box-sizing:border-box;max-width:100%;min-height:44px;border:1
 .game-timers-speed{flex-shrink:0;font-size:12px;opacity:.8;}
 
 .disc-archive{display:grid;gap:14px;margin-top:14px}.disc-archive-shelf>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.disc-archive-shelf h3{margin:0}.disc-archive-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-bottom:12px;border-bottom:7px solid var(--line)}
-.disc-capsule{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:9px 4px;border:2px solid var(--capsule-color);border-radius:9px;background:var(--card2);box-shadow:inset 0 0 0 3px var(--card);color:var(--fg)}.disc-capsule.empty{border-style:dashed;opacity:.6}.disc-capsule b{font-size:10px;overflow-wrap:anywhere}.disc-capsule small,.disc-capsule code{font-size:8px}.disc-capsule-window{width:100%;aspect-ratio:1;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:5px;background:var(--ground)}.disc-capsule-window>.dvd-disc-object{width:85%;height:85%}.disc-capsule-window>span{font-size:25px;opacity:.4}.disc-capsule.filled{box-shadow:inset 0 0 0 3px var(--card),0 0 9px color-mix(in srgb,var(--capsule-color) 22%,transparent)}.disc-capsule.rarity-legendary{border-image:linear-gradient(120deg,#ea8adb,#87dcea,#f6dd84) 1}.disc-capsule.rarity-secret{border-color:#717785;background:#141419;color:#eee}.disc-archive-shelf>footer{display:flex;flex-direction:column;gap:5px;margin-top:12px;font-size:12px}.disc-archive-shelf.complete>footer{color:var(--fg)}.disc-archive-shelf>footer small{opacity:.65}
+.disc-capsule{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:9px 4px;border:2px solid var(--capsule-color);border-radius:9px;background:var(--card2);box-shadow:inset 0 0 0 3px var(--card);color:var(--fg)}.disc-capsule.empty{border-style:dashed;opacity:.6}.disc-capsule b{font-size:10px;overflow-wrap:anywhere}.disc-capsule small,.disc-capsule code{font-size:8px}.disc-capsule-window{width:100%;aspect-ratio:1;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:5px;background:var(--ground)}.disc-capsule-window>.dvd-disc-object{width:85%;height:85%}.disc-capsule-window>span{font-size:25px;opacity:.4}.disc-capsule.filled{box-shadow:inset 0 0 0 3px var(--card)}.disc-capsule.rarity-legendary{border-image:linear-gradient(120deg,#ea8adb,#87dcea,#f6dd84) 1}.disc-capsule.rarity-secret{border-color:#717785;background:#141419;color:#eee}.disc-archive-shelf>footer{display:flex;flex-direction:column;gap:5px;margin-top:12px;font-size:12px}.disc-archive-shelf.complete>footer{color:var(--fg)}.disc-archive-shelf>footer small{opacity:.65}
 .disc-seal-dialog{width:min(94vw,420px);max-height:85dvh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:20px}.disc-seal-dialog::backdrop{background:#000b}.disc-seal-content>small{font-size:10px;letter-spacing:1px}.disc-seal-preview{width:125px;height:125px;position:relative;margin:15px auto}.disc-seal-preview>.dvd-disc-object{width:100%;height:100%}.disc-seal-actions{display:grid;gap:10px;margin-top:18px}.disc-seal-button{margin:10px 0;width:100%}
 
 .disc-capsule-window .dvd-disc-front>strong,.disc-capsule-window .dvd-disc-front>small,.disc-capsule-window .dvd-disc-code{display:none}
@@ -954,30 +954,48 @@ button.disc-capsule{font:inherit;width:100%;cursor:pointer;appearance:none}butto
 .disc-sealing-base{box-shadow:inset 0 0 0 4px var(--card2),inset 0 0 0 5px var(--line),0 8px 0 #151820,4px 11px 14px #0005}
 .disc-sealing-lid{box-shadow:inset 0 0 0 3px var(--card2),inset 0 4px 2px #fff2,0 3px 0 color-mix(in srgb,var(--seal-color) 35%,#10141a)}
 .disc-sealing-glass{box-shadow:inset 0 1px 2px #fff3,inset 0 -2px 4px #0005}
-.seal-rarity-mythic.seal-done .disc-sealing-base{box-shadow:0 0 14px #ff426c65,0 0 34px #ff24462b,inset 0 0 12px #ff426c20,4px 10px 0 #22131b}
-.seal-rarity-mythic.seal-done .disc-sealing-lid{border-color:#ff6381;box-shadow:inset 0 0 0 3px #ff426c25,inset 0 2px 2px #fff3,0 0 9px #ff426c80,0 0 22px #ff426c40}
-.seal-rarity-mythic.seal-done .disc-sealing-stamp{box-shadow:0 0 14px #ff426c80}
-.seal-rarity-legendary.seal-done .disc-sealing-base{box-shadow:-8px 0 22px #d66bff55,8px 0 22px #64edff55,0 8px 25px #f7d56140,4px 10px 0 #25202c}
-.seal-rarity-legendary.seal-done .disc-sealing-lid{border-color:#d6c8fb;box-shadow:inset 3px 0 5px #e997ff66,inset -3px 0 5px #8ef4ed66,inset 0 -3px 4px #ffe38a66,-2px 0 9px #e997ff88,2px 0 9px #8ef4ed88,0 4px 12px #ffe38a55}
-.disc-capsule-window:has(.seal-rarity-mythic),.disc-capsule-window:has(.seal-rarity-legendary){background:radial-gradient(ellipse at center,color-mix(in srgb,var(--capsule-color) 14%,var(--ground)),var(--ground) 75%)}
+
+
+
+
+
+
 
 .disc-case-view-stage{height:250px;display:flex;align-items:center;justify-content:center;perspective:650px;outline-offset:-3px;user-select:none;-webkit-user-select:none}
 .disc-case-orbit.disc-case-solid{position:relative;width:172px;height:172px;flex-shrink:0;transform-style:preserve-3d;transform:rotateX(-12deg) rotateY(-24deg);will-change:transform}
 .case-solid-face{position:absolute;box-sizing:border-box;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .case-solid-front{inset:0;transform:translateZ(12px);transform-style:preserve-3d}
-.case-solid-front>.disc-sealing-stage{position:absolute;left:-14px;top:-14px;width:200px;height:200px;margin:0!important;perspective:none}
-.case-solid-front .disc-sealing-base,.case-solid-front .disc-sealing-lid{left:14px;top:14px}
-.case-solid-front .disc-sealing-disc{left:35px;top:35px}
-.case-solid-front .disc-sealing-stamp{right:8px;bottom:8px}
-.case-solid-front .disc-sealing-base::after{display:none}
+
+
+
+
+
 .case-solid-back{inset:0;transform:rotateY(180deg) translateZ(12px);border:3px solid var(--case-color);border-radius:9px;background:linear-gradient(135deg,#252c36,#0d1118);color:#e7ebf2;box-shadow:inset 0 0 0 4px #151b24;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:9px;text-align:center}
 .case-solid-back>small{font:5px monospace;letter-spacing:.7px;opacity:.7}.case-solid-back>b{font-size:12px;line-height:1.2}.case-solid-back>span:not(.case-back-mark){font-size:8px;color:var(--case-color)}.case-solid-back>code{font:7px monospace;opacity:.7}.case-back-mark{width:37px;height:37px;display:grid;place-items:center;font:700 26px monospace;border:1px solid var(--case-color);color:var(--case-color);border-radius:8px}.case-back-bars{width:70px;height:9px;background:repeating-linear-gradient(90deg,#cbd2df 0 1px,transparent 1px 3px,#cbd2df 3px 5px,transparent 5px 7px);opacity:.4}
 .case-solid-left,.case-solid-right{left:74px;top:0;width:24px;height:172px;background:linear-gradient(90deg,#101620,#3a4555 35%,#161e2a 45% 70%,#485363 75%,#101620);border:1px solid color-mix(in srgb,var(--case-color) 65%,#111);display:grid;place-items:center}
 .case-solid-left{transform:rotateY(-90deg) translateZ(86px)}.case-solid-right{transform:rotateY(90deg) translateZ(86px)}
 .case-solid-top,.case-solid-bottom{left:0;top:74px;width:172px;height:24px;background:linear-gradient(#111924,#445062 35%,#171f2b 45% 70%,#323d4d 75%,#111924);border:1px solid color-mix(in srgb,var(--case-color) 65%,#111);display:grid;place-items:center}.case-solid-top{transform:rotateX(90deg) translateZ(86px)}.case-solid-bottom{transform:rotateX(-90deg) translateZ(86px)}
-.case-solid-face>span{font:6px monospace;letter-spacing:1px;color:#c8d1de}.case-solid-left>span,.case-solid-right>span{writing-mode:vertical-rl}.case-solid-mythic .case-solid-back{box-shadow:inset 0 0 14px #ff426c30,0 0 16px #ff426c50}.case-solid-legendary .case-solid-back{box-shadow:inset 0 0 12px #db97ff33,-3px 0 14px #db97ff55,3px 0 14px #83e5eb55,0 3px 12px #ffe18444}
+.case-solid-face>span{font:6px monospace;letter-spacing:1px;color:#c8d1de}.case-solid-left>span,.case-solid-right>span{writing-mode:vertical-rl}
 .case-solid-back>.case-back-mark{font:700 26px monospace;letter-spacing:0;color:var(--case-color)}
 
 .dvd-holo-foil{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:50%;opacity:.34;mix-blend-mode:screen;background:linear-gradient(var(--holo-angle,25deg),transparent 20%,#8cffff55 34%,#fff8 40%,#ff83cb66 46%,transparent 57%),conic-gradient(from var(--holo-angle,25deg) at var(--holo-x,45%) var(--holo-y,40%),#ff769a44,#f4df6c66,#7affa355,#70dfff66,#a182ff66,#ff769a44);mask-image:radial-gradient(circle,transparent 0 9%,#000 10% 69%,transparent 71%);-webkit-mask-image:radial-gradient(circle,transparent 0 9%,#000 10% 69%,transparent 71%)}
 .dvd-disc-front>strong,.dvd-disc-front>small,.dvd-disc-front>.dvd-disc-code,.dvd-disc-front>.dvd-disc-hub{z-index:3}.dvd-disc-front>.dvd-print-crack{z-index:4}
 .disc-capsule-mini .dvd-holo-foil,.dvd-case-disc .dvd-holo-foil{opacity:.23}
+
+/* Recessed disc and liner are independent planes behind the transparent front. */
+.case-interior-floor{inset:7px;background:radial-gradient(circle at 50% 50%,#202832 0 62%,#11171e 63%);border:2px solid #080c12;border-radius:4px;transform:translateZ(-9px);box-shadow:inset 0 0 12px #0009}
+.case-interior-seat{left:17px;top:17px;width:138px;height:138px;transform:translateZ(-7px);border:3px solid #343e49;border-radius:50%;background:radial-gradient(circle,#10151c 0 10%,#1e2732 11% 91%,#10151b 92%);box-shadow:inset 2px 3px 5px #000c,0 1px 1px #ffffff25}
+.case-interior-disc{position:absolute;left:21px;top:21px;width:130px;height:130px;transform:translateZ(-3px);transform-style:preserve-3d;pointer-events:none}
+.case-interior-disc>.dvd-disc-object{width:100%;height:100%;transform-style:preserve-3d}.case-interior-disc .dvd-disc-front>strong,.case-interior-disc .dvd-disc-front>small,.case-interior-disc .dvd-disc-code{display:none}
+.case-interior-spindle{left:79px;top:79px;width:14px;height:14px;border-radius:50%;transform:translateZ(2px);background:radial-gradient(circle,#485364 0 15%,#111822 17% 35%,#5b6573 38% 48%,#1b2532 52%);box-shadow:1px 2px 2px #0009}
+.case-interior-wall{background:linear-gradient(90deg,#0b1016,#3a4551 35%,#1c2631);border:1px solid #121b25}
+.case-interior-left,.case-interior-right{width:21px;height:156px;top:8px}.case-interior-left{left:-2.5px;transform:translateZ(1.5px) rotateY(90deg)}.case-interior-right{left:153.5px;transform:translateZ(1.5px) rotateY(-90deg)}
+.case-interior-top,.case-interior-bottom{width:156px;height:21px;left:8px}.case-interior-top{top:-2.5px;transform:translateZ(1.5px) rotateX(-90deg)}.case-interior-bottom{top:153.5px;transform:translateZ(1.5px) rotateX(90deg)}
+.case-interior-clip{position:absolute;width:12px;height:12px;border:2px solid #65717c;border-radius:3px;background:#232e39;transform:translateZ(-4px);box-shadow:1px 2px 2px #0009;backface-visibility:hidden}.clip-tl{left:12px;top:12px}.clip-tr{right:12px;top:12px}.clip-bl{left:12px;bottom:12px}.clip-br{right:12px;bottom:12px}
+.case-solid-front{border:8px solid color-mix(in srgb,var(--case-color) 48%,#232d37);border-radius:9px;background:transparent;box-shadow:inset 0 0 0 1px #ffffff55,0 1px 1px #0005;transform:translateZ(12px);transform-style:preserve-3d}
+.case-front-glass{position:absolute;inset:0;border:1px solid #b7d5e52b;border-radius:2px;background:linear-gradient(125deg,#ffffff0c 0 13%,#ffffff28 14% 16%,transparent 17% 68%,#ffffff16 69% 72%,transparent 73%);pointer-events:none}
+.case-solid-front>.case-front-label{position:absolute;left:0;right:0;bottom:-6px;text-align:center;font:5px monospace;letter-spacing:1px;color:#e0e7ed}
+.case-front-seal{position:absolute;right:-11px;bottom:-10px;transform:translateZ(1px) rotate(-8deg);width:35px;height:39px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--case-color);color:#111923;border:1px solid #ffffff55;border-radius:3px;box-shadow:1px 2px 2px #0005}.case-front-seal>b{font:700 22px monospace}.case-front-seal>small{font:6px monospace;letter-spacing:.7px}
+.case-solid-legendary .case-front-seal{background:linear-gradient(135deg,#e7b4ec,#a1dce3,#e8d9a4)}.case-solid-secret .case-front-seal{background:#191e29;color:#c6ced9;border-color:#6c7785}
+/* Neutral plastic highlights replace the former rarity glow. */
+.disc-sealing-base>i{box-shadow:inset 2px 3px 6px #000b,0 1px 1px #ffffff26;border-color:#46515d}.disc-sealing-base{background:linear-gradient(135deg,#151d27,#0e131a)}
