@@ -1,6 +1,6 @@
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
+import { gameApi as api,discTempo } from "../discPlaySession";
 import { useStore } from "../store";
 import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
@@ -299,7 +299,7 @@ export default function Hell({ onBack }) {
     document.addEventListener("visibilitychange",onVisibility);
     let raf, last = performance.now();
     const frame = (now) => {
-      const dt = Math.min((now - last) / 1000, 0.05);
+      const dt = Math.min((now - last) / 1000, 0.05)*discTempo();
       last = now;
       const s = g.current;
       mergeControls(keys.current,stick.current,touchFire.current,input);
@@ -391,7 +391,7 @@ export default function Hell({ onBack }) {
             {phase === "dead" ? `Результат: ${score}` : "Стик — ход и поворот, кнопка — огонь. WASD / пробел"}
           </span>
           <span className="small muted">
-            Рекорд: {best > 0 && (
+            Рекорд: {top?.mode!=='disc'&&result?.mode!=='disc'&&best > 0 && (
               <button type="button" className="send" onClick={() => shareRecord(GAME, "Ад", best)}>
                 Мой рекорд, сможешь побить?
               </button>

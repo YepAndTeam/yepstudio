@@ -1,6 +1,6 @@
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
+import { gameApi as api,discTempo } from "../discPlaySession";
 import { useStore } from "../store";
 import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
@@ -217,7 +217,7 @@ export default function Snake({ onBack }) {
       last = performance.now(),
       lastCol = 0;
     const frame = (now) => {
-      const dt = Math.min((now - last) / 1000, 0.05);
+      const dt = Math.min((now - last) / 1000, 0.05)*discTempo();
       last = now;
       if (now - lastCol > 500) {
         const cs = getComputedStyle(document.documentElement);

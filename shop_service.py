@@ -56,7 +56,18 @@ def check_available(db):
         raise ShopError(503,"Идёт обновление балансов. Попробуй открыть кассету немного позже.")
 
 
-def choose_theme():
+def choose_theme(luck_percent=0):
+    if luck_percent:
+        from disc_odds import boosted_chances
+        chances=boosted_chances(CATALOG,luck_percent);roll=secrets.randbelow(10000)
+        for group in CATALOG:
+            roll-=round(chances[group["key"]]*100)
+            if roll<0:
+                pick=secrets.randbelow(sum(item["weight"] for item in group["items"]))
+                for item in group["items"]:
+                    pick-=item["weight"]
+                    if pick<0:return item["id"]
+        raise RuntimeError("Invalid boosted distribution")
     pool=[item for group in CATALOG for item in group["items"]]
     draw=secrets.randbelow(sum(item["weight"] for item in pool))
     for item in pool:
@@ -82,8 +93,10 @@ def buy_box(db,user_id,request_id):
         if price:
             changed=db.execute(update(User).where(User.id==user_id,User.jera>=price).values(jera=User.jera-price))
             if changed.rowcount!=1:raise ShopError(409,"Не хватает Йеры для покупки кассеты")
+        from disc_equipment import luck_for
+        luck=luck_for(db,user_id)
         row=ThemeBoxPurchase(id=uuid4().hex,user_id=user_id,request_id=request_id,
-            runes="".join(secrets.SystemRandom().sample(RUNES,3)),theme_id=choose_theme(),price=price,
+            runes="".join(secrets.SystemRandom().sample(RUNES,3)),theme_id=choose_theme(luck),price=price,
             status="pending",refund=0,is_dupe=False)
         db.add(row)
         if price:db.add(JeraTx(user_id=user_id,amount=-price,reason="shop:buy:"+row.id))
@@ -125,8 +138,11 @@ def shop_state(db,user_id):
     pending=db.scalar(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.status=="pending"))
     rows=db.scalars(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.status!="pending")
         .order_by(ThemeBoxPurchase.resolved_at.desc(),ThemeBoxPurchase.id).limit(15)).all()
-    groups=[{**group,"items":[{k:v for k,v in item.items() if k!="weight"} for item in group["items"]]} for group in CATALOG]
-    return {"price":BOX_PRICE,"failure_refund":BOX_PRICE//2,"rarities":groups,
+    from disc_equipment import luck_for
+    from disc_odds import boosted_chances
+    luck=luck_for(db,user_id);chances=boosted_chances(CATALOG,luck)
+    groups=[{**group,"chance":chances[group["key"]],"items":[{**{k:v for k,v in item.items() if k!="weight"},"chance":chances[group["key"]]*item["weight"]/sum(i["weight"] for i in group["items"])} for item in group["items"]]} for group in CATALOG]
+    return {"luck_percent":luck,"price":BOX_PRICE,"failure_refund":BOX_PRICE//2,"rarities":groups,
             "balance":balance(db,user_id),"theme_gifts":theme_gifts(db,user_id),"owned_themes":sorted(owned_themes(db,user_id)),
             "active_box":{"id":pending.id,"price":pending.price} if pending else None,
             "history":[{"id":row.id,"themeId":row.theme_id if row.status=="won" else None,

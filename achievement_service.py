@@ -10,7 +10,8 @@ def accept_achievement(db,user_id,game,score,run,now):
     if game not in ACHIEVEMENTS or not run:
         return []
     elapsed=(now-run.started_at).total_seconds()
-    if elapsed < 0 or (game == "dino" and score > elapsed*10+50):
+    from disc_equipment import valid_dino_score
+    if elapsed < 0 or (game == "dino" and not valid_dino_score(db,run,score,now)):
         return []
     progress=db.get(AchievementProgress,(user_id,game))
     if progress is None:
@@ -24,7 +25,7 @@ def accept_achievement(db,user_id,game,score,run,now):
         threshold,amount=step["score"],step["amount"]
         if score >= threshold and not db.get(AchievementAward,(user_id,game,threshold)):
             db.add(AchievementAward(user_id=user_id,game=game,threshold=threshold,amount=amount))
-            if amount: grant(db,user_id,amount,f"achievement:{game}:{threshold}")
+            if amount: grant(db,user_id,amount,f"achievement:{game}:{threshold}",now)
             awarded.append({"threshold":threshold,"amount":amount})
     db.flush()
     return awarded

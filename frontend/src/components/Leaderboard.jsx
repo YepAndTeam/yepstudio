@@ -1,12 +1,14 @@
 export default function Leaderboard({ title = "Таблица рекордов", data, meId }) {
+  const discMode=data?.mode==='disc';
   return (
     <div className="card tail">
       <div className="between" style={{ paddingBottom: 12 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600 }}>{title}</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 600 }}>{discMode?'Рекорды с дисками':title}</h3>
         {data?.my_rank && (
           <span className="small muted">ты #{data.my_rank}</span>
         )}
       </div>
+<p className="small muted">{discMode?"Отдельная таблица режима с модификаторами. Общие рекорды и турниры не меняются.":""}</p>
       {data && !data.top.length && (
         <div className="noc">Пока никого. Стань первым.</div>
       )}

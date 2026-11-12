@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {useStore} from '../store';
-import {api} from '../api';
+import {gameApi as api,discTempo} from '../discPlaySession';
 import {haptic} from '../tg';
 import {sfx} from '../sfx';
 import {driveMusic} from '../driveMusic';
@@ -57,7 +57,7 @@ export default function Drive({onBack}){
    if(s.phase==='running'){
     const direction=held.current||Number(keys.current.has('ArrowRight')||keys.current.has('KeyD'))-Number(keys.current.has('ArrowLeft')||keys.current.has('KeyA'));
     if(direction)steerDrive(s,direction,dt);
-    const coins=s.coins;stepDrive(s,dt);if(s.coins>coins)sfx.point();
+    const coins=s.coins,tempo=discTempo(),scaled=dt*tempo;if(tempo===1)stepDrive(s,dt);else for(let elapsed=0;elapsed<scaled;elapsed+=1/60)stepDrive(s,Math.min(1/60,scaled-elapsed));if(s.coins>coins)sfx.point();
    }
    if(now-drawAt>=1000/30||s.phase!=='running'){drawDrive(ctx,s,palette);drawAt=now;}
    if(s.phase==='crashed'&&phase==='running'){finishRef.current();return;}

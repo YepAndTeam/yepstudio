@@ -42,7 +42,7 @@ function PreviewShell(){
         <button type="button" onClick={()=>setRevision(v=>v+1)}>Начать заново</button>
         <a href="/tournament-dino.png" target="_blank" rel="noreferrer" style={{color:"#edbe63",fontSize:12}}>Обложка для Telegram</a>
       </div>
-      <span style={{fontSize:12,color:"#b8c6be"}}>Студия: новости, турниры и зал славы. Сообщество: друзья, почта, активность и эскизы чата и трейдинга. Игры: кнопка «Задания». Профиль: инвентарь, DVD-плеер, достижения и настройки с FAQ. В сценарии итогов можно проверить зал славы.</span>
+      <span style={{fontSize:12,color:"#b8c6be"}}>Студия: новости, турниры и зал славы. Сообщество: друзья, почта, активность, общий чат и трейдинг. Игры: кнопка «Задания». Профиль: инвентарь, DVD-плеер, достижения и настройки с FAQ. В сценарии итогов можно проверить зал славы.</span>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10}}>{["Handjet","Tiny5"].map(name=><div key={name} style={{border:"1px solid #69786f",padding:12,borderRadius:8}}><small style={{fontFamily:"system-ui"}}>{name}</small><div style={{fontFamily:name,fontSize:24}}>Баланс 429 Йер · 01:28:59</div><div style={{fontFamily:name,fontSize:18}}>0123456789 · 1250 очков<br/>Тетрис · Редкая<br/>Цветные объёмные блоки и своя мелодия.</div></div>)}</div>
       <iframe key={scene+theme+size+revision+font} title="Мобильный стенд приложения" src={`/studio-preview.html?device=1&scene=${scene}&theme=${theme}&v=${revision}&font=${font}`}
         style={{width,height,maxWidth:"100%",flexShrink:0,margin:"8px auto 18px",display:"block",border:"2px solid #69786f",borderRadius:10,background:"#0b0b0c"}} />

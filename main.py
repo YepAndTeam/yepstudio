@@ -202,6 +202,30 @@ from disc_service import launch_gift_state
 from theme_gift_service import theme_gifts,update_theme_gift
 from disc_api import make_disc_router
 app.include_router(make_disc_router(get_user,get_db))
+from community_api import make_community_router
+from disc_equipment import equipment_state
+async def deliver_trade_notice(identity):
+    from disc_market import claim_notice
+    from disc_models import DiscTradeNotice
+    from aiogram.types import InlineKeyboardMarkup,InlineKeyboardButton,WebAppInfo
+    def claim():
+        with SessionLocal.begin() as db:return claim_notice(db,identity)
+    delivery=await asyncio.to_thread(claim)
+    if not delivery:return
+    uid,text=delivery
+    try:
+        markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Посмотреть отклик',web_app=WebAppInfo(url=WEBAPP_URL+'?ref=community_trading'))]]) if WEBAPP_URL else None
+        await bot.send_message(uid,text,reply_markup=markup,parse_mode=None)
+        status='sent'
+    except Exception:
+        logging.getLogger(__name__).warning('Trade response notification failed; in-app notice retained')
+        status='failed'
+    def finish():
+        with SessionLocal.begin() as db:
+            row=db.get(DiscTradeNotice,identity)
+            if row:row.status=status
+    await asyncio.to_thread(finish)
+app.include_router(make_community_router(get_user,get_db,deliver_trade_notice))
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
 
@@ -226,6 +250,7 @@ def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db))
 def me(user: User = Depends(get_user), db=Depends(get_db)):
     settle_due(db)
     daily = reward_visit(db, user.id)
+    disc_equipment = equipment_state(db,user.id)
     db.commit()
     db.refresh(user)
     def count(*where, model):
@@ -241,7 +266,7 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "unread_notifications": count(Notification.user_id==user.id,Notification.read.is_(False),model=Notification),
         "owned_themes": sorted(owned_themes(db, user.id)), "theme_box_price": BOX_PRICE,
         "compensation_letters": list_letters(db, user.id),
-        "disc_gift": launch_gift_state(db,user.id), "theme_gifts": theme_gifts(db,user.id),
+        "disc_equipment": disc_equipment, "disc_gift": launch_gift_state(db,user.id), "theme_gifts": theme_gifts(db,user.id),
         "daily_reward": daily,
     }
 

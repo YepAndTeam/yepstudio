@@ -68,6 +68,8 @@ def submit_result(db, user_id, game, score, now=None, run_id=None):
     check_available(db)
     now = now or datetime.utcnow()
     epoch = db.scalar(select(Meta.value).where(Meta.key == "score_epoch")) or "initial"
+    from disc_models import DiscRun
+    if run_id and db.get(DiscRun,run_id):raise ScoreError(409,'Забег с диском нельзя отправить в общую таблицу')
     run = db.get(GameRun, run_id) if run_id else None
     if run_id and (not run or run.user_id != user_id or run.game != game):
         raise ScoreError(409, "Забег не найден. Начни новую игру.")

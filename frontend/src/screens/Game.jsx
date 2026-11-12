@@ -1,3 +1,4 @@
+import DiscPlay from './DiscPlay';
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -64,7 +65,7 @@ function timeLeft(iso) {
 
 export default function Game({ initial }) {
   const { me, theme, loadMe } = useStore();
-  const [goals,setGoals]=useState(false);
+  const [goals,setGoals]=useState(false),[discMode,setDiscMode]=useState(false);
   const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
   const inSecret = SECRET.some((g) => g.id === initGame);
 
@@ -127,6 +128,7 @@ export default function Game({ initial }) {
     };
   }, [game]);
 
+  if(discMode)return <DiscPlay games={CASUAL} onBack={()=>setDiscMode(false)}/>;
   const current = ALL.find((g) => g.id === game);
   if (current?.View) {
     const View = current.View;
@@ -244,7 +246,7 @@ export default function Game({ initial }) {
 
       {section === "casual" && (
         <>
-          <div className="ggrid">{CASUAL.map((g) => tile(g, true))}</div>
+          <button className="card profile-menu-row disc-play-trigger" onClick={()=>setDiscMode(true)}><span><b>Игры с дисками</b><small>Отдельный режим с эффектами из инвентаря</small></span><span>›</span></button><div className="ggrid">{CASUAL.map((g) => tile(g, true))}</div>
 
           <div className="filters">
             <div className="seg">

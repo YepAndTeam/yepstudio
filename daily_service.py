@@ -28,7 +28,7 @@ def reward_visit(db, user_id, now=None):
         amount = 50 if streak == 7 else 25
         row = DailyVisit(user_id=user_id, day=today.isoformat(), streak=streak, amount=amount)
         db.add(row)
-        grant(db, user_id, amount, "daily:"+today.isoformat())
+        grant(db, user_id, amount, "daily:"+today.isoformat(),now.astimezone(timezone.utc).replace(tzinfo=None))
         db.flush()
     tomorrow = datetime.combine(today+timedelta(days=1), datetime.min.time(), tzinfo=KZ)
     return {"day": row.day, "streak": row.streak, "amount": row.amount,

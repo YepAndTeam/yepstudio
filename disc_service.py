@@ -35,11 +35,14 @@ def activate_launch_gift(db,user_id):
  if row.activated_at is None:row.activated_at=datetime.utcnow();row.remaining=GIFT_OPENS;db.flush()
  return {'launch_gift':launch_gift_state(db,user_id),'balance':balance(db,user_id)}
 
-def choose_disc():
+def choose_disc(luck_percent=0):
  disc=secrets.choice(tuple(DISCS))
- draw=secrets.randbelow(sum(item['weight'] for item in RARITIES.values()))
+ from disc_odds import boosted_chances
+ chances=boosted_chances(list(RARITIES.values()),luck_percent)
+ weights={key:round(chances[key]*100) for key in RARITIES} if luck_percent else {key:value['weight'] for key,value in RARITIES.items()}
+ draw=secrets.randbelow(sum(weights.values()))
  for rarity in RARITIES.values():
-  draw-=rarity['weight']
+  draw-=weights[rarity['id']]
   if draw<0:return disc,rarity['id']
  raise RuntimeError('Invalid disc distribution')
 
@@ -65,7 +68,8 @@ def open_disc(db,user_id,request_id):
    changed=db.execute(update(User).where(User.id==user_id,User.jera>=price).values(jera=User.jera-price))
    if changed.rowcount!=1:raise DiscError(409,'Не хватает Йер для DVD-диска')
   else:gift.remaining-=1
-  disc,rarity=choose_disc()
+  from disc_equipment import luck_for
+  disc,rarity=choose_disc(luck_for(db,user_id))
   pending=DiscDraw(id=uuid4().hex,user_id=user_id,disc_id=disc,rarity=rarity,price=price)
   db.add(pending);db.flush()
   if price:db.add(JeraTx(user_id=user_id,amount=-price,reason='disc:open:'+pending.id))
@@ -83,12 +87,28 @@ def reveal_disc(db,user_id,draw_id):
    copy=DiscCopy(user_id=user_id,disc_id=row.disc_id,rarity=row.rarity,quantity=1,first_found_at=now,last_found_at=now);db.add(copy)
   else:copy.quantity+=1;copy.last_found_at=now
   row.copy_number=copy.quantity;row.revealed_at=now;db.flush()
+  from disc_equipment import ensure_inventory,create_instance
+  from disc_models import DiscInstance
+  ensure_inventory(db,user_id)
+  if not db.get(DiscInstance,row.id):create_instance(db,user_id,row.disc_id,row.rarity,row.id,now)
+  db.flush()
  return {'draw':draw_view(row),'balance':balance(db,user_id),'launch_gift':launch_gift_state(db,user_id)}
 
 def disc_state(db,user_id):
+ from disc_equipment import ensure_inventory,settle_expired,instance_view,equipment_state,wear_events,luck_for
+ from disc_models import DiscInstance
+ ensure_inventory(db,user_id);settle_expired(db,user_id)
+ instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status!='lost').order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
+ groups={}
+ for instance in instances:
+  key=(instance.disc_id,instance.rarity)
+  if key not in groups:groups[key]={'item':DISCS[instance.disc_id],'rarity':instance.rarity,'quantity':0,'first_found_at':instance.created_at.isoformat()+'Z'}
+  groups[key]['quantity']+=1
  copies=db.scalars(select(DiscCopy).where(DiscCopy.user_id==user_id).order_by(DiscCopy.last_found_at.desc(),DiscCopy.disc_id,DiscCopy.rarity)).all()
  pending=db.scalar(select(DiscDraw).where(DiscDraw.user_id==user_id,DiscDraw.revealed_at.is_(None)).order_by(DiscDraw.created_at,DiscDraw.id).limit(1))
  history=db.scalars(select(DiscDraw).where(DiscDraw.user_id==user_id,DiscDraw.revealed_at.is_not(None)).order_by(DiscDraw.revealed_at.desc(),DiscDraw.id).limit(20)).all()
- return {'price':PRICE,'balance':balance(db,user_id),'launch_gift':launch_gift_state(db,user_id),'catalogue':CATALOG['discs'],'rarities':[{k:v for k,v in item.items() if k!='weight'} for item in RARITIES.values()],
-  'pending':draw_view(pending) if pending else None,'collection':[{'item':DISCS[c.disc_id],'rarity':c.rarity,'quantity':c.quantity,'first_found_at':c.first_found_at.isoformat()+'Z'} for c in copies],
-  'total_copies':sum(c.quantity for c in copies),'unique_editions':len(copies),'total_editions':len(DISCS)*len(RARITIES),'history':[draw_view(row) for row in history]}
+ from disc_odds import boosted_chances
+ luck=luck_for(db,user_id);chances=boosted_chances(list(RARITIES.values()),luck)
+ return {'wear_events':wear_events(db,user_id),'luck_percent':luck,'price':PRICE,'balance':balance(db,user_id),'launch_gift':launch_gift_state(db,user_id),'catalogue':CATALOG['discs'],'rarities':[{**{k:v for k,v in item.items() if k!='weight'},'chance':chances[item['id']]} for item in RARITIES.values()],
+  'pending':draw_view(pending) if pending else None,'collection':list(groups.values()),'instances':[instance_view(row) for row in instances],'equipment':equipment_state(db,user_id),
+  'total_copies':len(instances),'unique_editions':len(groups),'total_editions':len(DISCS)*len(RARITIES),'history':[draw_view(row) for row in history]}

@@ -88,7 +88,11 @@ class DiscApiTest(unittest.TestCase):
   with self.sessions.begin() as db:db.add(User(id=1,first_name='API',jera=100))
   def get_db():
    with self.sessions() as db:yield db
-  app=FastAPI();app.include_router(make_disc_router(lambda:SimpleNamespace(id=1),get_db));self.app=app
+  from community_api import make_community_router
+  self.actor=1;self.delivered=[]
+  async def deliver_notice(identity):self.delivered.append(identity)
+  get_user=lambda:SimpleNamespace(id=self.actor)
+  app=FastAPI();app.include_router(make_disc_router(get_user,get_db));app.include_router(make_community_router(get_user,get_db,deliver_notice));self.app=app
   class Client:
    def request(client,method,path,json=None):
     import asyncio,json as codec
@@ -100,7 +104,9 @@ class DiscApiTest(unittest.TestCase):
       if received:return {'type':'http.disconnect'}
       received=True;return {'type':'http.request','body':codec.dumps(json).encode() if json is not None else b'','more_body':False}
      async def send(message):messages.append(message)
-     scope={'type':'http','asgi':{'version':'3.0'},'http_version':'1.1','scheme':'http','method':method,'path':path,'raw_path':path.encode(),'query_string':b'','root_path':'','headers':[(b'content-type',b'application/json')],'server':('test',80),'client':('test',1)}
+     from urllib.parse import urlsplit
+     parsed=urlsplit(path)
+     scope={'type':'http','asgi':{'version':'3.0'},'http_version':'1.1','scheme':'http','method':method,'path':parsed.path,'raw_path':parsed.path.encode(),'query_string':parsed.query.encode(),'root_path':'','headers':[(b'content-type',b'application/json')],'server':('test',80),'client':('test',1)}
      await app(scope,receive,send)
      code=next(message['status'] for message in messages if message['type']=='http.response.start')
      body=b''.join(message.get('body',b'') for message in messages if message['type']=='http.response.body')
@@ -133,3 +139,31 @@ class DiscApiTest(unittest.TestCase):
   self.assertEqual(opened['draw']['price'],0);self.assertEqual(opened['balance'],100)
   self.assertEqual(self.client.post('/api/discs/gift/activate').json()['launch_gift']['remaining'],9)
   self.assertEqual(self.client.post('/api/discs/open',json=request).json()['launch_gift']['remaining'],9)
+
+ def test_http_equipment_chat_and_confirmed_trade(self):
+  from social_models import Friendship
+  from disc_equipment import create_instance
+  from disc_models import DiscInstance
+  with self.sessions.begin() as db:
+   db.add(User(id=2,first_name='Friend',jera=0));db.flush();db.add(Friendship(low_id=1,high_id=2,requested_by=1,status='accepted'));one=create_instance(db,1,'minecraft','rare',uuid4().hex);two=create_instance(db,2,'terraria','common',uuid4().hex);offered,wanted=one.id,two.id
+  offer=self.client.post('/api/community/trades',json={'recipient_id':2,'offered':[offered],'wanted':[wanted],'request_id':uuid4().hex})
+  self.assertEqual(offer.status_code,200);identity=offer.json()['id']
+  self.assertEqual(self.client.post('/api/community/trades/'+identity+'/accept').status_code,403)
+  self.actor=2;self.assertEqual(self.client.post('/api/community/trades/'+identity+'/accept').json()['status'],'accepted')
+  active=self.client.post('/api/discs/equip',json={'instance_id':offered});self.assertEqual(active.status_code,200);self.assertEqual(active.json()['active']['id'],offered)
+  self.actor=1;self.assertEqual(self.client.post('/api/discs/equip',json={'instance_id':offered}).status_code,404)
+  self.assertEqual(self.client.post('/api/community/chat',json={'body':'hello'}).status_code,200)
+  self.assertEqual(len(self.client.get('/api/community/chat').json()['messages']),1)
+  self.actor=2;start=self.client.post('/api/disc-play/start',json={'game':'dino'});self.assertEqual(start.status_code,200)
+  score=self.client.post('/api/disc-play/score',json={'game':'dino','run_id':start.json()['run_id'],'score':1});self.assertEqual(score.status_code,200);self.assertEqual(score.json()['mode'],'disc')
+  self.assertEqual(self.client.get('/api/disc-play/top?game=dino').json()['my_best'],1)
+
+ def test_http_market_reply_schedules_exactly_one_bot_notification(self):
+  from disc_equipment import create_instance
+  with self.sessions.begin() as db:
+   db.add(User(id=3,first_name='Not a friend',jera=0));db.flush();one=create_instance(db,1,'doom','common',uuid4().hex);two=create_instance(db,3,'portal','rare',uuid4().hex);offered,wanted=one.id,two.id
+  listing=self.client.post('/api/community/market',json={'offered':[offered],'wanted':{'rare':1},'request_id':uuid4().hex});self.assertEqual(listing.status_code,200)
+  self.actor=3;body={'offered':[wanted],'request_id':uuid4().hex};path='/api/community/market/'+listing.json()['id']+'/reply'
+  response=self.client.post(path,json=body);self.assertEqual(response.status_code,200);identity=response.json()['id'];self.assertEqual(self.delivered,[identity])
+  self.assertEqual(self.client.post(path,json=body).json()['id'],identity);self.assertEqual(self.delivered,[identity])
+  self.actor=1;self.assertEqual(self.client.post('/api/community/trades/'+identity+'/accept').json()['status'],'accepted')

@@ -8,7 +8,8 @@ class DiscOpenIn(BaseModel):
 def make_disc_router(get_user,get_db):
  router=APIRouter(prefix='/api/discs',tags=['discs'])
  @router.get('')
- def state(user=Depends(get_user),db=Depends(get_db)):return disc_state(db,user.id)
+ def state(user=Depends(get_user),db=Depends(get_db)):
+  value=disc_state(db,user.id);db.commit();return value
  @router.post('/open')
  def open_one(body:DiscOpenIn,user=Depends(get_user),db=Depends(get_db)):
   try:

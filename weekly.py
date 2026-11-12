@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import delete, select, update
 from database import AllTimeScore, GameScore, JeraTx, Meta, User, WeeklyResult
 from score_service import lock_scores, promote_alltime
+from disc_equipment import reward_bonus
 
 EPOCH = date(2026, 11, 9)
 NAMES = {"dino": "Дино", "flappy": "Flappy", "snake": "Змейка", "tetris": "Тетрис", "hell": "Ад", "drive": "После полуночи"}
@@ -24,9 +25,13 @@ def prize_for(place):
     return 0
 
 
-def grant(db, user_id, amount, reason):
+def grant(db, user_id, amount, reason, now=None):
     db.execute(update(User).where(User.id == user_id).values(jera=User.jera + amount))
     db.add(JeraTx(user_id=user_id, amount=amount, reason=reason))
+    bonus=reward_bonus(db,user_id,amount,reason,now)
+    if bonus:
+        db.execute(update(User).where(User.id==user_id).values(jera=User.jera+bonus))
+        db.add(JeraTx(user_id=user_id,amount=bonus,reason='disc:bonus:'+reason))
 
 
 def ensure_period(db, bg=None, fast_if_current=False):

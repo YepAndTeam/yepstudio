@@ -46,10 +46,10 @@ export function installStudioPreview(scene,theme){
   let maintenance=false,applied=false,pending=null,history=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
   const eventState=event=>({...event,server_now:now(),balance:me.jera});
-  const shopState=()=>({theme_gifts:me.theme_gifts,price:100,failure_refund:50,balance:me.jera,owned_themes:me.owned_themes,active_box:pending?{id:pending.id,price:pending.price}:null,history,
+  const shopState=()=>{const value={theme_gifts:me.theme_gifts,price:100,failure_refund:50,balance:me.jera,owned_themes:me.owned_themes,active_box:pending?{id:pending.id,price:pending.price}:null,history,
     rarities:[{key:"common",title:"Обычные",color:"var(--muted)",chance:70,items:[{id:"retro",name:"Ретро",chance:35},{id:"terminal",name:"Терминал",chance:35}]},
       {key:"rare",title:"Редкие",color:"var(--coin)",chance:25,items:[{id:"tetris",name:"Тетрис",chance:25/3},{id:"nyan",name:"Nyan Cat",chance:25/3},{id:"neon",name:"Неон Токио",chance:25/3}]},
-      {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]});
+      {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]};const luck=discPreview('/discs','GET')?.luck_percent||0;value.luck_percent=luck;if(luck){let used=0;for(const group of value.rarities)if(group.key!=='common'){const base=group.chance,next=Math.ceil(base*(1+luck/100)*10-1e-8)/10;group.chance=next;for(const item of group.items)item.chance=item.chance*next/base;used+=next;}const common=value.rarities.find(g=>g.key==='common'),base=common.chance;common.chance=100-used;for(const item of common.items)item.chance=item.chance*common.chance/base;}return value;};
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
     const discResult=discPreview(path,method,body);if(discResult!==undefined)return discResult;

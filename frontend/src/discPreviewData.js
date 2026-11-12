@@ -1,36 +1,62 @@
 import catalog from '../../disc_catalog.json';
-const KEY='yab_dvd_preview_v1';
+const KEY='yab_dvd_preview_v1',hours={common:1,rare:3,epic:12,legendary:24,mythic:72,secret:168},survival={common:10,rare:30,epic:50,mythic:60,legendary:70,secret:100};
 export function makeDiscPreview(me){
  let state;try{state=JSON.parse(localStorage.getItem(KEY));}catch{}
  if(!state||!Array.isArray(state.draws)||!Array.isArray(state.collection))state={balance:me.jera,draws:[],collection:[],requests:{}};
- state.gift??={claimed:false,activated:false,remaining:0};
- const giftView=()=>({id:"dvd-launch-usb-v1",total:10,...state.gift});
- me.disc_gift=giftView();
- me.jera=state.balance;
- const params=new URLSearchParams(location.search),now=()=>new Date().toISOString();
- const save=()=>{me.disc_gift=giftView();me.jera=state.balance;try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}};
- const view=row=>{const value={id:row.id,item:catalog.discs.find(item=>item.id===row.disc_id),serial:row.id.slice(0,8).toUpperCase(),price:row.price??catalog.price,free:row.price===0,created_at:row.created_at,revealed:row.revealed};if(row.revealed)Object.assign(value,{rarity:row.rarity,copy_number:row.copy_number,is_dupe:row.copy_number>1,revealed_at:row.revealed_at});return value;};
+ const now=()=>new Date().toISOString(),id=()=>crypto.randomUUID().replaceAll('-',''),params=new URLSearchParams(location.search),item=key=>catalog.discs.find(d=>d.id===key);
+ const effects=(disc,rarity,previous)=>{const profiles={minecraft:[.95,1,5,0],terraria:[.95,1,5,0],undertale:[1.15,1,0,0],hollowknight:[1.15,1,0,0],soulknight:[1.15,1,0,0],doom:[1.05,1.05,0,0],portal:[.9,.9,10,10],stardew:[.95,.95,10,0],halflife:[1.1,1.1,0,0],underground:[1.15,1.15,0,0],sanandreas:[1.1,1.05,5,0],skyrim:[.95,1.05,5,0]};let [tempo,score,jera_percent,luck_percent]=profiles[disc]||[1,1,0,0];if(disc==='counterstrike'){tempo=previous??1.05+Math.floor(Math.random()*26)/100;score=1.1;}if(rarity==='secret'){tempo=previous??1.05+Math.floor(Math.random()*26)/100;score=1.1;jera_percent=5;luck_percent=10;}return {tempo,score,jera_percent,luck_percent,_v:3};};
+ const make=(disc,rarity,identity=id(),owner=me.id)=>({id:identity,user_id:owner,disc_id:disc,rarity,status:'ready',created_at:now(),effects:effects(disc,rarity),roll:Math.floor(Math.random()*100)});
+ state.gift??={claimed:false,activated:false,remaining:0};state.instances??=state.collection.flatMap(stack=>Array.from({length:stack.quantity},()=>make(stack.disc_id,stack.rarity)));
+ for(const stack of state.collection)if(!state.instances.some(d=>d.disc_id===stack.disc_id&&d.rarity===stack.rarity))for(let i=0;i<stack.quantity;i++)state.instances.push(make(stack.disc_id,stack.rarity));
+ for(const d of state.instances)if(!d.effects?._v&&!['lost','cracked'].includes(d.status))d.effects=effects(d.disc_id,d.rarity,d.disc_id==='counterstrike'||d.rarity==='secret'?d.effects?.tempo:undefined);
+ state.wear_events??=[];state.listings??=[];
+ state.messages??=[];state.trades??=[];state.runs??={};if(!state.friendSeed){state.instances.push(make('terraria','rare',id(),2),make('hollowknight','epic',id(),2));state.friendSeed=true;}
+ let demoSeen=false;const wearDemo=['lost','cracked'].includes(params.get('wear'))?make(params.get('disc_id')==='random'||!item(params.get('disc_id'))?'minecraft':params.get('disc_id'),catalog.rarities.some(r=>r.id===params.get('disc_rarity'))?params.get('disc_rarity'):'common'):null;
+ if(wearDemo){wearDemo.status=params.get('wear');wearDemo.expires_at=now();}
+ const giftView=()=>({id:'dvd-launch-usb-v1',total:10,...state.gift});
+ const viewInstance=d=>({id:d.id,item:item(d.disc_id),rarity:d.rarity,status:d.status,created_at:d.created_at,activated_at:d.activated_at||null,expires_at:d.expires_at||null,lifetime_seconds:hours[d.rarity]*3600,survival_percent:survival[d.rarity],effects:d.rarity==='secret'?null:d.effects,hidden_effects:d.rarity==='secret',cracked:d.status==='cracked'});
+ const settle=()=>{for(const d of state.instances){if(d.status==='active'&&Date.parse(d.expires_at)<=Date.now()){d.status=d.roll<survival[d.rarity]?'cracked':'lost';if(d.rarity==='secret')delete d.effects[Object.keys(d.effects).filter(k=>!k.startsWith('_'))[0]];if(!state.wear_events.some(e=>e.id===d.id))state.wear_events.push({...viewInstance(d),outcome:d.status});if(state.equipped===d.id)state.equipped=null;}}};
+ const equipment=()=>{settle();const d=state.instances.find(d=>d.id===state.equipped&&d.user_id===me.id&&d.status==='active');return {active:d?viewInstance(d):null,server_now:now(),can_remove:state.swap_day!==new Date(Date.now()+5*3600000).toISOString().slice(0,10)};};
+ const save=()=>{me.disc_gift=giftView();me.jera=state.balance;me.disc_equipment=equipment();try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}};save();
+ const boostedRarities=()=>{const luck=state.instances.find(d=>d.id===state.equipped&&d.status==='active')?.effects.luck_percent||0,values=catalog.rarities.map(({weight:_weight,...rest})=>({...rest}));if(luck){let used=0;for(const r of values)if(r.id!=='common'){r.chance=Math.ceil(r.chance*(1+luck/100)*10-1e-8)/10;used+=r.chance;}values.find(r=>r.id==='common').chance=Math.round((100-used)*10)/10;}return values;};
+ const view=row=>{const v={id:row.id,item:item(row.disc_id),serial:row.id.slice(0,8).toUpperCase(),price:row.price??catalog.price,free:row.price===0,created_at:row.created_at,revealed:row.revealed};if(row.revealed)Object.assign(v,{rarity:row.rarity,copy_number:row.copy_number,is_dupe:row.copy_number>1,revealed_at:row.revealed_at});return v;};
+ const chat=()=>({messages:state.messages.filter(m=>!m.deleted).slice(-60),server_now:now()});
+ const tradeView=t=>({...t,items:t.items.map(x=>({...viewInstance(state.instances.find(d=>d.id===x.id)),offered_by:x.offered_by}))});
  return function handle(path,method,body){
+  settle();
+  if(path==='/discs/equipment')return equipment();
+  if(path.startsWith('/discs/wear/')&&method==='POST'){const identity=path.split('/')[3];if(wearDemo?.id===identity)demoSeen=true;state.wear_events=state.wear_events.filter(e=>e.id!==identity);save();return {ok:true};}
+  if(path==='/discs/equip'&&method==='POST'){
+   const current=state.instances.find(d=>d.id===state.equipped&&d.status==='active');
+   if(current&&current.id!==body.instance_id){const day=new Date(Date.now()+5*3600000).toISOString().slice(0,10);if(state.swap_day===day)throw Error('Снять или сменить диск можно один раз за день');state.swap_day=day;}
+
+   if(!body.instance_id){state.equipped=null;save();return equipment();}
+   const d=state.instances.find(d=>d.id===body.instance_id&&d.user_id===me.id);if(!d||!['ready','active'].includes(d.status))throw Error('Этот диск не может быть активирован');
+   if(d.status==='ready'){d.status='active';d.activated_at=now();d.expires_at=new Date(Date.now()+hours[d.rarity]*3600000).toISOString();}state.equipped=d.id;save();return equipment();
+  }
+  if(path.startsWith('/disc-play/top')){const game=new URLSearchParams(path.split('?')[1]).get('game'),bests=new Map();for(const r of Object.values(state.runs).filter(r=>r.game===game&&r.score!==undefined)){const uid=r.user_id||me.id,old=bests.get(uid)||{user_id:uid,name:uid===me.id?me.first_name:'Бека',best:0};old.best=Math.max(old.best,r.score);bests.set(uid,old);}const top=[...bests.values()].sort((a,b)=>b.best-a.best).map((r,i)=>({...r,place:i+1})),own=top.find(r=>r.user_id===me.id);return {top,my_best:own?.best||0,my_rank:own?.place||null,mode:'disc'};}
+  if(path==='/disc-play/start'){const active=state.instances.find(d=>d.id===state.equipped&&d.status==='active');if(!active)throw Error('Нужен активный диск');const key=id(),run={user_id:me.id,game:body.game,effects:active.effects,expires_at:active.expires_at};state.runs[key]=run;save();return {...run,run_id:key,server_now:now(),ok:true,mode:'disc'};}
+  if(path==='/disc-play/score'){const r=state.runs[body.run_id];if(!r||Date.parse(r.expires_at)<=Date.now())throw Error('Срок забега истёк');r.score=Math.floor(body.score*r.effects.score);save();return {best:r.score,score:r.score,raw_score:body.score,record:false,rank:null,mode:'disc'};}
+  if(!state.marketSeed){const spare=state.instances.find(d=>d.user_id===2&&d.status==='ready');if(spare)state.listings.push({id:id(),user_id:2,name:'Бека',offered:[spare.id],wanted:{common:1},status:'open',created_at:now(),expires_at:new Date(Date.now()+86400000).toISOString()});state.marketSeed=true;save();}
+  const listingView=l=>({...l,offered:l.offered.map(identity=>viewInstance(state.instances.find(d=>d.id===identity))),reply_count:state.trades.filter(t=>t.listing_id===l.id).length});
+  if(path==='/community/market'){if(method==='POST'){const old=state.listings.find(l=>l.request_id===body.request_id);if(old)return listingView(old);const l={id:id(),user_id:me.id,name:me.first_name,offered:body.offered,wanted:body.wanted,request_id:body.request_id,status:'open',created_at:now(),expires_at:new Date(Date.now()+72*3600000).toISOString()};state.listings.unshift(l);save();return listingView(l);}return {listings:state.listings.map(listingView)};}
+  if(path.startsWith('/community/market/')&&method==='POST'){const parts=path.split('/'),l=state.listings.find(l=>l.id===parts[3]);if(!l)throw Error('Объявление не найдено');if(parts[4]==='close'){l.status='closed';save();return listingView(l);}const old=state.trades.find(t=>t.request_id===body.request_id);if(old)return tradeView(old);const t={id:id(),listing_id:l.id,sender_id:me.id,recipient_id:l.user_id,sender_name:me.first_name,recipient_name:l.name,status:'pending',created_at:now(),expires_at:l.expires_at,request_id:body.request_id,items:[...body.offered.map(id=>({id,offered_by:me.id})),...l.offered.map(id=>({id,offered_by:l.user_id}))]};state.trades.unshift(t);save();return tradeView(t);}
+  if(path==='/community/chat'){if(method==='POST'){state.messages.push({id:Date.now(),user_id:me.id,name:me.first_name,body:body.body,created_at:now()});save();}return chat();}
+  if(path.startsWith('/community/chat/')&&method==='DELETE'){const m=state.messages.find(m=>String(m.id)===path.split('/').pop());if(m)m.deleted=true;save();return chat();}
+  if(path.startsWith('/community/trades/inventory/'))return {user:{id:2,name:'Бека'},instances:state.instances.filter(d=>d.user_id===2&&d.status==='ready').map(viewInstance)};
+  if(path==='/community/trades'){
+   if(method==='POST'){const old=state.trades.find(t=>t.request_id===body.request_id);if(old)return tradeView(old);const t={id:id(),sender_id:me.id,recipient_id:body.recipient_id,sender_name:me.first_name,recipient_name:'Бека',status:'pending',created_at:now(),expires_at:new Date(Date.now()+86400000).toISOString(),request_id:body.request_id,items:[...body.offered.map(id=>({id,offered_by:me.id})),...body.wanted.map(id=>({id,offered_by:2}))]};state.trades.unshift(t);save();return tradeView(t);}
+   return {trades:state.trades.map(tradeView)};
+  }
+  if(path.startsWith('/community/trades/')&&method==='POST'){const [, , ,identity,action]=path.split('/'),t=state.trades.find(t=>t.id===identity);if(!t)throw Error('Обмен не найден');if(t.status==='pending'){if(action==='accept'){if(t.recipient_id!==me.id)throw Error('Принять может только получатель');const valid=t.items.every(i=>state.instances.some(d=>d.id===i.id&&d.user_id===i.offered_by&&d.status==='ready'));if(!valid)t.status='invalid';else{for(const i of t.items)state.instances.find(d=>d.id===i.id).user_id=i.offered_by===t.sender_id?t.recipient_id:t.sender_id;t.status='accepted';}}else t.status=action==='cancel'?'cancelled':'declined';save();}return tradeView(t);}
   if(path==='/discs/gift/claim'&&method==='POST'){state.gift.claimed=true;save();return {balance:state.balance,launch_gift:giftView()};}
   if(path==='/discs/gift/activate'&&method==='POST'){if(!state.gift.claimed)throw Error('Сначала забери флешку');if(!state.gift.activated){state.gift.activated=true;state.gift.remaining=10;}save();return {balance:state.balance,launch_gift:giftView()};}
-  if(path==='/discs')return {launch_gift:giftView(),price:catalog.price,balance:state.balance,catalogue:catalog.discs,rarities:catalog.rarities.map(({weight:_weight,...rest})=>rest),pending:state.draws.find(row=>!row.revealed)?view(state.draws.find(row=>!row.revealed)):null,collection:state.collection.map(row=>({...row,item:catalog.discs.find(item=>item.id===row.disc_id)})),total_copies:state.collection.reduce((sum,row)=>sum+row.quantity,0),unique_editions:state.collection.length,total_editions:catalog.discs.length*catalog.rarities.length,history:state.draws.filter(row=>row.revealed).slice().reverse().slice(0,20).map(view)};
+  if(path==='/discs'){const own=state.instances.filter(d=>d.user_id===me.id&&d.status!=='lost'),groups=new Map();for(const d of own){const k=d.disc_id+d.rarity,g=groups.get(k)||{item:item(d.disc_id),rarity:d.rarity,quantity:0};g.quantity++;groups.set(k,g);}return {wear_events:[...(wearDemo&&!demoSeen?[{...viewInstance(wearDemo),outcome:wearDemo.status}]:[]),...state.wear_events],equipment:equipment(),luck_percent:state.instances.find(d=>d.id===state.equipped&&d.status==='active')?.effects.luck_percent||0,instances:own.map(viewInstance),launch_gift:giftView(),price:catalog.price,balance:state.balance,catalogue:catalog.discs,rarities:boostedRarities(),pending:state.draws.find(r=>!r.revealed)?view(state.draws.find(r=>!r.revealed)):null,collection:[...groups.values()],total_copies:own.length,unique_editions:groups.size,total_editions:catalog.discs.length*catalog.rarities.length,history:state.draws.filter(r=>r.revealed).slice().reverse().slice(0,20).map(view)};}
   if(path==='/discs/open'&&method==='POST'){
-   let row=state.draws.find(row=>row.id===state.requests[body.request_id])||state.draws.find(row=>!row.revealed);
-   if(!row){
-    const price=state.gift.activated&&state.gift.remaining>0?0:catalog.price;
-    if(state.balance<price)throw Error('Не хватает тестовых Йер');
-    const disc=catalog.discs.find(item=>item.id===params.get('disc_id'))||catalog.discs[Math.floor(Math.random()*catalog.discs.length)];
-    let rarity=catalog.rarities.find(item=>item.id===params.get('disc_rarity'));
-    if(!rarity){let roll=Math.random()*100;rarity=catalog.rarities.find(item=>{roll-=item.chance;return roll<0;})||catalog.rarities[0];}
-    if(!price)state.gift.remaining--;state.balance-=price;row={price,id:crypto.randomUUID().replaceAll('-',''),disc_id:disc.id,rarity:rarity.id,created_at:now(),revealed:false};state.draws.push(row);
-   }
-   state.requests[body.request_id]=row.id;save();return {draw:view(row),balance:state.balance,launch_gift:giftView()};
+   let row=state.draws.find(r=>r.id===state.requests[body.request_id])||state.draws.find(r=>!r.revealed);
+   if(!row){const price=state.gift.activated&&state.gift.remaining>0?0:catalog.price;if(state.balance<price)throw Error('Не хватает тестовых Йер');const disc=item(params.get('disc_id'))||catalog.discs[Math.floor(Math.random()*catalog.discs.length)];let rarity=catalog.rarities.find(r=>r.id===params.get('disc_rarity'));if(!rarity){let roll=Math.random()*100;rarity=boostedRarities().find(r=>{roll-=r.chance;return roll<0;})||catalog.rarities[0];}if(!price)state.gift.remaining--;state.balance-=price;row={price,id:id(),disc_id:disc.id,rarity:rarity.id,created_at:now(),revealed:false};state.draws.push(row);}state.requests[body.request_id]=row.id;save();return {draw:view(row),balance:state.balance,launch_gift:giftView()};
   }
   const match=path.match(/^\/discs\/([^/]+)\/reveal$/);
-  if(match&&method==='POST'){
-   const row=state.draws.find(row=>row.id===match[1]);if(!row)throw Error('Тестовый диск не найден');
-   if(!row.revealed){let copy=state.collection.find(copy=>copy.disc_id===row.disc_id&&copy.rarity===row.rarity);if(copy)copy.quantity++;else{copy={disc_id:row.disc_id,rarity:row.rarity,quantity:1,first_found_at:now()};state.collection.push(copy);}row.copy_number=copy.quantity;row.revealed=true;row.revealed_at=now();save();}
-   return {draw:view(row),balance:state.balance,launch_gift:giftView()};
-  }
+  if(match&&method==='POST'){const row=state.draws.find(r=>r.id===match[1]);if(!row)throw Error('Тестовый диск не найден');if(!row.revealed){let copy=state.collection.find(c=>c.disc_id===row.disc_id&&c.rarity===row.rarity);if(copy)copy.quantity++;else{copy={disc_id:row.disc_id,rarity:row.rarity,quantity:1,first_found_at:now()};state.collection.push(copy);}row.copy_number=copy.quantity;row.revealed=true;row.revealed_at=now();state.instances.push(make(row.disc_id,row.rarity,row.id));save();}return {draw:view(row),balance:state.balance,launch_gift:giftView()};}
  };
 }

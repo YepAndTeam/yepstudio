@@ -118,7 +118,8 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if (ref.startsWith("friend_") && /^friend_\d+$/.test(ref)){
+  if(ref==="community_trading"){setTab("forum");setCommunitySection("trading");}
+  else if (ref.startsWith("friend_") && /^friend_\d+$/.test(ref)){
     setTab("forum");setCommunitySection("friends");setFriendTarget(Number(ref.slice(7)));
   } else if (ref==="races") {
     setTab("news");setStudioSection("races");
@@ -185,7 +186,7 @@ const [gameRef, setGameRef] = useState(null);
           {thread ? (
             <Thread key={thread} refId={thread} onBack={back} />
           ) : inbox ? (
-            <Inbox openFriends={()=>{setInbox(false);setTab("forum");setCommunitySection("friends");setFriendTarget(null);}} openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
+            <Inbox openMarket={()=>{setInbox(false);setThread(null);setTab("forum");setCommunitySection("trading");}} openFriends={()=>{setInbox(false);setTab("forum");setCommunitySection("friends");setFriendTarget(null);}} openThread={openThread} onBack={back} openRaces={()=>{setInbox(false);setThread(null);setTournamentId(null);setStudioSection("races");setTab("news");}} openGame={()=>{setInbox(false);setThread(null);setTab("game");setGameRef(null);}} />
           ) : tab === "news" ? (
             <Studio key={studioSection||"default"} initialSection={studioSection} openThread={openThread} tournamentId={tournamentId} onTournamentChange={setTournamentId} onPlay={id=>{setGameRef(id);setTab("game");}} />
           ) : tab === "forum" ? (

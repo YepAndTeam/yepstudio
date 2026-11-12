@@ -62,8 +62,12 @@ def daily_task_state(db,user_id,now=None):
     rows=db.execute(select(GameResult,GameRun).join(GameRun,GameRun.id==GameResult.run_id).where(
         GameResult.user_id==user_id,GameResult.valid.is_(True),GameResult.score>0,
         GameResult.submitted_at>=start,GameResult.submitted_at<end)).all()
+    from disc_equipment import valid_dino_score
+    from disc_models import DiscRun
+    run_ids=[run.id for _,run in rows]
+    tempos={r.id:json.loads(r.effects_json).get('tempo',1) for r in db.scalars(select(DiscRun).where(DiscRun.id.in_(run_ids)))} if run_ids else {}
     results=[result for result,run in rows if run.user_id==user_id and run.game==result.game
-        and result.submitted_at>=run.started_at and (result.game!="dino" or result.score<=(result.submitted_at-run.started_at).total_seconds()*10+50)]
+        and result.submitted_at>=run.started_at and (result.game!="dino" or valid_dino_score(db,run,result.score,result.submitted_at,tempos.get(run.id,1)))]
     awards={a.task_id:a for a in db.scalars(select(DailyTaskAward).where(DailyTaskAward.user_id==user_id,DailyTaskAward.day==day))}
     credited=sum(a.amount for a in awards.values())
     tasks=[]
@@ -75,7 +79,7 @@ def daily_task_state(db,user_id,now=None):
         if value>=task["target"] and not earned:
             amount=min(amount,max(0,10-credited))
             db.add(DailyTaskAward(user_id=user_id,day=day,task_id=task["id"],amount=amount))
-            if amount:grant(db,user_id,amount,f"daily-task:{day}:{task['id']}")
+            if amount:grant(db,user_id,amount,f"daily-task:{day}:{task['id']}",now.astimezone(timezone.utc).replace(tzinfo=None))
             credited+=amount;earned=True
         tasks.append({**task,"current":min(value,task["target"]),"earned":earned})
     db.flush()

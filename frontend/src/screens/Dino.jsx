@@ -1,7 +1,7 @@
 import {advanceDino} from '../dinoTiming';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
-import { api } from "../api";
+import { gameApi as api,discTempo } from "../discPlaySession";
 import { useStore } from "../store";
 import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
@@ -289,7 +289,7 @@ export default function Dino({ onBack }) {
       if(document.hidden)return;
       const s=g.current,elapsed=Math.max(0,(now-last)/1000);last=now;
       if(previousState!==s){clock.acc=0;previousState=s;}
-      else if(s.phase==='run')advanceDino(clock,elapsed,dt=>{step(s,dt);return s.phase==='run';});
+      else if(s.phase==='run')advanceDino(clock,elapsed*discTempo(),dt=>{step(s,dt);return s.phase==='run';});
       else clock.acc=0;
       if(s.phase==='run'||paintedState!==s||paintedPhase!==s.phase||paintedColors!==col.current){
         draw(ctx,s,col.current);paintedState=s;paintedPhase=s.phase;paintedColors=col.current;
@@ -353,7 +353,7 @@ export default function Dino({ onBack }) {
               : "Тап или пробел, чтобы прыгнуть"}
           </span>
           <span className="small muted">
-            Рекорд:{(result?.best ?? top?.my_best) > 0 && (
+            Рекорд:{top?.mode!=='disc'&&result?.mode!=='disc'&&(result?.best ?? top?.my_best) > 0 && (
   <button type="button" className="send" onClick={() => shareRecord(GAME, "Dino", result?.best ?? top.my_best)}>
     Мой рекорд, сможешь побить?
             </button>)}
