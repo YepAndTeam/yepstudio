@@ -123,7 +123,7 @@ def equip(db,uid,identity,now=None):
  if identity is None:equipment.instance_id=None;db.flush();return equipment_state(db,uid,now)
  row=db.get(DiscInstance,identity)
  if row is None or row.user_id!=uid:raise EquipmentError(404,'Этот экземпляр тебе не принадлежит')
- if row.status in ('cracked','lost'):raise EquipmentError(409,'Диск изношен и больше не активируется')
+ if row.status not in ('ready','active'):raise EquipmentError(409,'Диск изношен или запечатан и больше не активируется')
  if row.status=='ready':row.status='active';row.activated_at=now;row.expires_at=now+timedelta(hours=HOURS[row.rarity])
  equipment.instance_id=row.id;db.flush();return equipment_state(db,uid,now)
 

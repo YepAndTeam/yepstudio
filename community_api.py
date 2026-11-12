@@ -38,6 +38,15 @@ def make_community_router(get_user,get_db,deliver_trade_notice=None):
   except (EquipmentError,ScoreError) as error:db.rollback();raise HTTPException(error.status,str(error))
  def game_check(game):
   if game not in ('dino','flappy','snake','tetris','hell','drive'):raise HTTPException(422,'Эта игра не поддерживает диски')
+ @router.get('/discs/shelves')
+ def shelves(user=Depends(get_user),db=Depends(get_db)):
+  from disc_shelves import shelf_state
+  return shelf_state(db,user.id)
+ @router.post('/discs/shelves/seal')
+ def seal(body:EquipIn,user=Depends(get_user),db=Depends(get_db)):
+  from disc_shelves import seal_disc
+  if not body.instance_id:raise HTTPException(422,'Выбери диск')
+  return transaction(db,lambda:seal_disc(db,user.id,body.instance_id))
  @router.get('/discs/equipment')
  def state(user=Depends(get_user),db=Depends(get_db)):return transaction(db,lambda:equipment_state(db,user.id))
  @router.post('/discs/equip')

@@ -83,6 +83,7 @@ class DiscApiTest(unittest.TestCase):
   from sqlalchemy.pool import StaticPool
   from fastapi import FastAPI
   from types import SimpleNamespace
+  import social_models  # Register friend tables before creating the isolated API schema.
   from disc_api import make_disc_router
   self.engine=create_engine('sqlite://',connect_args={'check_same_thread':False},poolclass=StaticPool);Base.metadata.create_all(self.engine);self.sessions=sessionmaker(bind=self.engine);initialize_score_state(self.sessions)
   with self.sessions.begin() as db:db.add(User(id=1,first_name='API',jera=100))
@@ -167,3 +168,22 @@ class DiscApiTest(unittest.TestCase):
   response=self.client.post(path,json=body);self.assertEqual(response.status_code,200);identity=response.json()['id'];self.assertEqual(self.delivered,[identity])
   self.assertEqual(self.client.post(path,json=body).json()['id'],identity);self.assertEqual(self.delivered,[identity])
   self.actor=1;self.assertEqual(self.client.post('/api/community/trades/'+identity+'/accept').json()['status'],'accepted')
+
+ def test_http_permanent_shelf_reward_and_retries(self):
+  from disc_equipment import create_instance
+  from disc_service import RARITIES
+  with self.sessions.begin() as db:
+   identities=[]
+   for rarity in RARITIES:
+    row=create_instance(db,1,'doom',rarity,uuid4().hex);identities.append(row.id)
+  self.assertEqual(self.client.post('/api/discs/shelves/seal',json={}).status_code,422)
+  self.actor=2
+  self.assertEqual(self.client.post('/api/discs/shelves/seal',json={'instance_id':identities[0]}).status_code,404)
+  self.actor=1
+  for identity in identities:
+   response=self.client.post('/api/discs/shelves/seal',json={'instance_id':identity});self.assertEqual(response.status_code,200)
+  self.assertEqual(response.json()['balance'],1100)
+  self.assertEqual(self.client.post('/api/discs/shelves/seal',json={'instance_id':identity}).json()['balance'],1100)
+  self.assertEqual(self.client.post('/api/discs/equip',json={'instance_id':identity}).status_code,409)
+  shelves=self.client.get('/api/discs/shelves').json()['shelves']
+  self.assertEqual(len(next(s for s in shelves if s['item']['id']=='doom')['slots']),6)

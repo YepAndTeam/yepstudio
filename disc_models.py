@@ -152,3 +152,18 @@ class DiscTradeNotice(Base):
  user_id:Mapped[int]=mapped_column(ForeignKey('users.id'))
  status:Mapped[str]=mapped_column(String(20),default='queued')
  created_at:Mapped[datetime]=mapped_column(default=datetime.utcnow)
+
+class DiscShelfSlot(Base):
+ __tablename__='disc_shelf_slots'
+ user_id:Mapped[int]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ disc_id:Mapped[str]=mapped_column(String(40),primary_key=True)
+ rarity:Mapped[str]=mapped_column(String(20),primary_key=True)
+ instance_id:Mapped[str]=mapped_column(ForeignKey('disc_instances.id'),unique=True)
+ sealed_at:Mapped[datetime]=mapped_column(default=datetime.utcnow)
+ was_cracked:Mapped[bool]=mapped_column(default=False)
+
+class DiscShelfReward(Base):
+ __tablename__='disc_shelf_rewards'
+ user_id:Mapped[int]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ disc_id:Mapped[str]=mapped_column(String(40),primary_key=True)
+ created_at:Mapped[datetime]=mapped_column(default=datetime.utcnow)

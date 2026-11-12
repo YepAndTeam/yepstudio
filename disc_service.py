@@ -98,7 +98,7 @@ def disc_state(db,user_id):
  from disc_equipment import ensure_inventory,settle_expired,instance_view,equipment_state,wear_events,luck_for
  from disc_models import DiscInstance
  ensure_inventory(db,user_id);settle_expired(db,user_id)
- instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status!='lost').order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
+ instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status.notin_(('lost','sealed'))).order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
  groups={}
  for instance in instances:
   key=(instance.disc_id,instance.rarity)
