@@ -1,0 +1,87 @@
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {api} from '../api';
+import {useStore} from '../store';
+import {JeraIcon} from '../components/JeraIcon';
+import DiscInspector,{DiscFace} from '../components/DiscInspector';
+import UsbFlash from '../components/UsbFlash';
+import DiscGiftMail from '../components/DiscGiftMail';
+import './DiscCollection.css';
+
+function DvdPlayer({phase,draw,gift}){
+ const message=phase==='loading'?'CONNECT':phase==='reading'?'READING':phase==='inspect'?'DISC TAKEN':draw?'LID OPEN':'STANDBY',locked=phase!=='idle';
+ const stage=useRef(null),orbit=useRef({pitch:45,yaw:0}),gesture=useRef(null),frame=useRef(null);
+ const paint=useCallback(()=>{const node=stage.current;if(node){node.style.setProperty('--console-pitch',orbit.current.pitch+'deg');node.style.setProperty('--console-yaw',orbit.current.yaw+'deg');}},[]);
+ const reset=()=>{if(locked)return;orbit.current={pitch:45,yaw:Math.round(orbit.current.yaw/360)*360};paint();};
+ useEffect(()=>{
+  const node=stage.current;if(frame.current!==null){cancelAnimationFrame(frame.current);frame.current=null;}
+  if(locked){const held=gesture.current;if(held&&node?.hasPointerCapture(held.id))node.releasePointerCapture(held.id);gesture.current=null;node?.classList.remove('orbiting');orbit.current={pitch:45,yaw:Math.round(orbit.current.yaw/360)*360};}
+  paint();
+ },[locked,paint]);
+ useEffect(()=>()=>{if(frame.current!==null)cancelAnimationFrame(frame.current);},[]);
+ const queue=()=>{if(frame.current===null)frame.current=requestAnimationFrame(()=>{frame.current=null;paint();});};
+ const down=e=>{if(locked||gesture.current||e.target===e.currentTarget||e.button!==0)return;e.currentTarget.setPointerCapture(e.pointerId);gesture.current={id:e.pointerId,x:e.clientX,y:e.clientY,...orbit.current};e.currentTarget.classList.add('orbiting');};
+ const move=e=>{const start=gesture.current;if(locked||start?.id!==e.pointerId)return;orbit.current={yaw:start.yaw+(e.clientX-start.x)*.7,pitch:Math.max(-60,Math.min(75,start.pitch-(e.clientY-start.y)*.45))};queue();};
+ const end=e=>{if(gesture.current?.id===e.pointerId){gesture.current=null;e.currentTarget.classList.remove('orbiting');}};
+ const key=e=>{if(locked||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(e.key))return;e.preventDefault();if(e.key==='Home')reset();else{orbit.current={yaw:orbit.current.yaw+(e.key==='ArrowLeft'?-15:e.key==='ArrowRight'?15:0),pitch:Math.max(-60,Math.min(75,orbit.current.pitch+(e.key==='ArrowUp'?10:e.key==='ArrowDown'?-10:0)))};paint();}};
+ return <><div ref={stage} className={`dvd-hardware dvd-phase-${phase}`} data-orbit-state={locked?'locked':'free'} tabIndex={locked?-1:0} role="img" aria-disabled={locked} aria-label={locked?'Консоль: ракурс зафиксирован на время открытия':'Вращаемая консоль: потяни корпус или используй стрелки'} onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={key}><div className="dvd-console">
+  <div className="dvd-console-top"><i className="dvd-console-ribs"/><div className="dvd-console-ident"><span>YAB / AUDIO LAB</span><b>04</b></div><span>OPTICAL ARCHIVE / DISC SYSTEM</span></div>
+  <div className="dvd-console-well"><i className="dvd-console-spindle"/><span>OPTICAL PICKUP / CLASS 01</span><i className="dvd-console-laser"/></div>
+  {draw&&<div className="dvd-console-disc"><DiscFace item={draw.item}/></div>}
+  <div className="dvd-console-hinge"/>
+  <div className="dvd-console-lid"><div className="dvd-lid-outside"><span>YAB</span><small>OPTICAL ARCHIVE</small><i/></div><div className="dvd-lid-inside"><i/><span>DISC / CLAMP SYSTEM</span></div></div>
+  <div className="dvd-console-front"><span className="dvd-console-brand">YAB<small>ARCHIVE / 04</small></span><i className="dvd-console-power"/><span className="dvd-console-display">{message}</span><span className="dvd-console-ports"><span className="dvd-usb-label">USB</span><span className="dvd-usb-socket">{gift?.activated&&<span className="dvd-usb-mounted" role="img" aria-label={`Флешка в USB-порту. Осталось открытий: ${gift.remaining}`}><span className="dvd-usb-top"><b>{gift.remaining}×</b></span><span className="dvd-usb-bottom"/><span className="dvd-usb-left"/><span className="dvd-usb-right"/><span className="dvd-usb-end"><i/></span></span>}</span></span></div>
+  <div className="dvd-console-side"/><div className="dvd-console-left"/><div className="dvd-console-back"><i/><span>Y-04 / DC IN / OPTICAL OUT</span><b/></div>
+  <div className="dvd-console-bottom"><div className="dvd-bottom-vents"/><div className="dvd-bottom-label"><b>YAB / AUDIO LAB</b><span>OPTICAL ARCHIVE / MODEL Y-04</span><i/></div><i className="bottom-foot foot-a"/><i className="bottom-foot foot-b"/><i className="bottom-foot foot-c"/><i className="bottom-foot foot-d"/></div>
+  <i className="dvd-console-foot foot-left"/><i className="dvd-console-foot foot-right"/>
+ </div></div><div className="dvd-orbit-controls"><span>{locked?'Ракурс зафиксирован':'Потяни корпус, чтобы рассмотреть'}</span><button className="back" disabled={locked} onClick={reset}>Сбросить ракурс</button></div></>;
+}
+export default function DiscCollection({onBack,backLabel="Профиль",initialTab="player",previewGift=false}){
+ const [giftLetter,setGiftLetter]=useState(previewGift),[giftBusy,setGiftBusy]=useState(false),giftWorking=useRef(false);
+ const {syncEconomy,claimDiscGift}=useStore(),[data,setData]=useState(null),[tab,setTab]=useState(initialTab),[phase,setPhase]=useState('idle'),[draw,setDraw]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[secretSeen,setSecretSeen]=useState(false);
+ const resultPanel=useRef(null);
+ const alive=useRef(true),opening=useRef(false),revealing=useRef(false),request=useRef(null),timers=useRef([]),revision=useRef(0),activeDraw=useRef(null);
+ useEffect(()=>{activeDraw.current=draw;},[draw]);
+ const load=useCallback(async()=>{
+  const token=++revision.current;
+  const value=await api('/discs');if(!alive.current||token!==revision.current)return;
+  setData(value);syncEconomy(value);
+  if(!activeDraw.current&&value.pending){setDraw(value.pending);setPhase('ejected');}
+ },[syncEconomy]);
+ useEffect(()=>{alive.current=true;const queued=timers.current;void Promise.resolve().then(load).catch(e=>{if(alive.current)setError(e.message);});return()=>{alive.current=false;for(const timer of queued)clearTimeout(timer);};},[load]);
+ useEffect(()=>{if(phase==='inspect')resultPanel.current?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});},[phase,draw?.id]);
+ const refresh=()=>{setError('');void load().catch(e=>{if(alive.current)setError(e.message);});};
+ const open=async()=>{
+  if(opening.current||giftWorking.current||draw||!data)return;opening.current=true;setBusy(true);setError('');setSecretSeen(false);setPhase('loading');++revision.current;
+  request.current??=crypto.randomUUID().replaceAll('-','');
+  try{
+   const result=await api('/discs/open','POST',{request_id:request.current});if(!alive.current)return;
+   syncEconomy(result);setData(value=>({...value,balance:result.balance,launch_gift:result.launch_gift}));setDraw(result.draw);
+   if(result.draw.revealed)setPhase('inspect');else{setPhase('reading');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?30:850;timers.current.push(setTimeout(()=>{if(alive.current)setPhase('ejected');},delay));}
+  }catch(e){if(alive.current){setError(e.message);setPhase('idle');}}
+  finally{opening.current=false;if(alive.current)setBusy(false);}
+ };
+ const reveal=async()=>{
+  if(!draw||draw.revealed)return true;if(revealing.current)return false;
+  revealing.current=true;setBusy(true);setError('');++revision.current;
+  try{
+   const result=await api('/discs/'+draw.id+'/reveal','POST');if(!alive.current)return false;
+   setDraw(result.draw);syncEconomy(result);request.current=null;
+   await load();return true;
+  }catch(e){if(alive.current)setError(e.message);return false;}
+  finally{revealing.current=false;if(alive.current)setBusy(false);}
+ };
+ const shelve=()=>{setDraw(null);setSecretSeen(false);setPhase('idle');request.current=null;refresh();};
+ const inspect=entry=>{if(draw&&!draw.revealed)return;setDraw({id:'shelf-'+entry.item.id+'-'+entry.rarity,item:entry.item,rarity:entry.rarity,copy_number:entry.quantity,is_dupe:entry.quantity>1,revealed:true,from_collection:true});setSecretSeen(false);setPhase('inspect');setTab('player');setError('');};
+ const rarity=id=>data?.rarities.find(item=>item.id===id);
+ const gift=data?.launch_gift,freeOpens=gift?.remaining||0;
+ const activateGift=async()=>{if(giftWorking.current||opening.current)return;giftWorking.current=true;setGiftBusy(true);setError('');try{const state=await api('/discs/gift/activate','POST');syncEconomy(state);if(alive.current)setData(v=>({...v,launch_gift:state.launch_gift}));}catch(e){if(alive.current)setError(e.message);}finally{giftWorking.current=false;if(alive.current)setGiftBusy(false);}};
+ const blackDisc=draw?.rarity==='secret'&&!secretSeen;
+ return <section className="dvd-page"><button className="back" onClick={onBack}>‹ {backLabel}</button><header className="dvd-title"><div><small>YAB / OPTICAL ARCHIVE</small><h2>Коллекция дисков</h2></div><span className="dvd-wallet"><JeraIcon size={17}/>{data?.balance??'…'}</span></header><p className="dvd-intro">Игры твоей эпохи — на полке. Диски коллекционные и не меняют доступ к играм.</p><div className="dvd-tabs" role="group" aria-label="Раздел коллекции">{[['player','Консоль'],['shelf','Полка'],['history','Открытия']].map(([id,title])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{title}</button>)}</div>{error&&<div className="card dvd-error" role="alert"><p>{error}</p>{!data?<button className="pub alt" onClick={refresh}>Повторить загрузку</button>:draw&&!draw.revealed&&phase==='inspect'?<button className="pub alt" disabled={busy} onClick={reveal}>Повторить считывание</button>:<button className="back" onClick={refresh}>Обновить коллекцию</button>}</div>}{!data&&!error&&<p className="card muted">Загружаем оптический архив…</p>}
+ {gift&&<section className="card usb-pass-panel"><UsbFlash size={90} count={gift.activated?gift.remaining:gift.total}/><div><b>{gift.activated?'DVD-открытия: '+freeOpens:'Подарочная флешка · 10×'}</b><p className="small muted">{gift.activated?(freeOpens?'Сначала используются бесплатные открытия.':'Все бесплатные открытия использованы.'):'Подарок к запуску коллекции. Без срока действия.'}</p>{!gift.claimed?<button className="pub alt" onClick={()=>setGiftLetter(true)}>Открыть письмо</button>:!gift.activated?<button className="pub" disabled={giftBusy||busy} onClick={activateGift}>{giftBusy?'Подключаем…':'Вставить флешку'}</button>:<button className="back" onClick={()=>setGiftLetter(true)}>Письмо от студии</button>}</div></section>}
+ {giftLetter&&gift&&<DiscGiftMail gift={gift} onLater={()=>setGiftLetter(false)} onClaim={async()=>{if(!gift.claimed){const state=await claimDiscGift();if(alive.current)setData(v=>({...v,launch_gift:state.launch_gift}));}setGiftLetter(false);}}/>}
+ {tab==='player'&&<><section className="card dvd-player-card"><div className="dvd-device-label"><span>OPTICAL CONSOLE / Y-04</span><span><i/>{phase==='reading'?'Читаем запись':'Готов к работе'}</span></div><DvdPlayer phase={phase} draw={draw} gift={gift}/>{phase==='idle'&&!draw&&<><p className="dvd-opening-hint">Сначала обложка. Затем поверни диск и узнай редкость покрытия.</p><button className="pub dvd-open" disabled={!data||busy||giftBusy||(!freeOpens&&(data?.balance??0)<(data?.price??50))} onClick={open}>Открыть DVD <span>{freeOpens?"Бесплатно · "+freeOpens:<><JeraIcon size={16}/>{data?.price??50}</>}</span></button>{data&&!freeOpens&&data.balance<data.price&&<p className="small muted">Для открытия нужно {data.price} Йер.</p>}</>}{['loading','reading'].includes(phase)&&<p className="dvd-opening-hint" role="status">{phase==='loading'?'Подключаемся к архиву…':'Плеер читает диск…'}</p>}{phase==='ejected'&&draw&&<div className="dvd-take"><p>{draw.item.title}<small>Редкость скрыта на обороте</small></p><button className="pub" onClick={()=>setPhase('inspect')}>Забрать диск</button></div>}</section>
+ {phase==='inspect'&&draw&&<section ref={resultPanel} className="card dvd-result"><div className="dvd-result-top"><small>{draw.from_collection?'ИЗ КОЛЛЕКЦИИ':'НОВАЯ ЗАПИСЬ'}</small><span>#{draw.serial||draw.item.code}</span></div><h3>{draw.item.title}</h3><DiscInspector key={draw.id} draw={draw} onReveal={reveal} onSecret={()=>setSecretSeen(true)}/><div className={`dvd-result-caption ${draw.revealed?'revealed':''}`} style={{'--edition-color':blackDisc?'#8793a3':rarity(draw.rarity)?.color||'var(--muted)'}} role="status"><b>{draw.revealed?(blackDisc?'Чёрное покрытие':rarity(draw.rarity)?.name+' диск'):(busy?'Считываем покрытие…':'Редкость ещё не раскрыта')}</b><p>{draw.revealed?(blackDisc?'Поверни немного под углом. На поверхности что-то есть.':draw.is_dupe?`Повторка · экземпляр №${draw.copy_number}. Останется на твоей полке.`:'Первый экземпляр этого издания — уже в коллекции.'):'Переверни диск: цвет обратной стороны определяет издание.'}</p></div>{draw.revealed&&<button className="pub dvd-shelve" onClick={shelve}>На полку</button>}</section>}
+ {data&&<details className="card dvd-odds"><summary>Покрытия и шансы</summary><div>{data.rarities.map(item=><p key={item.id}><span><i style={{background:item.id==='legendary'?'linear-gradient(120deg,#dd9aee,#8ce6e7,#eee598)':item.color}}/>{item.name}</span><b>{item.chance.toLocaleString('ru-RU')}%</b></p>)}</div><p className="small muted">Открытие — {data.price} Йер. Повторки сохраняются дополнительными экземплярами. Одной игре может соответствовать несколько изданий.</p></details>}</>}
+ {tab==='shelf'&&data&&<><div className="dvd-shelf-heading"><div><h3>Твоя полка</h3><p className="small muted">Издания: {data.unique_editions} / {data.total_editions} · Дисков: {data.total_copies}</p></div></div>{draw&&!draw.revealed&&<button className="card dvd-pending" onClick={()=>setTab('player')}>В плеере остался нераскрытый диск. Забрать ›</button>}<div className="dvd-shelf">{data.collection.map(entry=><button key={entry.item.id+entry.rarity} className="dvd-jewel-case" disabled={Boolean(draw&&!draw.revealed)} onClick={()=>inspect(entry)} style={{'--edition-color':rarity(entry.rarity)?.color}}><div className="dvd-case-disc"><DiscFace item={entry.item}/></div><b>{entry.item.title}</b><small>{rarity(entry.rarity)?.name}</small><span className="dvd-copy-count">×{entry.quantity}</span></button>)}{data.catalogue.filter(item=>!data.collection.some(entry=>entry.item.id===item.id)).map(item=><div className="dvd-jewel-case dvd-unowned" key={item.id}><div className="dvd-case-disc"><DiscFace item={item}/></div><b>{item.title}</b><small>Пока не найден</small></div>)}</div></>}
+ {tab==='history'&&data&&<section className="card dvd-history"><h3>Последние открытия</h3>{!data.history.length?<p className="muted">Здесь появятся раскрытые диски.</p>:data.history.map(entry=><article key={entry.id}><span className="dvd-history-dot" style={{background:rarity(entry.rarity)?.color}}/><div><b>{entry.item.title}</b><small>{rarity(entry.rarity)?.name} · {entry.is_dupe?'Повторка №'+entry.copy_number:'Новый экземпляр'}</small></div><span>{entry.price===0?"Бесплатно":"−"+entry.price}</span></article>)}</section>}</section>;
+}

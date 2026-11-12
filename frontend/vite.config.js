@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [react(), localAccounting()],
   server: {
     headers: isolationHeaders,
-    proxy: { "/api": "http://127.0.0.1:8000" },
+    proxy: { "/api": "http://127.0.0.1:8080" },
   },
   preview: { headers: isolationHeaders },
   build: {

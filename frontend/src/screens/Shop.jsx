@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+const DiscCollection=lazy(()=>import("./DiscCollection"));
 import { useStore } from "../store";
 import { JeraIcon } from "../components/JeraIcon";
 import ThemeBox, { THEME_BOX_PRICE } from "./ThemeBox";
@@ -8,6 +9,7 @@ export default function Shop({ jera = 0 }) {
   const { me } = useStore();
   const price = me?.theme_box_price ?? THEME_BOX_PRICE;
 
+  if(box==="discs")return <Suspense fallback={<p className="card">Загружаем DVD-плеер…</p>}><DiscCollection onBack={()=>setBox(null)} backLabel="Магазин"/></Suspense>;
   if (box === "themes") {
     return <ThemeBox jera={jera} onBack={() => setBox(null)} />;
   }
@@ -22,7 +24,7 @@ export default function Shop({ jera = 0 }) {
         </div>
       </div>
 
-      <div className="ggrid">
+      <div className="ggrid"><div className="gtile wide"><button type="button" className="topic gp" onClick={()=>setBox("discs")}><div className="title">DVD-архив</div><div className="prev">Коллекционные диски · редкость на обороте</div><div className="foot"><span className="badge">Открыть плеер</span></div></button></div>
       <div className="gtile wide">
         <button
           type="button"

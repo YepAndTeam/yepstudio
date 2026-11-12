@@ -5,6 +5,7 @@ from uuid import uuid4
 from sqlalchemy import select, update
 from database import User, UserTheme, ThemeBoxPurchase, Meta, JeraTx
 from score_service import lock_scores
+from theme_gift_service import theme_gifts,consume_theme_open
 
 BASE_THEMES = {"dark", "light"}
 LEGACY_THEMES = {"retro", "terminal", "nyan", "tetris"}
@@ -77,15 +78,17 @@ def buy_box(db,user_id,request_id):
     if row is None:
         row=db.scalar(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.status=="pending"))
     if row is None:
-        changed=db.execute(update(User).where(User.id==user_id,User.jera>=BOX_PRICE).values(jera=User.jera-BOX_PRICE))
-        if changed.rowcount!=1:raise ShopError(409,"Не хватает Йеры для покупки кассеты")
+        price=0 if consume_theme_open(db,user_id) else BOX_PRICE
+        if price:
+            changed=db.execute(update(User).where(User.id==user_id,User.jera>=price).values(jera=User.jera-price))
+            if changed.rowcount!=1:raise ShopError(409,"Не хватает Йеры для покупки кассеты")
         row=ThemeBoxPurchase(id=uuid4().hex,user_id=user_id,request_id=request_id,
-            runes="".join(secrets.SystemRandom().sample(RUNES,3)),theme_id=choose_theme(),price=BOX_PRICE,
+            runes="".join(secrets.SystemRandom().sample(RUNES,3)),theme_id=choose_theme(),price=price,
             status="pending",refund=0,is_dupe=False)
         db.add(row)
-        db.add(JeraTx(user_id=user_id,amount=-BOX_PRICE,reason="shop:buy:"+row.id))
+        if price:db.add(JeraTx(user_id=user_id,amount=-price,reason="shop:buy:"+row.id))
         db.flush()
-    return {"box_id":row.id,"runes":list(row.runes),"balance":balance(db,user_id),"price":row.price}
+    return {"box_id":row.id,"runes":list(row.runes),"balance":balance(db,user_id),"price":row.price,"theme_gifts":theme_gifts(db,user_id)}
 
 
 def result(db,row):
@@ -124,8 +127,8 @@ def shop_state(db,user_id):
         .order_by(ThemeBoxPurchase.resolved_at.desc(),ThemeBoxPurchase.id).limit(15)).all()
     groups=[{**group,"items":[{k:v for k,v in item.items() if k!="weight"} for item in group["items"]]} for group in CATALOG]
     return {"price":BOX_PRICE,"failure_refund":BOX_PRICE//2,"rarities":groups,
-            "balance":balance(db,user_id),"owned_themes":sorted(owned_themes(db,user_id)),
-            "active_box":{"id":pending.id} if pending else None,
+            "balance":balance(db,user_id),"theme_gifts":theme_gifts(db,user_id),"owned_themes":sorted(owned_themes(db,user_id)),
+            "active_box":{"id":pending.id,"price":pending.price} if pending else None,
             "history":[{"id":row.id,"themeId":row.theme_id if row.status=="won" else None,
                         "success":row.status=="won","isDupe":row.is_dupe,"refund":row.refund} for row in rows]}
 

@@ -1,0 +1,3 @@
+export default function UsbFlash({count=10,size=220,target="discs"}){
+ return <span className={`usb-flash${size<100?' usb-flash-small':''}`} style={{width:size,height:size*.31,'--usb-scale':size/220}} role="img" aria-label={`USB-флешка. Бесплатных открытий: ${count}`}><span className="usb-key-shape" aria-hidden="true"><span className="usb-key-plug"><i/><i/></span><span className="usb-key-case"><small>YAB</small><span className="usb-key-caption">{target==='themes'?'THEME PASS':'DVD PASS'}</span><span className="usb-key-screen"><b>{count}×</b></span><i className="usb-key-led"/></span></span></span>;
+}

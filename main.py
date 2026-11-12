@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import disc_models  # DVD collection tables
 import social_models  # friends and shared online status
 import widget_models  # registers private-chat widget tables
 import race_models  # registers race tables before create_all
@@ -197,6 +198,10 @@ async def deliver_friend_game(invitation_id):
     from widget_bot import deliver_invitation
     await deliver_invitation(bot,SessionLocal,invitation_id)
 app.include_router(make_social_router(get_user,get_db,deliver_friend_game))
+from disc_service import launch_gift_state
+from theme_gift_service import theme_gifts,update_theme_gift
+from disc_api import make_disc_router
+app.include_router(make_disc_router(get_user,get_db))
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
 
@@ -236,6 +241,7 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "unread_notifications": count(Notification.user_id==user.id,Notification.read.is_(False),model=Notification),
         "owned_themes": sorted(owned_themes(db, user.id)), "theme_box_price": BOX_PRICE,
         "compensation_letters": list_letters(db, user.id),
+        "disc_gift": launch_gift_state(db,user.id), "theme_gifts": theme_gifts(db,user.id),
         "daily_reward": daily,
     }
 
@@ -1023,6 +1029,18 @@ def tournament_share_page(event_id: str, db=Depends(get_db)):
 <p>Засчитывается лучший результат зарегистрированного участника. При равных очках выше тот, кто достиг результата раньше.</p>
 <a href="{e(target, quote=True)}" style="display:inline-block;padding:16px 24px;border-radius:12px;background:#edbe63;color:#24170f;text-decoration:none;font-weight:bold">Открыть турнир в Telegram</a>
 </main></body></html>'''
+
+
+
+
+
+@app.post('/api/shop/gift/{gift_id}/{action}')
+def theme_usb_action(gift_id:str,action:str,user:User=Depends(get_user),db=Depends(get_db)):
+    if action not in ('claim','activate'):raise HTTPException(404,'Неизвестное действие')
+    try:
+        value=update_theme_gift(db,user.id,gift_id,action=='activate');db.commit();return value
+    except ShopError as error:
+        db.rollback();raise HTTPException(error.status,str(error))
 
 
 # статику монтируем последней, иначе она перекроет маршруты выше

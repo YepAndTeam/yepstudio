@@ -97,8 +97,10 @@ export function StoreProvider({ children }) {
 
   const syncEconomy = useCallback((state) => {
     meRevision.current++;reads.current.invalidate('/me');
-    setMe(value=>value?{...value,jera:state.balance ?? value.jera,owned_themes:state.owned_themes ?? value.owned_themes}:value);
+    setMe(value=>value?{...value,jera:state.balance ?? value.jera,owned_themes:state.owned_themes ?? value.owned_themes,disc_gift:state.launch_gift ?? value.disc_gift,theme_gifts:state.theme_gifts ?? value.theme_gifts}:value);
   },[]);
+
+  const claimDiscGift=useCallback(async()=>{const state=await api('/discs/gift/claim','POST');syncEconomy(state);return state;},[syncEconomy]);
 
   const acknowledgeCompensation = useCallback(async (id) => {
     meRevision.current++;reads.current.invalidate('/me');
@@ -226,6 +228,7 @@ export function StoreProvider({ children }) {
     setTheme,
     syncEconomy,
     acknowledgeCompensation,
+    claimDiscGift,
     setPush,
     sendComment,
     react,

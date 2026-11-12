@@ -402,7 +402,7 @@ export default function LockBox({
             )}
             <div className="bx-btns">
               <button type="button" className="pub" disabled={!canBuy} onClick={buy}>
-                {resumeAvailable ? "Продолжить кассету" : <>Купить {coin} {price}</>}
+                {resumeAvailable ? "Продолжить кассету" : price===0 ? "Открыть бесплатно" : <>Купить {coin} {price}</>}
               </button>
             </div>
           </>

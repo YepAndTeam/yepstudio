@@ -8,6 +8,8 @@ import Thread from "./screens/Thread";
 import Inbox from "./screens/Inbox";
 import SocialHeartbeat from "./components/SocialHeartbeat";
 import BackgroundMusic from "./components/BackgroundMusic";
+import DiscGiftMail from "./components/DiscGiftMail";
+import {api} from "./api";
 import CompensationMail from "./components/CompensationMail";
 import NewTopicSheet from "./components/NewTopicSheet";
 import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons";
@@ -21,10 +23,14 @@ const TABS = [
 ];
 
 export default function App() {
-const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, acknowledgeCompensation } = useStore();
+const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, syncEconomy, acknowledgeCompensation } = useStore();
   const [tournamentId,setTournamentId]=useState(null);
   const [studioSection,setStudioSection]=useState(null);
   const [friendTarget,setFriendTarget]=useState(null),[profileSection,setProfileSection]=useState(null);
+  const [selectedGift,setSelectedGift]=useState(null),[giftDismissed,setGiftDismissed]=useState([]);
+  const gifts=[...(me?.disc_gift?[{...me.disc_gift,target:"discs"}]:[]),...(me?.theme_gifts||[])];
+  const gift=selectedGift?gifts.find(g=>g.id===selectedGift):gifts.find(g=>!g.claimed&&!giftDismissed.includes(me.id+":"+g.id));
+  const closeGift=()=>{if(gift)setGiftDismissed(v=>[...v,me.id+":"+gift.id]);setSelectedGift(null);};
   const [selectedMail,setSelectedMail]=useState(null);
   const [dismissedMail,setDismissedMail]=useState([]);
   const letters=me?.compensation_letters || [];
@@ -192,7 +198,7 @@ const [gameRef, setGameRef] = useState(null);
             />
           ) : tab === "game" ? <Game initial={gameRef} />
             : (
-            <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} />
+            <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} onOpenGift={setSelectedGift} />
           )}
         </div>
       </div>
@@ -212,6 +218,8 @@ const [gameRef, setGameRef] = useState(null);
       </nav>
 
       {letter && <CompensationMail key={letter.id} letter={letter} onLater={closeMail} onRead={async()=>{await acknowledgeCompensation(letter.id);closeMail();}} />}
+
+      {!letter && gift && <DiscGiftMail key={gift.id} gift={gift} onLater={closeGift} onClaim={async()=>{if(!gift.claimed){const state=await api(gift.target==='themes'?'/shop/gift/'+gift.id+'/claim':'/discs/gift/claim','POST');syncEconomy(state);}closeGift();setTab('profile');setThread(null);setInbox(false);setProfileSection(gift.target==='themes'?'theme-box':'discs');scrollTo(0);}}/>}
 
       {sheet && (
         <NewTopicSheet onClose={() => setSheet(false)} onCreated={onCreated} />

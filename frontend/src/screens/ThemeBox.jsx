@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import { JeraIcon } from "../components/JeraIcon";
+import UsbFlash from "../components/UsbFlash";
 import LockBox from "../components/LockBox";
 import PoopIcon from "../components/PoopIcon";
 import { THEMES } from "../constants";
@@ -65,23 +66,26 @@ export default function ThemeBox({ jera = 0, onBack }) {
   const { theme, setTheme, syncEconomy } = useStore();
   const [shop, setShop] = useState(null);
   const [error, setError] = useState("");
+  const [giftBusy,setGiftBusy]=useState(false),[buying,setBuying]=useState(false),[openedPrice,setOpenedPrice]=useState(null);
+  const giftWorking=useRef(false);
   const purchase = useRef(null);
   const requestId = useRef(null);
   useEffect(() => {
     let active=true;
-    api("/shop").then(value=>{if(active){setShop(value);syncEconomy(value);purchase.current=value.active_box?.id || null;}})
+    api("/shop").then(value=>{if(active){setShop(value);syncEconomy(value);purchase.current=value.active_box?.id || null;setOpenedPrice(value.active_box?.price??null);}})
       .catch(e=>{if(active)setError(e.message);});
     return ()=>{active=false;};
   },[syncEconomy]);
   async function buyBox() {
+    setBuying(true);
     if (!requestId.current) requestId.current=crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
     try {
       const result=await api("/shop/theme-box/buy","POST",{request_id:requestId.current});
-      purchase.current=result.box_id;
-      setShop(value=>({...value,balance:result.balance,active_box:{id:result.box_id}}));
+      purchase.current=result.box_id;setOpenedPrice(result.price);
+      setShop(value=>({...value,balance:result.balance,active_box:{id:result.box_id},theme_gifts:result.theme_gifts??value.theme_gifts}));
       setError("");syncEconomy(result);
       return result;
-    } catch(e){setError(e.message);throw e;}
+    } catch(e){setError(e.message);throw e;} finally{setBuying(false);}
   }
   async function handleUnlock(attempt) {
     try {
@@ -97,6 +101,8 @@ export default function ThemeBox({ jera = 0, onBack }) {
       setError("");return result;
     }catch(e){setError(e.message);throw e;}
   }
+  const activateGift=async(id)=>{if(giftWorking.current)return;giftWorking.current=true;setGiftBusy(true);try{const value=await api('/shop/gift/'+id+'/activate','POST');syncEconomy(value);setShop(v=>({...v,theme_gifts:value.theme_gifts}));setError('');}catch(e){setError(e.message);}finally{giftWorking.current=false;setGiftBusy(false);}};
+  const freeOpens=(shop?.theme_gifts||[]).reduce((n,g)=>n+g.remaining,0);
   const history=shop?.history || [];
   const rarities=shop?.rarities || [];
 
@@ -127,16 +133,18 @@ export default function ThemeBox({ jera = 0, onBack }) {
       </div>
 
       {error && <div className="card small" role="status">{error}</div>}
+      {shop?.theme_gifts?.filter(g=>g.claimed).map(g=><section key={g.id} className="card usb-pass-panel"><UsbFlash size={90} count={g.activated?g.remaining:g.total} target="themes"/><div><b>За тему «{g.title}»</b><p className="small muted">{g.activated?'Бесплатных коробок тем: '+g.remaining:'Флешка: бесплатных коробок тем — '+g.total}</p>{!g.activated&&<button className="pub alt" disabled={giftBusy||buying||Boolean(shop.active_box)} onClick={()=>activateGift(g.id)}>Вставить флешку</button>}</div></section>)}
+      {freeOpens>0&&<p className="card small">Бесплатных коробок: {freeOpens}. Йеры не списываются. Возврат Йер за бесплатную коробку не начисляется.</p>}
       {shop ? <LockBox
         title="Коробка тем"
-        price={shop.price}
+        price={freeOpens?0:shop.price}
         balance={shop.balance}
-        onBuy={buyBox}
+        onBuy={async()=>{if(giftWorking.current)throw Error("Флешка подключается");return buyBox();}}
         onUnlock={handleUnlock}
         onApply={setTheme}
         activeTheme={theme}
         resumeAvailable={Boolean(shop.active_box)}
-        lostText="Раз код не вспомнили — Бека выкупит его у вас обратно за пол цены"
+        lostText={openedPrice===0?"Бесплатная коробка открыта. Йеры не списывались, возврата нет.":"Раз код не вспомнили — Бека выкупит его у вас обратно за пол цены"}
       /> : !error && <div className="card small muted">Загружаем магазин…</div>}
 
       {/* Что можно выбить */}
@@ -211,7 +219,7 @@ export default function ThemeBox({ jera = 0, onBack }) {
         ))}
       </div>
 
-      {shop && <div className="card small muted">Кассета — {shop.price} Йер. За ошибку возвращаем {shop.failure_refund}. За повторку: обычная — 25, редкая — 50, мифическая — 100 Йер.</div>}
+      {shop && <div className="card small muted">Платная кассета — {shop.price} Йер. За ошибку возвращаем {shop.failure_refund}. За повторку: обычная — 25, редкая — 50, мифическая — 100 Йер.</div>}
 
       {/* История открытий */}
       <div className="card">

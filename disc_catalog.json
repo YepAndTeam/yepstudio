@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "price": 50,
+  "rarities": [
+    {"id":"common","name":"Обычный","weight":6000,"chance":60,"color":"#b9c5cd"},
+    {"id":"rare","name":"Редкий","weight":2500,"chance":25,"color":"#5aa8ff"},
+    {"id":"epic","name":"Эпический","weight":1000,"chance":10,"color":"#b07af5"},
+    {"id":"mythic","name":"Мифический","weight":400,"chance":4,"color":"#f05b68"},
+    {"id":"legendary","name":"Легендарный","weight":90,"chance":0.9,"color":"#f4cc79"},
+    {"id":"secret","name":"Секретный","weight":10,"chance":0.1,"color":"#8793a3"}
+  ],
+  "discs": [
+    {"id":"minecraft","title":"Minecraft","series":"Песочницы","art":"blocks","color":"#72a75c","code":"SBOX-01"},
+    {"id":"terraria","title":"Terraria","series":"Песочницы","art":"tree","color":"#579d91","code":"SBOX-02"},
+    {"id":"stardew","title":"Stardew Valley","series":"Тихие миры","art":"farm","color":"#d6ad63","code":"COZY-01"},
+    {"id":"undertale","title":"Undertale","series":"Инди-полка","art":"heart","color":"#b05e83","code":"INDIE-01"},
+    {"id":"doom","title":"DOOM","series":"Компьютерный клуб","art":"doom","color":"#b56f4e","code":"CLUB-01"},
+    {"id":"halflife","title":"Half-Life","series":"Компьютерный клуб","art":"lab","color":"#d19a4c","code":"CLUB-02"},
+    {"id":"portal","title":"Portal","series":"Головоломки","art":"portal","color":"#6ca1b9","code":"MIND-01"},
+    {"id":"underground","title":"NFS Underground","series":"Гонки нулевых","art":"car","color":"#8879bd","code":"DRIVE-01"},
+    {"id":"sanandreas","title":"GTA: San Andreas","series":"Открытый мир","art":"city","color":"#ba986b","code":"WORLD-01"},
+    {"id":"counterstrike","title":"Counter-Strike 1.6","series":"Компьютерный клуб","art":"crosshair","color":"#799b7b","code":"CLUB-03"},
+    {"id":"hollowknight","title":"Hollow Knight","series":"Инди-полка","art":"knight","color":"#839dc2","code":"INDIE-02"},
+    {"id":"skyrim","title":"Skyrim","series":"Открытый мир","art":"mountain","color":"#8caaa9","code":"WORLD-02"}
+  ]
+}

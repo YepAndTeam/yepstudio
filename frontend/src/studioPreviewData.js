@@ -1,3 +1,4 @@
+import {makeDiscPreview} from './discPreviewData';
 import {makeFriendPreview} from "./friendPreviewData";
 import {boardPreview} from "./boardPreviewData";
 import {makeRacePreview} from "./racePreviewData";
@@ -19,6 +20,10 @@ export function installStudioPreview(scene,theme){
     owned_themes:["dark","light","retro","terminal","nyan","tetris","poop","neon"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
     daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?50:25,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
     compensation_letters:scene==="letter"?[receipt]:[]};
+  let themePasses;try{themePasses=JSON.parse(localStorage.getItem('yab_theme_usb_preview_v1'));}catch{}
+  me.theme_gifts=['neon','poop'].map(id=>({id,total:id==='neon'?1:5,title:id==='neon'?'Неон Токио':'Какашечки',target:'themes',claimed:false,activated:false,remaining:0,...themePasses?.find(g=>g.id===id)}));
+  const savePasses=()=>localStorage.setItem('yab_theme_usb_preview_v1',JSON.stringify(me.theme_gifts));
+  const discPreview=makeDiscPreview(me);
   const friendPreview=makeFriendPreview();
   const racePreview=makeRacePreview(scene,me);
   if(scene==="drive")window.Telegram.WebApp.initDataUnsafe.start_param="game_drive";
@@ -41,12 +46,13 @@ export function installStudioPreview(scene,theme){
   let maintenance=false,applied=false,pending=null,history=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
   const eventState=event=>({...event,server_now:now(),balance:me.jera});
-  const shopState=()=>({price:100,failure_refund:50,balance:me.jera,owned_themes:me.owned_themes,active_box:pending?{id:pending.id}:null,history,
+  const shopState=()=>({theme_gifts:me.theme_gifts,price:100,failure_refund:50,balance:me.jera,owned_themes:me.owned_themes,active_box:pending?{id:pending.id,price:pending.price}:null,history,
     rarities:[{key:"common",title:"Обычные",color:"var(--muted)",chance:70,items:[{id:"retro",name:"Ретро",chance:35},{id:"terminal",name:"Терминал",chance:35}]},
       {key:"rare",title:"Редкие",color:"var(--coin)",chance:25,items:[{id:"tetris",name:"Тетрис",chance:25/3},{id:"nyan",name:"Nyan Cat",chance:25/3},{id:"neon",name:"Неон Токио",chance:25/3}]},
       {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]});
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
+    const discResult=discPreview(path,method,body);if(discResult!==undefined)return discResult;
     const social=friendPreview(path,method,body);if(social!==undefined)return social;
     const boardResult=boardPreview(path,method);if(boardResult!==undefined)return boardResult;
     const raceResult=await racePreview(path,method,body);if(raceResult!==undefined)return raceResult;
@@ -87,13 +93,15 @@ export function installStudioPreview(scene,theme){
       if(action==="vote"){if(event.my_vote)event.votes[event.my_vote]--;event.votes[body.game]=(event.votes[body.game]||0)+1;event.my_vote=body.game;}
       return eventState(event);
     }
+    const giftAction=path.match(/^\/shop\/gift\/(neon|poop)\/(claim|activate)$/);
+    if(giftAction){const g=me.theme_gifts.find(g=>g.id===giftAction[1]);if(giftAction[2]==='claim')g.claimed=true;else{if(!g.claimed)fail('Сначала забери флешку');if(!g.activated){g.activated=true;g.remaining=g.total;}}savePasses();return {theme_gifts:me.theme_gifts,balance:me.jera};}
     if(path==="/shop")return shopState();
     if(path==="/shop/theme-box/buy"){
-      if(!pending){if(me.jera<100)fail("Не хватает Йеры");me.jera-=100;pending={id:"preview-box",runes:["ᚠ","ᚢ","ᚦ"]};}
-      return {box_id:pending.id,runes:pending.runes,balance:me.jera,owned_themes:me.owned_themes};
+      if(!pending){const g=me.theme_gifts.find(g=>g.activated&&g.remaining>0),price=g?0:100;if(me.jera<price)fail("Не хватает Йеры");if(g){g.remaining--;savePasses();}me.jera-=price;pending={id:"preview-box",price,runes:["ᚠ","ᚢ","ᚦ"]};}
+      return {box_id:pending.id,runes:pending.runes,price:pending.price,balance:me.jera,owned_themes:me.owned_themes,theme_gifts:me.theme_gifts};
     }
     if(path==="/shop/theme-box/unlock"){
-      const ok=body.runes.join("")==="ᚠᚢᚦ",refund=ok?100:50;me.jera+=refund;pending=null;
+      const ok=body.runes.join("")==="ᚠᚢᚦ",refund=pending?.price===0?0:ok?100:50;me.jera+=refund;pending=null;
       history.unshift({id:Date.now(),themeId:ok?"poop":null,success:ok,isDupe:ok,refund});
       return {ok,themeId:ok?"poop":null,isDupe:ok,left:0,refund,balance:me.jera,owned_themes:me.owned_themes,shop:shopState()};
     }

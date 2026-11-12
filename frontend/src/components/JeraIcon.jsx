@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 
 // Пиксельная монета с руной Йера. Сетка 36x36, 3D-толщина набирается слоями.
 const DISC = "M12 1h12v1h-12zM10 2h16v1h-16zM8 3h20v1h-20zM7 4h22v1h-22zM6 5h24v1h-24zM5 6h26v1h-26zM4 7h28v1h-28zM3 8h30v1h-30zM3 9h30v1h-30zM2 10h32v1h-32zM2 11h32v1h-32zM1 12h34v1h-34zM1 13h34v1h-34zM1 14h34v1h-34zM1 15h34v1h-34zM1 16h34v1h-34zM1 17h34v1h-34zM1 18h34v1h-34zM1 19h34v1h-34zM1 20h34v1h-34zM1 21h34v1h-34zM1 22h34v1h-34zM1 23h34v1h-34zM2 24h32v1h-32zM2 25h32v1h-32zM3 26h30v1h-30zM3 27h30v1h-30zM4 28h28v1h-28zM5 29h26v1h-26zM6 30h24v1h-24zM7 31h22v1h-22zM8 32h20v1h-20zM10 33h16v1h-16zM12 34h12v1h-12z";
@@ -8,7 +8,9 @@ const SHADOW = "M22 12h1v1h-1zM11 13h1v1h-1zM21 13h2v1h-2zM10 14h2v1h-2zM21 14h1
 const RIM_L = "M12 1h12v1h-12zM10 2h16v1h-16zM8 3h6v1h-6zM22 3h6v1h-6zM7 4h4v1h-4zM25 4h3v1h-3zM6 5h4v1h-4zM26 5h1v1h-1zM5 6h3v1h-3zM4 7h3v1h-3zM3 8h3v1h-3zM3 9h3v1h-3zM2 10h3v1h-3zM2 11h2v1h-2zM1 12h3v1h-3zM1 13h3v1h-3zM1 14h2v1h-2zM1 15h2v1h-2zM1 16h2v1h-2zM1 17h2v1h-2zM1 18h2v1h-2zM1 19h2v1h-2zM1 20h2v1h-2zM1 21h2v1h-2zM1 22h3v1h-3zM1 23h3v1h-3zM2 24h2v1h-2zM2 25h3v1h-3zM3 26h3v1h-3zM3 27h2v1h-2z";
 const RIM_D = "M31 8h2v1h-2zM30 9h3v1h-3zM31 10h3v1h-3zM32 11h2v1h-2zM32 12h3v1h-3zM32 13h3v1h-3zM33 14h2v1h-2zM33 15h2v1h-2zM33 16h2v1h-2zM33 17h2v1h-2zM33 18h2v1h-2zM33 19h2v1h-2zM33 20h2v1h-2zM33 21h2v1h-2zM32 22h3v1h-3zM32 23h3v1h-3zM32 24h2v1h-2zM31 25h3v1h-3zM30 26h3v1h-3zM30 27h3v1h-3zM29 28h3v1h-3zM28 29h3v1h-3zM9 30h1v1h-1zM26 30h4v1h-4zM8 31h3v1h-3zM25 31h4v1h-4zM8 32h6v1h-6zM22 32h6v1h-6zM10 33h16v1h-16zM12 34h12v1h-12z";
 
-const Face = ({ style, className }) => (
+const Face = ({ style, className }) => {
+ const shine=useId().replace(/:/g,'');
+ return (
   <svg
     className={className}
     style={style}
@@ -16,14 +18,17 @@ const Face = ({ style, className }) => (
     shapeRendering="crispEdges"
     aria-hidden="true"
   >
+    <defs><linearGradient id={shine+'-shine'} x1="0" y1="1" x2="1" y2="0"><stop offset=".25" stopColor="#fff" stopOpacity="0"/><stop offset=".48" stopColor="#fff" stopOpacity=".7"/><stop offset=".65" stopColor="#fff" stopOpacity="0"/></linearGradient></defs>
     <path d={DISC} fill="currentColor" />
     <path d={RIM_L} fill="#fff" opacity="0.4" />
     <path d={RIM_D} fill="#000" opacity="0.25" />
     <path d={FIELD} fill="#000" opacity="0.5" />
     <path d={SHADOW} fill="#000" opacity="0.55" />
     <path d={RUNE} fill="currentColor" />
+    <path className="jc-reflection" d={DISC} fill={`url(#${shine}-shine)`}/>
   </svg>
 );
+};
 
 const Edge = ({ style }) => (
   <svg className="jc-layer" style={style} viewBox="0 0 36 36" shapeRendering="crispEdges" aria-hidden="true">
@@ -33,7 +38,7 @@ const Edge = ({ style }) => (
 );
 
 export const JeraIcon = ({ size = 18, spin = true }) => {
-  const half = Math.max(1, size * 0.07);        // половина толщины монеты, px
+  const half = Math.max(1.25, size * 0.095);        // половина толщины монеты, px
   const n = 5;                                  // слоёв на каждую сторону
   const edges = useMemo(
     () => Array.from({ length: 2 * n - 1 }, (_, i) => ((i - (n - 1)) / n) * half),
