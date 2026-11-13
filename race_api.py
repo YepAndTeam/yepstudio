@@ -8,7 +8,7 @@ from score_service import lock_scores
 import json
 class BetIn(BaseModel):
  horse:StrictInt=Field(ge=1,le=10)
- amount:StrictInt=Field(ge=1,le=25)
+ amount:StrictInt=Field(ge=1)
  request_id:str=Field(min_length=16,max_length=64)
  replaces_id:Optional[str]=Field(default=None,max_length=40)
  commitment:str=Field(min_length=64,max_length=64)

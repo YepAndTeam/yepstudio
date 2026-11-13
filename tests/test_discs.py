@@ -182,8 +182,8 @@ class DiscApiTest(unittest.TestCase):
   self.actor=1
   for identity in identities:
    response=self.client.post('/api/discs/shelves/seal',json={'instance_id':identity});self.assertEqual(response.status_code,200)
-  self.assertEqual(response.json()['balance'],1100)
-  self.assertEqual(self.client.post('/api/discs/shelves/seal',json={'instance_id':identity}).json()['balance'],1100)
+  self.assertEqual(response.json()['balance'],100100)
+  self.assertEqual(self.client.post('/api/discs/shelves/seal',json={'instance_id':identity}).json()['balance'],100100)
   self.assertEqual(self.client.post('/api/discs/equip',json={'instance_id':identity}).status_code,409)
   shelves=self.client.get('/api/discs/shelves').json()['shelves']
   self.assertEqual(len(next(s for s in shelves if s['item']['id']=='doom')['slots']),6)

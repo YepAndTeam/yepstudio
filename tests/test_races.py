@@ -25,6 +25,20 @@ class RaceTest(unittest.TestCase):
   with self.sessions.begin() as db:
    first=self.bet(db);again=self.bet(db);self.assertEqual(first.id,again.id);self.assertEqual(db.get(User,1).jera,90)
    self.assertEqual(db.get(RaceFund,1).balance,10010);self.assertEqual(db.get(Race,self.id).reserved,first.payout)
+ def test_bets_above_old_limit_work_but_cannot_exceed_wallet(self):
+  with self.sessions.begin() as db:
+   bet=self.bet(db,amount=100)
+   self.assertEqual(bet.amount,100);self.assertEqual(db.get(User,1).jera,0)
+   self.assertEqual(self.bet(db,amount=100).id,bet.id)
+  with self.sessions.begin() as db:
+   with self.assertRaises(RaceError):self.bet(db,user=2,amount=101)
+ def test_api_schema_accepts_large_bets(self):
+  from race_api import BetIn
+  self.assertEqual(BetIn(horse=1,amount=1000000,request_id='request-00000001',commitment='a'*64).amount,1000000)
+ def test_amount_must_be_a_positive_integer(self):
+  for amount in [0,-1,True,1.5]:
+   with self.sessions.begin() as db:
+    with self.assertRaises(RaceError):self.bet(db,amount=amount)
  def test_reused_request_cannot_change_bet(self):
   with self.sessions.begin() as db:
    self.bet(db)

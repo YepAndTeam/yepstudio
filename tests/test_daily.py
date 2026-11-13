@@ -23,7 +23,7 @@ class DailyTest(unittest.TestCase):
         self.assertTrue(self.visit(now)['awarded'])
         self.assertFalse(self.visit(now+timedelta(hours=2))['awarded'])
         with self.sessions() as db:
-            self.assertEqual(db.get(User,1).jera,25)
+            self.assertEqual(db.get(User,1).jera,10)
             self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),1)
     def test_repeat_visit_only_reads_and_does_not_lock_economy(self):
         from sqlalchemy import event
@@ -43,14 +43,14 @@ class DailyTest(unittest.TestCase):
     def test_week_bonus_then_new_cycle_and_skip(self):
         now=datetime(2026,11,1,10,tzinfo=timezone.utc)
         week=[self.visit(now+timedelta(days=i)) for i in range(7)]
-        self.assertEqual([r['amount'] for r in week],[25]*6+[50])
+        self.assertEqual([r['amount'] for r in week],[10,20,30,40,50,60,70])
         self.assertEqual(self.visit(now+timedelta(days=7))['streak'],1)
         self.assertEqual(self.visit(now+timedelta(days=9))['streak'],1)
-        with self.sessions() as db: self.assertEqual(db.get(User,1).jera,250)
+        with self.sessions() as db: self.assertEqual(db.get(User,1).jera,300)
     def test_rollback_does_not_leave_paid_marker(self):
         now=datetime(2026,11,11,10,tzinfo=timezone.utc)
         with self.sessions() as db:
             reward_visit(db,1,now)
             db.rollback()
         self.assertTrue(self.visit(now)['awarded'])
-        with self.sessions() as db: self.assertEqual(db.get(User,1).jera,25)
+        with self.sessions() as db: self.assertEqual(db.get(User,1).jera,10)

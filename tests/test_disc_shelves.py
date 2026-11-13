@@ -16,9 +16,9 @@ class ShelfTest(unittest.TestCase):
   with self.sessions.begin() as db:
    rows=[self.disc(db,rarity=rarity) for rarity in RARITIES]
    for row in rows:seal_disc(db,1,row.id,self.now)
-   self.assertEqual(db.get(User,1).jera,1000)
+   self.assertEqual(db.get(User,1).jera,100000)
    seal_disc(db,1,rows[-1].id,self.now)
-   self.assertEqual(db.get(User,1).jera,1000)
+   self.assertEqual(db.get(User,1).jera,100000)
    self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx).where(JeraTx.reason=='disc:shelf:minecraft')),1)
    shelf=next(s for s in shelf_state(db,1)['shelves'] if s['item']['id']=='minecraft')
    self.assertTrue(shelf['rewarded']);self.assertEqual(len(shelf['slots']),6);self.assertEqual(shelf['secret_gift'],'locked')

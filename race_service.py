@@ -267,7 +267,7 @@ def accept_bet(db,user_id,race_id,horse,amount,request_id,now=None,expected_comm
  race=get_race(db,race_id)
  if expected_commitment and race.commitment!=expected_commitment:raise RaceError(409,'Правила пары изменились. Ставка не принята.')
  if race.status!='scheduled' or not race.opens_at<=now<race.closes_at:raise RaceError(409,'Приём ставок на этот заезд закрыт')
- if type(amount) is not int or not 1<=amount<=25:raise RaceError(422,'Ставка — от 1 до 25 Йер')
+ if type(amount) is not int or amount<1:raise RaceError(422,'Ставка — целое число от 1 Йеры')
  current=db.scalar(select(RaceBet).where(RaceBet.race_id==race.id,RaceBet.user_id==user_id,RaceBet.status!='replaced'))
  if current and (not replaces_id or current.id!=replaces_id or current.status!='pending'):
   raise RaceError(409,'Ставка уже существует или изменилась. Открой её заново для редактирования.')
@@ -280,6 +280,8 @@ def accept_bet(db,user_id,race_id,horse,amount,request_id,now=None,expected_comm
  held=sum(sorted(totals.values(),reverse=True)[:winners]);wallet=fund(db)
  previous_amount=current.amount if current else 0
  delta=amount-previous_amount
+ if amount>user.jera+previous_amount:raise RaceError(409,'Недостаточно Йер')
+ if wallet.balance+delta>2147483647:raise RaceError(409,'Фонд достиг технической вместимости')
  if wallet.balance+delta-(reserve(db)-race.reserved)-held<0:raise RaceError(409,'Резерв не покрывает эту ставку. Выбери меньшую сумму или другую лошадь.')
  changed=db.execute(update(User).where(User.id==user_id,User.jera>=delta).values(jera=User.jera-delta))
  if changed.rowcount!=1:raise RaceError(409,'Недостаточно Йер')

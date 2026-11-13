@@ -35,7 +35,7 @@ export default function DailyReward({ reward, refresh, userId }) {
       <p className="small">Уже зачислены на твой баланс.</p>
       <form method="dialog"><button className="pub" autoFocus>Отлично</button></form>
     </dialog><div className="daily-heading"><h3>Заходи каждый день</h3><b>Сегодня +{reward.amount} Йер</b></div>
-    <div className="daily-days">{Array.from({length:7},(_,i)=><div key={i} className={i<reward.streak?"collected":""} aria-label={`День ${i+1}: ${i<reward.streak?"получено":"впереди"}`}><small>{i+1}</small><b>+{i===6?50:25}</b></div>)}</div>
+    <div className="daily-days">{Array.from({length:7},(_,i)=><div key={i} className={i<reward.streak?"collected":""} aria-label={`День ${i+1}: ${i<reward.streak?"получено":"впереди"}`}><small>{i+1}</small><b>+{(i+1)*10}</b></div>)}</div>
     <p className="small muted">Награда за сегодня получена. Следующая через {clock}.</p>
     <p className="small muted">Новый день в 00:00 (UTC+5). Пропуск начинает серию заново. После седьмого дня — новый круг.</p>
   </section>;

@@ -27,8 +27,8 @@ class DailyTasksTest(unittest.TestCase):
   for _ in range(3):
    with self.sessions.begin() as db:
     result=daily_task_state(db,1,self.now)
-    self.assertEqual(result['earned_today'],10)
-    self.assertEqual(result['balance'],10)
+    self.assertEqual(result['earned_today'],100)
+    self.assertEqual(result['balance'],100)
   with self.sessions() as db:self.assertEqual(db.scalar(select(func.count()).select_from(DailyTaskAward)),3)
  def test_midnight_and_old_results_do_not_count(self):
   with self.sessions.begin() as db:
@@ -38,12 +38,12 @@ class DailyTasksTest(unittest.TestCase):
    new=daily_task_state(db,1,self.now+timedelta(seconds=1))
    self.assertEqual(new['day'],'2026-11-12');self.assertEqual(new['earned_today'],0)
    self.assertTrue(all(t['current']==0 for t in new['tasks']))
-   self.assertEqual(new['balance'],10)
+   self.assertEqual(new['balance'],100)
  def test_two_devices_cannot_double_pay(self):
   def request(_):
    with self.sessions.begin() as db:return daily_task_state(db,1,self.now)['earned_today']
-  with ThreadPoolExecutor(max_workers=2) as pool:self.assertEqual(list(pool.map(request,range(2))),[10,10])
-  with self.sessions() as db:self.assertEqual(db.get(User,1).jera,10)
+  with ThreadPoolExecutor(max_workers=2) as pool:self.assertEqual(list(pool.map(request,range(2))),[100,100])
+  with self.sessions() as db:self.assertEqual(db.get(User,1).jera,100)
  def test_failed_transaction_rolls_back_awards_and_wallet(self):
   with self.sessions() as db:daily_task_state(db,1,self.now);db.rollback()
   with self.sessions() as db:
@@ -54,3 +54,14 @@ class DailyTasksTest(unittest.TestCase):
   with self.sessions.begin() as db:
    state=daily_task_state(db,1,self.now)
    self.assertEqual(state['earned_today'],0)
+
+ def test_old_completed_tasks_receive_only_the_missing_difference(self):
+  with self.sessions.begin() as db:
+   for identity,amount in [('a',3),('b',3),('c',4)]:
+    db.add(DailyTaskAward(user_id=1,day='2026-11-11',task_id=identity,amount=amount))
+   db.get(User,1).jera=10
+  for _ in range(2):
+   with self.sessions.begin() as db:
+    state=daily_task_state(db,1,self.now)
+    self.assertEqual(state['earned_today'],100);self.assertEqual(state['balance'],100)
+    self.assertEqual([t['id'] for t in state['tasks']],['a','b','c'])

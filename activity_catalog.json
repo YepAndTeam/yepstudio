@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "weekly_categories": [
     "participation",
     "variety",
@@ -28,27 +28,12 @@
       "target": 10
     },
     {
-      "id": "runs-15",
-      "category": "participation",
-      "kind": "runs",
-      "title": "Заверши 15 забегов",
-      "target": 15
-    },
-    {
       "id": "dino-runs-3",
       "category": "participation",
       "kind": "runs",
       "game": "dino",
       "title": "Дино: заверши 3 забега",
       "target": 3
-    },
-    {
-      "id": "dino-runs-7",
-      "category": "participation",
-      "kind": "runs",
-      "game": "dino",
-      "title": "Дино: заверши 7 забегов",
-      "target": 7
     },
     {
       "id": "flappy-runs-3",
@@ -59,28 +44,12 @@
       "target": 3
     },
     {
-      "id": "flappy-runs-7",
-      "category": "participation",
-      "kind": "runs",
-      "game": "flappy",
-      "title": "Flappy: заверши 7 забегов",
-      "target": 7
-    },
-    {
       "id": "snake-runs-3",
       "category": "participation",
       "kind": "runs",
       "game": "snake",
       "title": "Змейка: заверши 3 забега",
       "target": 3
-    },
-    {
-      "id": "snake-runs-7",
-      "category": "participation",
-      "kind": "runs",
-      "game": "snake",
-      "title": "Змейка: заверши 7 забегов",
-      "target": 7
     },
     {
       "id": "tetris-runs-3",
@@ -91,28 +60,12 @@
       "target": 3
     },
     {
-      "id": "tetris-runs-7",
-      "category": "participation",
-      "kind": "runs",
-      "game": "tetris",
-      "title": "Тетрис: заверши 7 забегов",
-      "target": 7
-    },
-    {
       "id": "hell-runs-3",
       "category": "participation",
       "kind": "runs",
       "game": "hell",
       "title": "Ад: заверши 3 забега",
       "target": 3
-    },
-    {
-      "id": "hell-runs-7",
-      "category": "participation",
-      "kind": "runs",
-      "game": "hell",
-      "title": "Ад: заверши 7 забегов",
-      "target": 7
     },
     {
       "id": "variety-2",
@@ -132,7 +85,7 @@
       "id": "variety-5",
       "category": "variety",
       "kind": "distinct_games",
-      "title": "Сыграй во все 5 игр",
+      "title": "Сыграй в 5 разных игр",
       "target": 5
     },
     {
@@ -294,6 +247,93 @@
       "game": "hell",
       "title": "Ад: собери 1000 очков за день",
       "target": 1000
+    },
+    {
+      "id": "dino-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "dino",
+      "title": "Дино: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "flappy-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "flappy",
+      "title": "Flappy: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "snake-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "snake",
+      "title": "Змейка: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "tetris-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "tetris",
+      "title": "Тетрис: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "hell-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "hell",
+      "title": "Ад: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "drive-runs-2",
+      "category": "participation",
+      "kind": "runs",
+      "game": "drive",
+      "title": "После полуночи: заверши 2 забега",
+      "target": 2
+    },
+    {
+      "id": "drive-best-1000",
+      "category": "score",
+      "kind": "best",
+      "game": "drive",
+      "title": "После полуночи: набери 1000 очков за забег",
+      "target": 1000
+    },
+    {
+      "id": "drive-best-3000",
+      "category": "score",
+      "kind": "best",
+      "game": "drive",
+      "title": "После полуночи: набери 3000 очков за забег",
+      "target": 3000
+    },
+    {
+      "id": "drive-best-5000",
+      "category": "score",
+      "kind": "best",
+      "game": "drive",
+      "title": "После полуночи: набери 5000 очков за забег",
+      "target": 5000
+    },
+    {
+      "id": "drive-total-10000",
+      "category": "score",
+      "kind": "total",
+      "game": "drive",
+      "title": "После полуночи: набери 10000 очков за день",
+      "target": 10000
+    },
+    {
+      "id": "variety-4",
+      "category": "variety",
+      "kind": "distinct_games",
+      "title": "Сыграй в 4 разные игры",
+      "target": 4
     }
   ],
   "achievements": [
@@ -304,27 +344,27 @@
       "steps": [
         {
           "score": 100,
-          "amount": 1
-        },
-        {
-          "score": 500,
-          "amount": 5
-        },
-        {
-          "score": 1000,
           "amount": 10
         },
         {
-          "score": 3000,
-          "amount": 25
-        },
-        {
-          "score": 5000,
+          "score": 500,
           "amount": 50
         },
         {
-          "score": 10000,
+          "score": 1000,
           "amount": 100
+        },
+        {
+          "score": 3000,
+          "amount": 250
+        },
+        {
+          "score": 5000,
+          "amount": 500
+        },
+        {
+          "score": 10000,
+          "amount": 1000
         }
       ]
     },
@@ -335,27 +375,27 @@
       "steps": [
         {
           "score": 5,
-          "amount": 0
+          "amount": 10
         },
         {
           "score": 10,
-          "amount": 0
+          "amount": 50
         },
         {
           "score": 25,
-          "amount": 0
+          "amount": 100
         },
         {
           "score": 50,
-          "amount": 0
+          "amount": 250
         },
         {
           "score": 100,
-          "amount": 0
+          "amount": 500
         },
         {
           "score": 200,
-          "amount": 0
+          "amount": 1000
         }
       ]
     },
@@ -366,27 +406,27 @@
       "steps": [
         {
           "score": 10,
-          "amount": 0
+          "amount": 10
         },
         {
           "score": 25,
-          "amount": 0
+          "amount": 50
         },
         {
           "score": 50,
-          "amount": 0
+          "amount": 100
         },
         {
           "score": 100,
-          "amount": 0
+          "amount": 250
         },
         {
           "score": 200,
-          "amount": 0
+          "amount": 500
         },
         {
           "score": 300,
-          "amount": 0
+          "amount": 1000
         }
       ]
     },
@@ -397,27 +437,27 @@
       "steps": [
         {
           "score": 10,
-          "amount": 0
+          "amount": 10
         },
         {
           "score": 25,
-          "amount": 0
+          "amount": 50
         },
         {
           "score": 50,
-          "amount": 0
+          "amount": 100
         },
         {
           "score": 100,
-          "amount": 0
+          "amount": 250
         },
         {
           "score": 200,
-          "amount": 0
+          "amount": 500
         },
         {
           "score": 500,
-          "amount": 0
+          "amount": 1000
         }
       ]
     },
@@ -428,27 +468,27 @@
       "steps": [
         {
           "score": 25,
-          "amount": 0
+          "amount": 10
         },
         {
           "score": 100,
-          "amount": 0
+          "amount": 50
         },
         {
           "score": 250,
-          "amount": 0
+          "amount": 100
         },
         {
           "score": 500,
-          "amount": 0
+          "amount": 250
         },
         {
           "score": 1000,
-          "amount": 0
+          "amount": 500
         },
         {
           "score": 2000,
-          "amount": 0
+          "amount": 1000
         }
       ]
     }
@@ -459,9 +499,8 @@
     "score"
   ],
   "daily_rewards": [
-    3,
-    3,
-    4
+    30,
+    30,
+    40
   ]
 }
-

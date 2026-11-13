@@ -50,15 +50,20 @@ def daily_task_state(db,user_id,now=None):
     if saved is None:
         rewards=CATALOG["daily_rewards"]
         categories=CATALOG["daily_categories"]
-        if len(rewards)!=len(categories) or sum(rewards)>10 or any(r<0 for r in rewards):
-            raise ValueError("Daily rewards must total at most 10 Jera")
+        if len(rewards)!=len(categories) or sum(rewards)>100 or any(r<0 for r in rewards):
+            raise ValueError("Daily rewards must total at most 100 Jera")
         definitions=[]
         for category,reward in zip(categories,rewards):
             task=min((t for t in TASKS if t["category"]==category),key=lambda t:hashlib.sha256(f"daily-v1:{day}:{t['id']}".encode()).hexdigest())
             definitions.append({**task,"amount":reward})
         db.add(DailyTaskSet(day=day,definitions_json=json.dumps(definitions,ensure_ascii=False)))
         db.flush()
-    else:definitions=json.loads(saved.definitions_json)
+    else:
+        definitions=json.loads(saved.definitions_json)
+        for task,reward in zip(definitions,CATALOG["daily_rewards"]):task["amount"]=reward
+        saved.definitions_json=json.dumps(definitions,ensure_ascii=False)
+    # Pay only the difference for tasks already completed under the old budget.
+
     rows=db.execute(select(GameResult,GameRun).join(GameRun,GameRun.id==GameResult.run_id).where(
         GameResult.user_id==user_id,GameResult.valid.is_(True),GameResult.score>0,
         GameResult.submitted_at>=start,GameResult.submitted_at<end)).all()
@@ -74,14 +79,20 @@ def daily_task_state(db,user_id,now=None):
     for task in definitions:
         values=[r for r in results if not task.get("game") or r.game==task["game"]]
         value={"runs":lambda:len(values),"distinct_games":lambda:len({r.game for r in values}),"best":lambda:max((r.score for r in values),default=0),"total":lambda:sum(r.score for r in values)}[task["kind"]]()
-        earned=task["id"] in awards
+        existing=awards.get(task["id"])
+        earned=existing is not None
+        if existing and existing.amount<task["amount"]:
+            extra=min(task["amount"]-existing.amount,max(0,100-credited))
+            if extra:
+                grant(db,user_id,extra,f"daily-task:upgrade-v2:{day}:{task['id']}",now.astimezone(timezone.utc).replace(tzinfo=None))
+                existing.amount+=extra;credited+=extra
         amount=task["amount"]
         if value>=task["target"] and not earned:
-            amount=min(amount,max(0,10-credited))
+            amount=min(amount,max(0,100-credited))
             db.add(DailyTaskAward(user_id=user_id,day=day,task_id=task["id"],amount=amount))
             if amount:grant(db,user_id,amount,f"daily-task:{day}:{task['id']}",now.astimezone(timezone.utc).replace(tzinfo=None))
             credited+=amount;earned=True
         tasks.append({**task,"current":min(value,task["target"]),"earned":earned})
     db.flush()
-    return {"day":day,"ends_at":end.isoformat()+"Z","server_now":now.astimezone(timezone.utc).isoformat(),"tasks":tasks,"earned_today":credited,"daily_limit":10,
+    return {"day":day,"ends_at":end.isoformat()+"Z","server_now":now.astimezone(timezone.utc).isoformat(),"tasks":tasks,"earned_today":credited,"daily_limit":100,
             "balance":db.scalar(select(User.jera).where(User.id==user_id))}

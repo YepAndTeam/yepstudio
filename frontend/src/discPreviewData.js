@@ -15,7 +15,7 @@ export function makeDiscPreview(me){
  if(wearDemo){wearDemo.status=params.get('wear');wearDemo.expires_at=now();}
  state.shelf_rewards??=[];
  const shelfDemo=params.has('sealed_preview')?catalog.rarities.map(r=>({...make('minecraft',r.id),status:'sealed',sealed_at:now()})):[];
- const shelfView=()=>({reward:1000,balance:state.balance,rarities:catalog.rarities,shelves:catalog.discs.map(game=>({item:game,rewarded:state.shelf_rewards.includes(game.id),secret_gift:'locked',slots:[...state.instances.filter(d=>d.user_id===me.id&&d.disc_id===game.id&&d.status==='sealed'),...shelfDemo.filter(d=>d.disc_id===game.id&&!state.instances.some(x=>x.user_id===me.id&&x.status==='sealed'&&x.disc_id===game.id&&x.rarity===d.rarity))].map(d=>({...viewInstance(d),sealed_at:d.sealed_at}))}))});
+ const shelfView=()=>({reward:100000,balance:state.balance,rarities:catalog.rarities,shelves:catalog.discs.map(game=>({item:game,rewarded:state.shelf_rewards.includes(game.id),secret_gift:'locked',slots:[...state.instances.filter(d=>d.user_id===me.id&&d.disc_id===game.id&&d.status==='sealed'),...shelfDemo.filter(d=>d.disc_id===game.id&&!state.instances.some(x=>x.user_id===me.id&&x.status==='sealed'&&x.disc_id===game.id&&x.rarity===d.rarity))].map(d=>({...viewInstance(d),sealed_at:d.sealed_at}))}))});
  const giftView=()=>({id:'dvd-launch-usb-v1',total:10,...state.gift});
  const viewInstance=d=>({id:d.id,item:item(d.disc_id),rarity:d.rarity,status:d.status,created_at:d.created_at,activated_at:d.activated_at||null,expires_at:d.expires_at||null,lifetime_seconds:hours[d.rarity]*3600,survival_percent:survival[d.rarity],effects:d.rarity==='secret'?null:d.effects,hidden_effects:d.rarity==='secret',cracked:d.status==='cracked'||Boolean(d.was_cracked)});
  const settle=()=>{for(const d of state.instances){if(d.status==='active'&&Date.parse(d.expires_at)<=Date.now()){d.status=d.roll<survival[d.rarity]?'cracked':'lost';if(d.rarity==='secret')delete d.effects[Object.keys(d.effects).filter(k=>!k.startsWith('_'))[0]];if(!state.wear_events.some(e=>e.id===d.id))state.wear_events.push({...viewInstance(d),outcome:d.status});if(state.equipped===d.id)state.equipped=null;}}};
@@ -36,7 +36,7 @@ export function makeDiscPreview(me){
    if(state.instances.some(x=>x.user_id===me.id&&x.status==='sealed'&&x.disc_id===d.disc_id&&x.rarity===d.rarity))throw Error('Ячейка этой редкости уже заполнена');
    if(state.trades.some(t=>t.status==='pending'&&Date.parse(t.expires_at)>Date.now()&&t.items.some(x=>x.id===d.id))||state.listings?.some(l=>l.status==='open'&&Date.parse(l.expires_at)>Date.now()&&l.offered.includes(d.id)))throw Error('Сначала закрой обмен или объявление с этим диском');
    d.was_cracked=d.status==='cracked';d.status='sealed';d.sealed_at=now();
-   if(catalog.rarities.every(r=>state.instances.some(x=>x.user_id===me.id&&x.disc_id===d.disc_id&&x.rarity===r.id&&x.status==='sealed'))&&!state.shelf_rewards.includes(d.disc_id)){state.shelf_rewards.push(d.disc_id);state.balance+=1000;}
+   if(catalog.rarities.every(r=>state.instances.some(x=>x.user_id===me.id&&x.disc_id===d.disc_id&&x.rarity===r.id&&x.status==='sealed'))&&!state.shelf_rewards.includes(d.disc_id)){state.shelf_rewards.push(d.disc_id);state.balance+=100000;}
    save();return shelfView();
   }
   if(path==='/discs/equipment')return equipment();

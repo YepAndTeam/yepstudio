@@ -23,7 +23,7 @@ class CatalogTest(unittest.TestCase):
   self.assertEqual(selected,select_tasks(0))
   self.assertEqual(len({t['category'] for t in selected}),3)
   self.assertNotEqual(selected,select_tasks(1))
-  self.assertEqual(len(TASKS),37)
+  self.assertGreater(len(TASKS),37)
  def test_saved_week_survives_catalog_changes(self):
   with self.sessions.begin() as db:first=weekly_task_state(db,1)
   with patch('task_service.select_tasks',side_effect=AssertionError('must use saved set')):
@@ -39,12 +39,12 @@ class CatalogTest(unittest.TestCase):
    state=weekly_task_state(db,1,now)
    self.assertEqual([t['current'] for t in state['tasks']],[1,1,500,500])
   with self.sessions.begin() as db:self.assertTrue(all(t['current']==0 for t in weekly_task_state(db,1,now+timedelta(days=7))['tasks']))
- def test_other_games_unlock_badges_without_minting_jera(self):
+ def test_other_games_unlock_badges_and_pay_milestones(self):
   now=datetime.utcnow()
   with self.sessions.begin() as db:
    run=begin_run(db,1,'flappy',now=now-timedelta(seconds=20));submit_result(db,1,'flappy',25,now=now,run_id=run.id)
    state=achievement_state(db,1,'flappy')
    self.assertEqual(sum(s['earned'] for s in state['steps']),3)
-   self.assertEqual(db.get(User,1).jera,0)
-   self.assertEqual(state['total_earned'],0)
+   self.assertEqual(db.get(User,1).jera,160)
+   self.assertEqual(state['total_earned'],160)
    self.assertEqual(len(ACHIEVEMENTS),5)

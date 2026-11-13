@@ -18,10 +18,11 @@ export function installStudioPreview(scene,theme){
     {game:"tetris",score:15000,place:7,target:50,already_paid:0,credit:50},
     {game:"hell",score:300,place:12,target:20,already_paid:0,credit:20},
   ]};
-  const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:540,theme,
+  const economyReceipt={id:'economy-rebalance-v2',created_at:now(),read:false,title:'Обновление экономики',description:'Компенсация за изменение баланса и наград',total:4000,target_total:4000,previous_total:0,entries:[{label:'Компенсация за трудности с балансом',credit:2500},{label:'Обновление ежедневных заданий',credit:500},{label:'Обновление наград достижений',credit:1000}]};
+  const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:scene==="economy"?4540:540,theme,
     owned_themes:["dark","light","retro","terminal","nyan","tetris","poop","neon"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
-    daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?50:25,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
-    compensation_letters:scene==="letter"?[receipt]:[]};
+    daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?70:30,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
+    compensation_letters:scene==="letter"?[receipt]:scene==="economy"?[economyReceipt]:[]};
   let themePasses;try{themePasses=JSON.parse(localStorage.getItem('yab_theme_usb_preview_v1'));}catch{}
   me.theme_gifts=['neon','poop'].map(id=>({id,total:id==='neon'?1:5,title:id==='neon'?'Неон Токио':'Какашечки',target:'themes',claimed:false,activated:false,remaining:0,...themePasses?.find(g=>g.id===id)}));
   const savePasses=()=>localStorage.setItem('yab_theme_usb_preview_v1',JSON.stringify(me.theme_gifts));
@@ -48,7 +49,7 @@ export function installStudioPreview(scene,theme){
   let achievementBest=640;
   const demoBests={drive:0,flappy:12,snake:30,tetris:170,hell:0};
   const achievementItem=definition=>{const best=definition.game==="dino"?achievementBest:demoBests[definition.game];return {...definition,best,steps:definition.steps.map(step=>({...step,earned:best>=step.score})),total_earned:definition.steps.filter(step=>best>=step.score).reduce((sum,step)=>sum+step.amount,0)};};
-  const achievementSteps=[[100,1],[500,5],[1000,10],[3000,25],[5000,50],[10000,100]];
+  const achievementSteps=[[100,10],[500,50],[1000,100],[3000,250],[5000,500],[10000,1000]];
   let maintenance=false,applied=false,pending=null,history=[];
   const clone=value=>JSON.parse(JSON.stringify(value));
   const eventState=event=>({...event,server_now:now(),balance:me.jera});
@@ -65,7 +66,7 @@ export function installStudioPreview(scene,theme){
     const boardResult=boardPreview(path,method);if(boardResult!==undefined)return boardResult;
     const raceResult=await racePreview(path,method,body);if(raceResult!==undefined)return raceResult;
     if(path==='/admin/performance')return {window_requests:36,cache:{entries:7,max_entries:128,hits:24,misses:7},routes:[{method:'GET',route:'/api/home',requests:20,p50_ms:85,p95_ms:310,average_sql_ms:38,average_sql_queries:1.5,errors:0},{method:'GET',route:'/api/game/top',requests:16,p50_ms:115,p95_ms:420,average_sql_ms:64,average_sql_queries:3,errors:0}]};
-    if(path==="/tasks")return {earned_today:3,daily_limit:10,balance:me.jera,ends_at:new Date(Date.now()+3600000).toISOString(),tasks:["participation","variety","score"].map((category,i)=>{const candidates=activityCatalog.tasks.filter(task=>task.category===category);const task=candidates[(Math.floor(Date.now()/86400000)+i)%candidates.length];return {...task,amount:[3,3,4][i],earned:i===0,current:i===0?task.target:Math.floor(task.target*.4)};})};
+    if(path==="/tasks")return {earned_today:30,daily_limit:100,balance:me.jera,ends_at:new Date(Date.now()+3600000).toISOString(),tasks:["participation","variety","score"].map((category,i)=>{const candidates=activityCatalog.tasks.filter(task=>task.category===category);const task=candidates[(Math.floor(Date.now()/86400000)+i)%candidates.length];return {...task,amount:activityCatalog.daily_rewards[i],earned:i===0,current:i===0?task.target:Math.floor(task.target*.4)};})};
     if(path==="/achievements")return {...achievementItem(activityCatalog.achievements[0]),items:activityCatalog.achievements.map(achievementItem)};
     if(path==="/hall-of-fame")return {winners:events.filter(e=>e.status==="finished").flatMap(e=>e.top.slice(0,5).map(row=>({tournament_id:e.id,title:e.title,game:e.game,user_id:row.user_id,name:row.name,place:row.place,amount:e.prize_jera[row.place]||0,theme_id:row.place===1?"poop":null,ended_at:e.ends_at})))};
     if(path==="/me")return me;

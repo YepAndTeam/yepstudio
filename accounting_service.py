@@ -5,6 +5,7 @@ from database import User,JeraTx,ThemeBoxPurchase
 CATEGORIES=(('admin:test:','admin_test','Тестовый баланс админа'),('daily-task:','tasks','Задания дня'),('daily:','visits','Ежедневный вход'),('achievement:','achievements','Достижения'),('shop:buy:','boxes','Покупка кассет'),('shop:refund:','box_refunds','Возвраты кассет'),('tour:entry:','tournament_entries','Взносы турниров'),('tour:refund:','tournament_refunds','Возвраты взносов'),('tour:prize:','tournament_prizes','Призы турниров'),('reset:','compensation','Компенсация рекордов'),('legacy:','legacy','Старая компенсация'),('week','weekly','Недельные призы'))
 CATEGORIES=(('race:bet:','race_bets','Ставки на скачки'),('race:win:','race_wins','Выигрыши скачек'),('race:refund:','race_refunds','Возвраты ставок'))+CATEGORIES
 CATEGORIES=(("disc:shelf:","disc_shelves","Коллекционные полки"),("disc:open:","disc_openings","DVD-диски"),("disc:bonus:","disc_bonuses","Бонусы активных дисков"))+CATEGORIES
+CATEGORIES=(("economy:compensation:","economy_compensation","Компенсация обновления экономики"),("economy:starter:","starter","Стартовый баланс"))+CATEGORIES
 LABELS={key:label for _,key,label in CATEGORIES};LABELS['other']='Другие операции'
 def category_for(reason):return next((key for prefix,key,_ in CATEGORIES if reason.startswith(prefix)),'other')
 def economy_report(db,days=30,include_admins=False,now=None):

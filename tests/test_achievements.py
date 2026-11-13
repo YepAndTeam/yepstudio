@@ -19,18 +19,18 @@ class AchievementTest(unittest.TestCase):
  def test_skipped_steps_and_retry_only_paid_once(self):
   with self.sessions.begin() as db:
    run,now=self.run_score(db,1000)
-   self.assertEqual(db.get(User,1).jera,16)
+   self.assertEqual(db.get(User,1).jera,160)
    submit_result(db,1,'dino',1000,now=now,run_id=run)
-   self.assertEqual(db.get(User,1).jera,16)
+   self.assertEqual(db.get(User,1).jera,160)
   with self.sessions.begin() as db:
    self.run_score(db,1000)
    state=achievement_state(db,1)
-   self.assertEqual(state['total_earned'],16)
+   self.assertEqual(state['total_earned'],160)
    self.assertEqual(sum(s['earned'] for s in state['steps']),3)
- def test_full_track_is_191_jera(self):
+ def test_full_track_is_1910_jera(self):
   with self.sessions.begin() as db:
    self.run_score(db,10000)
-   self.assertEqual(db.get(User,1).jera,191)
+   self.assertEqual(db.get(User,1).jera,1910)
    self.assertEqual(achievement_state(db,1)['best'],10000)
  def test_unverified_or_impossible_scores_do_not_mint(self):
   with self.sessions.begin() as db:
@@ -50,4 +50,13 @@ class AchievementTest(unittest.TestCase):
    db.get(Meta,'score_maintenance').value='1';db.flush();apply_plan(db,preview(db))
   with self.sessions() as db:
    self.assertEqual(achievement_state(db,1)['best'],1000)
-   self.assertEqual(achievement_state(db,1)['total_earned'],16)
+   self.assertEqual(achievement_state(db,1)['total_earned'],160)
+
+ def test_old_milestones_are_not_paid_a_second_time(self):
+  with self.sessions.begin() as db:
+   db.add(AchievementAward(user_id=1,game='dino',threshold=100,amount=1))
+   db.get(User,1).jera=1
+  with self.sessions.begin() as db:
+   self.run_score(db,1000)
+   self.assertEqual(db.get(User,1).jera,151)
+   self.assertEqual(db.get(AchievementAward,(1,'dino',100)).amount,1)

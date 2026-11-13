@@ -25,7 +25,7 @@ def reward_visit(db, user_id, now=None):
             raise ValueError("Server clock moved backwards")
         consecutive = previous and previous.day == (today-timedelta(days=1)).isoformat()
         streak = previous.streak % 7 + 1 if consecutive else 1
-        amount = 50 if streak == 7 else 25
+        amount = streak * 10
         row = DailyVisit(user_id=user_id, day=today.isoformat(), streak=streak, amount=amount)
         db.add(row)
         grant(db, user_id, amount, "daily:"+today.isoformat(),now.astimezone(timezone.utc).replace(tzinfo=None))

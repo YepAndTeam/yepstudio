@@ -57,6 +57,8 @@ from shop_service import (initialize_shop_state, owned_themes, buy_box, unlock_b
 initialize_shop_state(SessionLocal)
 from compensation_service import initialize_letters, list_letters, mark_read
 initialize_letters(SessionLocal)
+from economy_service import initialize_economy, reward_economy_welcome
+initialize_economy(SessionLocal)
 from tournament_service import (list_events, get_event, event_state, create_event,
     start_event, cancel_event, register as register_tournament, settle_due, TournamentError, vote as tournament_vote)
 
@@ -255,6 +257,7 @@ def set_theme(body: ThemeIn, user: User = Depends(get_user), db=Depends(get_db))
 @app.get("/api/me")
 def me(user: User = Depends(get_user), db=Depends(get_db)):
     settle_due(db)
+    reward_economy_welcome(db, user.id)
     daily = reward_visit(db, user.id)
     disc_equipment = equipment_state(db,user.id)
     db.commit()

@@ -332,6 +332,15 @@ class CompensationLetter(Base):
     read_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
 
+class EconomyWelcome(Base):
+    __tablename__ = "economy_welcome_v2"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    read_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
+
 def migrate():
     """create_all не добавляет колонки в существующие таблицы, дописываем вручную.
     Безопасно запускать много раз."""

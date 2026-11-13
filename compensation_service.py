@@ -36,10 +36,14 @@ def list_letters(db,user_id):
             "total":sum(row["credit"] for row in entries),
             "target_total":sum(row["target"] for row in entries),
             "previous_total":sum(row["already_paid"] for row in entries)})
-    return letters
+    from economy_service import welcome_letter
+    welcome = welcome_letter(db, user_id)
+    return ([welcome] if welcome else []) + letters
 
 
 def mark_read(db,user_id,reset_id):
+    from economy_service import CAMPAIGN, read_welcome
+    if reset_id == CAMPAIGN:return read_welcome(db,user_id)
     letter=db.get(CompensationLetter,(reset_id,user_id))
     if letter is None:return False
     if letter.read_at is None:

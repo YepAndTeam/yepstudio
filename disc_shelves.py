@@ -6,7 +6,7 @@ from disc_models import DiscShelfSlot,DiscShelfReward,DiscInstance,DiscEquipment
 from disc_equipment import EquipmentError,ensure_inventory,settle_expired,instance_view,iso
 from score_service import lock_scores
 from database import Meta
-REWARD=1000
+REWARD=100000
 
 def shelf_state(db,uid):
  from disc_service import CATALOG,balance
