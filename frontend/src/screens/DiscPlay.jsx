@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import {tempoMultiplier} from '../discTempo.js';
 import {useEffect,useRef,useState} from 'react';
 import {api} from '../api';
@@ -12,6 +13,7 @@ export default function DiscPlay({games,onBack}){
  const {loadMe}=useStore(),[data,setData]=useState(null),[error,setError]=useState(''),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false);const alive=useRef(true),working=useRef(false);
  useEffect(()=>{alive.current=true;api('/discs/equipment').then(value=>{if(alive.current)setData(value);}).catch(e=>{if(alive.current)setError(e.message);});return()=>{alive.current=false;};},[selected]);
  const choose=async game=>{if(working.current)return;working.current=true;setBusy(true);setError('');try{const run=await api('/disc-play/start','POST',{game:game.id});if(alive.current)setSelected({game,run});}catch(e){if(alive.current)setError(e.message);}finally{working.current=false;if(alive.current)setBusy(false);}};
+ if(!data&&!error)return <section><button className="back" onClick={onBack}>‹ Игры</button><StudioLoading label="Подключаем режим с дисками…"/></section>;
  if(selected)return <Session key={selected.run.run_id} game={selected.game} run={selected.run} onBack={()=>{setSelected(null);void loadMe();}}/>;
  return <section className="disc-play-launcher"><button className="back" onClick={onBack}>‹ Игры</button><h2>Игры с дисками</h2><p className="small muted">Изменение темпа и очков работает только здесь. Общие таблицы и турниры используют обычные правила.</p>{error&&<p className="card" role="alert">{error}</p>}<section className="card"><h3>{data?.active?data.active.item.title:'Нужен активный диск'}</h3><p className="small muted">{data?.active?'Диск уже установлен. Выбери игру ниже. Срок не останавливается при выходе.':'Активируй рабочий экземпляр в «Профиль → Инвентарь → DVD-диски».'}</p></section><div className="ggrid">{games.map(game=><button className="card disc-game-entry" key={game.id} disabled={busy||!data?.active} onClick={()=>choose(game)}><b>{game.title}</b><small>{game.hint}</small><span>{busy?'Подключаем…':'Играть с диском ›'}</span></button>)}</div></section>;
 }

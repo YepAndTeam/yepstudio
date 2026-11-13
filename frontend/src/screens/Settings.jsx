@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import {saveYaabikSounds} from '../useYaabikCloud';
 import Faq from './Faq';
 import TetrisControlsSettings from '../components/TetrisControlsSettings';
@@ -18,5 +19,5 @@ function OnlinePrivacy(){
  const [visible,setVisible]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  useEffect(()=>{let alive=true;api('/presence/privacy').then(r=>{if(alive)setVisible(r.visible);}).catch(e=>{if(alive)setError(e.message);});return()=>{alive=false;};},[]);
  const change=async value=>{if(busy)return;setBusy(true);try{const r=await api('/presence/privacy','POST',{visible:value});setVisible(r.visible);setError('');}catch(e){setError(e.message);}finally{setBusy(false);}};
- return <section className="card"><h3>Приватность</h3>{visible!==null?<Toggle title="Показывать друзьям, что я в сети" description="Статус виден только принятым друзьям. Обновляется примерно раз в 45 секунд." on={visible} change={change}/>:<p className="small muted">Загружаем настройку…</p>}{error&&<p className="small" role="alert">{error}</p>}</section>;
+ return <section className="card"><h3>Приватность</h3>{visible!==null?<Toggle title="Показывать друзьям, что я в сети" description="Статус виден только принятым друзьям. Обновляется примерно раз в 45 секунд." on={visible} change={change}/>:<StudioLoading compact label="Загружаем настройку…"/>}{error&&<p className="small" role="alert">{error}</p>}</section>;
 }

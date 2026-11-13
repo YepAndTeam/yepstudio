@@ -1,3 +1,4 @@
+import StudioLoading from './components/StudioLoading';
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useStore } from "./store";
 import { tg } from "./tg";
@@ -208,7 +209,7 @@ const [gameRef, setGameRef] = useState(null);
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "yaabik" ? <Suspense fallback={<p className="card muted">Яабик просыпается…</p>}><Yaabik key={me?.id||"guest"}/></Suspense> : tab === "game" ? <Game initial={gameRef} />
+          ) : tab === "yaabik" ? <Suspense fallback={<StudioLoading compact label="Яабик просыпается…"/>}><Yaabik key={me?.id||"guest"} onOpenGarden={()=>{setGameRef("garden_yaabik");setTab("game");}}/></Suspense> : tab === "game" ? <Game initial={gameRef} onGardenBack={()=>setTab("yaabik")} />
             : (
             <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} onOpenGift={setSelectedGift} />
           )}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "normal",
+    "name": "Обычный",
+    "chance": 90,
+    "numerator": 1,
+    "denominator": 1,
+    "color": "#a4b2a0"
+  },
+  {
+    "id": "shiny",
+    "name": "Шайни",
+    "chance": 8,
+    "numerator": 3,
+    "denominator": 2,
+    "color": "#9cd7eb"
+  },
+  {
+    "id": "golden",
+    "name": "Золотой",
+    "chance": 2,
+    "numerator": 3,
+    "denominator": 1,
+    "color": "#edcc76"
+  }
+]

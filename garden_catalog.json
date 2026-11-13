@@ -1,0 +1,134 @@
+[
+  {
+    "id": "carrot",
+    "name": "Бип-морковь",
+    "minutes": 10,
+    "cost": 3,
+    "yield": 8,
+    "rarity": "common",
+    "art": "carrot",
+    "color": "#f6ad62",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "radish",
+    "name": "Пиксельный редис",
+    "minutes": 5,
+    "cost": 2,
+    "yield": 5,
+    "rarity": "common",
+    "art": "carrot",
+    "color": "#e490ad",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "beans",
+    "name": "Светобобы",
+    "minutes": 20,
+    "cost": 5,
+    "yield": 13,
+    "rarity": "common",
+    "art": "beans",
+    "color": "#abd38e",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "sunflower",
+    "name": "Кассетный подсолнух",
+    "minutes": 60,
+    "cost": 8,
+    "yield": 20,
+    "rarity": "common",
+    "art": "sunflower",
+    "color": "#ecd879",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "cactus",
+    "name": "Батарейкактус",
+    "minutes": 45,
+    "cost": 10,
+    "yield": 26,
+    "rarity": "common",
+    "art": "cactus",
+    "color": "#83c7a8",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "strawberry",
+    "name": "Бит-клубника",
+    "minutes": 90,
+    "cost": 12,
+    "yield": 30,
+    "rarity": "common",
+    "art": "berry",
+    "color": "#ef9ca9",
+    "hint": "Для первых посадок и ежедневного урожая"
+  },
+  {
+    "id": "mushroom",
+    "name": "Неоновый гриб",
+    "minutes": 240,
+    "cost": 15,
+    "yield": 40,
+    "rarity": "rare",
+    "art": "mushroom",
+    "color": "#bdb0ed",
+    "hint": "Редкое семечко из часовой поставки"
+  },
+  {
+    "id": "moonflower",
+    "name": "Лунный колокольчик",
+    "minutes": 360,
+    "cost": 25,
+    "yield": 68,
+    "rarity": "rare",
+    "art": "flower",
+    "color": "#b6d7ef",
+    "hint": "Редкое семечко из часовой поставки"
+  },
+  {
+    "id": "pepper",
+    "name": "Радужный перец",
+    "minutes": 480,
+    "cost": 35,
+    "yield": 98,
+    "rarity": "rare",
+    "art": "berry",
+    "color": "#dfb080",
+    "hint": "Редкое семечко из часовой поставки"
+  },
+  {
+    "id": "watermelon",
+    "name": "Кристальный арбуз",
+    "minutes": 720,
+    "cost": 50,
+    "yield": 145,
+    "rarity": "rare",
+    "art": "melon",
+    "color": "#94d2cc",
+    "hint": "Редкое семечко из часовой поставки"
+  },
+  {
+    "id": "star_tree",
+    "name": "Звёздное деревце",
+    "minutes": 960,
+    "cost": 90,
+    "yield": 280,
+    "rarity": "epic",
+    "art": "tree",
+    "color": "#dfc0ed",
+    "hint": "Долгий рост и большой урожай"
+  },
+  {
+    "id": "aurora",
+    "name": "Полярная пальма",
+    "minutes": 1440,
+    "cost": 120,
+    "yield": 400,
+    "rarity": "epic",
+    "art": "tree",
+    "color": "#b0dcf1",
+    "hint": "Долгий рост и большой урожай"
+  }
+]

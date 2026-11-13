@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import garden_models  # registers greenhouse before create_all
 import yaabik_models  # private companion state, registered before create_all
 import disc_models  # DVD collection tables
 import social_models  # friends and shared online status
@@ -201,6 +202,8 @@ async def deliver_friend_game(invitation_id):
 app.include_router(make_social_router(get_user,get_db,deliver_friend_game))
 from disc_service import launch_gift_state
 from theme_gift_service import theme_gifts,update_theme_gift
+from garden_api import make_garden_router
+app.include_router(make_garden_router(get_user,get_db))
 from yaabik_api import make_yaabik_router
 app.include_router(make_yaabik_router(get_user,get_db))
 from disc_api import make_disc_router

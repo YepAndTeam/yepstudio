@@ -1,0 +1,1 @@
+export default function StudioMark(){return <svg className="studio-mark" viewBox="0 -2 66 88" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round"><path d="m42 36 12-12L34 4 14 24l36 36-18 20-20-20 12-12"/></svg>;}

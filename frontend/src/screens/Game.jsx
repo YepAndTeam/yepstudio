@@ -1,5 +1,6 @@
+import StudioLoading from '../components/StudioLoading';
 import DiscPlay from './DiscPlay';
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import { shareLink } from "../share";
@@ -21,6 +22,8 @@ import Hell from "./Hell";
 import Doom from "./Doom";
 import Drive from "./Drive";
 
+const Garden=lazy(()=>import('./Garden'));
+const GARDEN={id:'garden',title:'Сад Яабика',View:Garden};
 // Казуальные: играешь один, борешься за рекорд
 const CASUAL = [
   { id: "drive", title: "После полуночи", hint: "Обгоняй поток и собирай монетки", View: Drive },
@@ -42,7 +45,7 @@ const SECRET = [
   { id: "doom", title: "Doom", hint: "Ты нашёл секрет", View: Doom },
 ];
 
-const ALL = [...CASUAL, ...VERSUS, ...SECRET];
+const ALL = [GARDEN,...CASUAL, ...VERSUS, ...SECRET];
 
 const SECRET_KEY = "secret_unlocked";
 const SECRET_CODE = "10719";
@@ -63,7 +66,7 @@ function timeLeft(iso) {
   return d > 0 ? `${d} д ${h} ч` : `${h} ч`;
 }
 
-export default function Game({ initial }) {
+export default function Game({ initial,onGardenBack }) {
   const { me, theme, loadMe } = useStore();
   const [goals,setGoals]=useState(false),[discMode,setDiscMode]=useState(false);
   const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
@@ -80,6 +83,7 @@ export default function Game({ initial }) {
   const [board, setBoard] = useState(CASUAL[0].id);
   const [scope, setScope] = useState("week"); // "week" | "all"
   const [tops, setTops] = useState({});
+  const [topsLoading,setTopsLoading]=useState(true),[topsError,setTopsError]=useState(false),topsRequest=useRef(0);
 
   // ввод секретного кода
   const [showCode, setShowCode] = useState(false);
@@ -104,14 +108,13 @@ export default function Game({ initial }) {
     else setShowCode((v) => !v);
   };
 
-  const loadTops = () =>
-    Promise.all(
-      CASUAL.map((g) =>
-        api(`/game/top?game=${g.id}&scope=${scope}`)
-          .then((r) => [g.id, r])
-          .catch(() => [g.id, null])
-      )
-    ).then((e) => setTops(Object.fromEntries(e)));
+  const loadTops = async()=>{
+    const token=++topsRequest.current;setTopsLoading(true);setTopsError(false);
+    const entries=await Promise.all(CASUAL.map(g=>api(`/game/top?game=${g.id}&scope=${scope}`).then(r=>[g.id,r]).catch(()=>[g.id,null])));
+    if(token!==topsRequest.current)return;
+    setTops(Object.fromEntries(entries));setTopsError(entries.some(([,value])=>value===null));setTopsLoading(false);
+  };
+  useEffect(()=>()=>{topsRequest.current++;},[]);
 
   useEffect(() => {
     if (!game) loadTops();
@@ -134,19 +137,21 @@ export default function Game({ initial }) {
     const View = current.View;
     return (
       <>
-        <View
+        <Suspense fallback={<StudioLoading compact label="Открываем теплицу…"/>}><View
           onBack={() => {
+            if(current.id==='garden'&&arg==='yaabik'&&onGardenBack){onGardenBack();return;}
             setGame(null);
             setArg(null);
             void loadMe();
           }}
           arg={arg}
-        />
+        /></Suspense>
         {theme === "nyan" && <NyanRunner />}
       </>
     );
   }
 
+  if(topsLoading)return <StudioLoading label="Готовим игры и рекорды…"/>;
   const shown = CASUAL.find((g) => g.id === board);
   const shownTop = tops[shown.id];
 
@@ -172,7 +177,7 @@ export default function Game({ initial }) {
             {soon ? (
               <span className="badge">Скоро</span>
             ) : (
-              withBest && <span>Рекорд: {best}</span>
+              withBest && <span>{tops[g.id]?'Рекорд: '+best:'Рекорд недоступен'}</span>
             )}
           </div>
         </button>
@@ -225,6 +230,7 @@ export default function Game({ initial }) {
         <h2>Игры</h2><button className="pub alt goals-trigger" onClick={()=>setGoals(true)}>Задания</button>
       </div>
 
+      {topsError&&<div className="card small" role="status">Часть рекордов не загрузилась. <button className="back" onClick={loadTops}>Повторить</button></div>}
       <div className="filters">
         <div className="seg">
           <button
@@ -246,9 +252,10 @@ export default function Game({ initial }) {
 
       {section === "casual" && (
         <>
-          <button className="card profile-menu-row disc-play-trigger" onClick={()=>setDiscMode(true)}><span><b>Игры с дисками</b><small>Отдельный режим с эффектами из инвентаря</small></span><span>›</span></button><div className="ggrid">{CASUAL.map((g) => tile(g, true))}</div>
+          <button className="card profile-menu-row disc-play-trigger" onClick={()=>setDiscMode(true)}><span><b>Игры с дисками</b><small>Отдельный режим с эффектами из инвентаря</small></span><span>›</span></button><button className="card profile-menu-row garden-entry" onClick={()=>{setArg(null);setGame('garden');}}><span><b>Сад Яабика</b><small>Маленькая теплица · сажай и собирай урожай</small></span><span>↗</span></button><div className="ggrid">{CASUAL.map((g) => tile(g, true))}</div>
 
-          <div className="filters">
+          {topsError&&<div className="card small" role="status">Часть рекордов не загрузилась. <button className="back" onClick={loadTops}>Повторить</button></div>}
+      <div className="filters">
             <div className="seg">
               <button
                 type="button"
@@ -267,7 +274,8 @@ export default function Game({ initial }) {
             </div>
           </div>
 
-          <div className="filters">
+          {topsError&&<div className="card small" role="status">Часть рекордов не загрузилась. <button className="back" onClick={loadTops}>Повторить</button></div>}
+      <div className="filters">
             <div className="chips scroll">
               {CASUAL.map((g) => (
                 <Chip
@@ -290,7 +298,7 @@ export default function Game({ initial }) {
 
           <Leaderboard
             title={`${shown.title} — ${scope === "all" ? "за всё время" : "рекорды недели"}`}
-            data={shownTop}
+            data={shownTop} failed={topsError&&shownTop===null}
             meId={me?.id}
           />
         </>
@@ -303,7 +311,8 @@ export default function Game({ initial }) {
         <>
           <div className="ggrid">{SECRET.map((g) => tile(g, false, false))}</div>
 
-          <div className="filters">
+          {topsError&&<div className="card small" role="status">Часть рекордов не загрузилась. <button className="back" onClick={loadTops}>Повторить</button></div>}
+      <div className="filters">
             <div className="chips scroll">{keyChip}</div>
           </div>
         </>

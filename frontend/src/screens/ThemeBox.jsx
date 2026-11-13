@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -145,7 +146,7 @@ export default function ThemeBox({ jera = 0, onBack }) {
         activeTheme={theme}
         resumeAvailable={Boolean(shop.active_box)}
         lostText={openedPrice===0?"Бесплатная коробка открыта. Йеры не списывались, возврата нет.":"Раз код не вспомнили — Бека выкупит его у вас обратно за пол цены"}
-      /> : !error && <div className="card small muted">Загружаем магазин…</div>}
+      /> : !error && <StudioLoading compact label="Загружаем магазин…"/>}
 
       {/* Что можно выбить */}
       <div className="card">

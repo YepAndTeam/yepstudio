@@ -7,7 +7,7 @@ const initData = () => tg?.initData || (import.meta.env.DEV ? "dev" : "");
 const gameRuns = new Map();
 
 async function request(path, method = "GET", body) {
-  const controller = (method === "GET" && path.startsWith("/races") || path.startsWith("/yaabik/")) ? new AbortController() : null;
+  const controller = (method === "GET" || path.startsWith("/yaabik/") || path.startsWith("/garden")) ? new AbortController() : null;
   const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
   try {
   const r = await fetch("/api" + path, {
@@ -23,7 +23,7 @@ async function request(path, method = "GET", body) {
   }
   return await r.json();
   } catch (error) {
-    if (controller?.signal.aborted) throw new Error(path.startsWith("/yaabik/")?"Память Яабика временно недоступна. Изменения сохранены на устройстве.":"Сервер не ответил за 15 секунд. Повторяем загрузку скачек…");
+    if (controller?.signal.aborted) throw new Error(path.startsWith("/garden")?"Теплица временно недоступна. Обнови сад перед повторным действием.":path.startsWith("/yaabik/")?"Память Яабика временно недоступна. Изменения сохранены на устройстве.":path.startsWith("/races")?"Сервер не ответил за 15 секунд. Повторяем загрузку скачек…":"Сервер не ответил за 15 секунд. Повтори загрузку.");
     throw error;
   } finally {
     if (timeout) clearTimeout(timeout);

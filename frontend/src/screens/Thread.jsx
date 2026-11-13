@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import { useEffect, useRef, useState } from "react";
 import { CYCLE, ST, dayLabel } from "../constants";
 import { useStore } from "../store";
@@ -121,7 +122,7 @@ export default function Thread({ refId, onBack }) {
 
       <div className="card tail">
         {!all ? (
-          <div className="noc">{error ? "Не удалось загрузить." : "Загрузка…"}</div>
+          <div className="noc">{error ? "Не удалось загрузить." : <StudioLoading compact/>}</div>
         ) : (
           <>
             <div className="between" style={{ paddingBottom: 12 }}>

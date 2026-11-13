@@ -1,3 +1,4 @@
+import StudioLoading from './StudioLoading';
 import { ST } from "../constants";
 import { useStore } from "../store";
 
@@ -10,7 +11,7 @@ export const Chip = ({ label, on, onClick }) => (
   <button type="button" className={`chip ${on ? "on" : ""}`} onClick={onClick}><span>{label}</span></button>
 );
 
-export const Skeleton = () => <><div className="skel" /><div className="skel" /><div className="skel" /></>;
+export const Skeleton = () => <StudioLoading/>;
 
 export function ErrorCard() {
   const { error, boot } = useStore();

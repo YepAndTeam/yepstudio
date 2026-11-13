@@ -1,4 +1,7 @@
-export default function Leaderboard({ title = "Таблица рекордов", data, meId }) {
+import StudioLoading from './StudioLoading';
+export default function Leaderboard({ title = "Таблица рекордов", data, meId,failed=false }) {
+  if(!data&&failed)return <div className="card small" role="status">Не удалось загрузить рекорды. Попробуй обновить таблицу.</div>;
+  if(!data)return <StudioLoading compact label="Загружаем рекорды…"/>;
   const discMode=data?.mode==='disc';
   return (
     <div className="card tail">

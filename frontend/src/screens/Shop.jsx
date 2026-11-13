@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import { lazy, Suspense, useState } from "react";
 const DiscCollection=lazy(()=>import("./DiscCollection"));
 import { useStore } from "../store";
@@ -9,7 +10,7 @@ export default function Shop({ jera = 0 }) {
   const { me } = useStore();
   const price = me?.theme_box_price ?? THEME_BOX_PRICE;
 
-  if(box==="discs")return <Suspense fallback={<p className="card">Загружаем DVD-плеер…</p>}><DiscCollection onBack={()=>setBox(null)} backLabel="Магазин"/></Suspense>;
+  if(box==="discs")return <Suspense fallback={<StudioLoading compact label="Загружаем DVD-плеер…"/>}><DiscCollection onBack={()=>setBox(null)} backLabel="Магазин"/></Suspense>;
   if (box === "themes") {
     return <ThemeBox jera={jera} onBack={() => setBox(null)} />;
   }

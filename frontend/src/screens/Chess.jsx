@@ -1,3 +1,4 @@
+import StudioLoading from '../components/StudioLoading';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
@@ -230,7 +231,7 @@ function Match({ id, onBack }) {
             <BackIcon /> Шахматы
           </button>
         </div>
-        <div className="empty">{err || "Загрузка…"}</div>
+        <div className="empty">{err||<StudioLoading compact/>}</div>
       </>
     );
   }
@@ -408,7 +409,7 @@ function Lobby({ onBack, open }) {
       </div>
 
       {!data ? (
-        <div className="empty">Загрузка…</div>
+        <StudioLoading compact label="Загрузка…"/>
       ) : (
         <>
           {data.live?.length>0&&<><div className="card small">Открытые партии · просмотр без права хода</div>{data.live.map(g=>row(g,false,true))}</>}

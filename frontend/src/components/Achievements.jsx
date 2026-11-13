@@ -1,3 +1,4 @@
+import StudioLoading from './StudioLoading';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import AchievementIcon from "./AchievementIcon";
@@ -13,7 +14,7 @@ export default function Achievements(){
  const [data,setData]=useState(null),[error,setError]=useState(""),[details,setDetails]=useState(false);
  useEffect(()=>{let alive=true;api("/achievements").then(value=>{if(alive)setData(value);}).catch(e=>{if(alive)setError(e.message);});return()=>{alive=false;};},[]);
  if(error)return <div className="card" role="alert">Не удалось загрузить достижения: {error}</div>;
- if(!data)return <div className="card small muted">Загружаем достижения…</div>;
+ if(!data)return <StudioLoading compact label="Загружаем достижения…"/>;
  const items=data.items || [data];
  return <><p className="card achievement-guide">Нажми на карточку, чтобы посмотреть награды и следующее улучшение.</p><div className="achievement-grid">{items.map(item=>{const level=item.steps.filter(step=>step.earned).length,next=item.steps.find(step=>!step.earned);return <button key={item.game} className={`achievement-tile ${level>0?"unlocked":""}`} onClick={()=>setDetails(item)} aria-label={`${item.title}, уровень ${level}. Открыть подробности`}><span className="achievement-level">УРОВЕНЬ {level} / {item.steps.length}</span><div className="achievement-medal" aria-hidden="true"><AchievementIcon game={item.game}/><b>{level}</b></div><strong>{item.title}</strong><span className="achievement-tile-status">{level===0?"Ещё не получено":next?"Получено · можно улучшить":"Все уровни пройдены"}</span><span className="small muted">{next?`Следующий уровень: ${next.score.toLocaleString("ru-RU")}`:"Максимальный уровень"}</span></button>;})}</div>{details&&<AchievementDetails data={details} onClose={()=>setDetails(false)}/>}</>;
 }

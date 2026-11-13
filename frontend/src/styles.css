@@ -1018,3 +1018,5 @@ nav button{min-width:0}nav button .pill{max-width:100%}nav button[data-tab="yaab
 .card.profile-menu-row{background:var(--card);padding:14px 16px}
 :root[data-theme="nyan"] .disc-play-trigger{border:3px solid #000;box-shadow:3px 3px 0 #000;color:#32123f}
 :root[data-theme="nyan"] .disc-play-trigger small{color:#694576}
+
+.garden-entry{margin:12px 0}.garden-entry small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
