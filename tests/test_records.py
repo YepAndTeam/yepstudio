@@ -110,7 +110,7 @@ class RecordsTest(unittest.TestCase):
             self.assertEqual(db.scalar(select(func.count()).select_from(GameScore)), 0)
         with self.sessions.begin() as db:
             ensure_period(db)
-            self.assertEqual(list(db.scalars(select(User.jera).where(User.id.in_([1,2])).order_by(User.id))), [100,100])
+            self.assertEqual(list(db.scalars(select(User.jera).where(User.id.in_([1,2])).order_by(User.id))), [1000,1000])
             self.assertEqual(list(db.scalars(select(WeeklyResult.place))), [1,1])
             self.assertEqual(db.scalar(select(func.count()).select_from(AllTimeScore)), 2)
             self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)), 2)

@@ -296,6 +296,7 @@ export default function Game({ initial,onGardenBack }) {
             </div>
           )}
 
+          <p className="small muted">{scope === "week" ? "Призы недели: 1-е — 1000 · 2-е — 750 · 3-е — 500 · 4-е — 350 · 5-е — 250 · 6–10-е — 100 Йер." : "Побей общий рекорд — получи 1000 Йер. Свой общий рекорд нужно улучшить минимум на 10%; чужой — строго превысить."}</p>
           <Leaderboard
             title={`${shown.title} — ${scope === "all" ? "за всё время" : "рекорды недели"}`}
             data={shownTop} failed={topsError&&shownTop===null}

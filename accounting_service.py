@@ -6,6 +6,7 @@ CATEGORIES=(('admin:test:','admin_test','Тестовый баланс адми�
 CATEGORIES=(('race:bet:','race_bets','Ставки на скачки'),('race:win:','race_wins','Выигрыши скачек'),('race:refund:','race_refunds','Возвраты ставок'))+CATEGORIES
 CATEGORIES=(("disc:shelf:","disc_shelves","Коллекционные полки"),("disc:open:","disc_openings","DVD-диски"),("disc:bonus:","disc_bonuses","Бонусы активных дисков"))+CATEGORIES
 CATEGORIES=(("economy:compensation:","economy_compensation","Компенсация обновления экономики"),("economy:starter:","starter","Стартовый баланс"))+CATEGORIES
+CATEGORIES=(("record:alltime:","global_records","Рекорды всех времён"),)+CATEGORIES
 LABELS={key:label for _,key,label in CATEGORIES};LABELS['other']='Другие операции'
 def category_for(reason):return next((key for prefix,key,_ in CATEGORIES if reason.startswith(prefix)),'other')
 def economy_report(db,days=30,include_admins=False,now=None):

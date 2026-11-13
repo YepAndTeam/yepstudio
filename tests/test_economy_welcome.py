@@ -25,11 +25,11 @@ class EconomyWelcomeTest(unittest.TestCase):
    with self.sessions.begin() as db:
     reward_economy_welcome(db,1);reward_economy_welcome(db,2)
   with self.sessions() as db:
-   self.assertEqual(db.get(User,1).jera,4050);self.assertEqual(db.get(User,2).jera,2000)
+   self.assertEqual(db.get(User,1).jera,5050);self.assertEqual(db.get(User,2).jera,2000)
    old=list_letters(db,1)[0];new=list_letters(db,2)[0]
-   self.assertEqual([x['credit'] for x in old['entries']],[2500,500,1000]);self.assertEqual(old['total'],4000)
+   self.assertEqual([x['credit'] for x in old['entries']],[2500,500,1000,1000]);self.assertEqual(old['total'],5000)
    self.assertEqual(new['total'],2000)
-   self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),2)
+   self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),3)
  def test_two_devices_and_receipt_read_never_repeat_payment(self):
   def visit(_):
    with self.sessions.begin() as db:reward_economy_welcome(db,1)
@@ -38,11 +38,23 @@ class EconomyWelcomeTest(unittest.TestCase):
    self.assertTrue(mark_read(db,1,CAMPAIGN));self.assertTrue(mark_read(db,1,CAMPAIGN))
    self.assertFalse(mark_read(db,2,CAMPAIGN))
   with self.sessions() as db:
-   self.assertEqual(db.get(User,1).jera,4050);self.assertTrue(list_letters(db,1)[0]['read'])
-   self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),1)
+   self.assertEqual(db.get(User,1).jera,5050);self.assertTrue(list_letters(db,1)[0]['read'])
+   self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),2)
  def test_rollback_keeps_payment_pending(self):
   with self.sessions() as db:reward_economy_welcome(db,1);db.rollback()
   with self.sessions() as db:
    self.assertEqual(db.get(User,1).jera,50);self.assertIsNone(db.get(EconomyWelcome,1).paid_at)
   with self.sessions.begin() as db:reward_economy_welcome(db,1)
-  with self.sessions() as db:self.assertEqual(db.get(User,1).jera,4050)
+  with self.sessions() as db:self.assertEqual(db.get(User,1).jera,5050)
+
+ def test_already_paid_old_compensation_only_receives_extra_thousand(self):
+  from datetime import datetime
+  with self.sessions.begin() as db:
+   row=db.get(EconomyWelcome,1);row.paid_at=datetime.utcnow();row.read_at=datetime.utcnow()
+   db.get(User,1).jera=4050
+  for _ in range(2):
+   with self.sessions.begin() as db:reward_economy_welcome(db,1)
+  with self.sessions() as db:
+   self.assertEqual(db.get(User,1).jera,5050)
+   self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),1)
+   self.assertFalse(list_letters(db,1)[0]['read'])

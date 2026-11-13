@@ -1,7 +1,7 @@
 """One deployment cohort, one atomic welcome payment per player."""
 from datetime import datetime
 from sqlalchemy import select
-from database import EconomyWelcome, Meta, User
+from database import EconomyWelcome, EconomyRecordAdjustment, Meta, User
 from score_service import lock_scores
 
 CAMPAIGN = "economy-rebalance-v2"
@@ -9,6 +9,7 @@ ENTRIES = [
     {"label": "Компенсация за трудности с балансом", "credit": 2500},
     {"label": "Обновление ежедневных заданий", "credit": 500},
     {"label": "Обновление наград достижений", "credit": 1000},
+    {"label": "Обновление недельных призов и рекордов", "credit": 1000},
 ]
 
 
@@ -27,10 +28,12 @@ def initialize_economy(SessionLocal):
 def reward_economy_welcome(db, uid):
     row = db.get(EconomyWelcome, uid)
     if row and row.paid_at:
+        reward_record_adjustment(db, row)
         return
     lock_scores(db)
     row = db.get(EconomyWelcome, uid, populate_existing=True)
     if row and row.paid_at:
+        reward_record_adjustment(db, row)
         return
     if not db.get(Meta, CAMPAIGN):
         raise RuntimeError("Economy cohort must be initialized before granting rewards")
@@ -42,6 +45,20 @@ def reward_economy_welcome(db, uid):
     from weekly import grant
     grant(db, uid, amount, "economy:" + row.kind + ":v2", now)
     row.paid_at = now
+    db.flush()
+    reward_record_adjustment(db, row)
+
+
+def reward_record_adjustment(db, row):
+    if row.kind != "compensation" or db.get(EconomyRecordAdjustment, row.user_id):
+        return
+    lock_scores(db)
+    if db.get(EconomyRecordAdjustment, row.user_id, populate_existing=True):
+        return
+    from weekly import grant
+    grant(db, row.user_id, 1000, "economy:compensation:records-v2")
+    db.add(EconomyRecordAdjustment(user_id=row.user_id))
+    row.read_at = None
     db.flush()
 
 

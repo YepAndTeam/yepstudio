@@ -822,7 +822,8 @@ def game_score(body: ScoreIn, bg: BackgroundTasks, user: User = Depends(get_user
         select(func.count()).select_from(GameScore)
         .where(GameScore.game == game, GameScore.best > row.best)
     ) or 0)
-    response = {"best": row.best, "record": record, "rank": rank}
+    from record_reward_service import record_reward_for_run
+    response = {"best": row.best, "record": record, "rank": rank, "record_reward": record_reward_for_run(db,user.id,body.run_id)}
     if game == "dino":
         response["achievement_reward"] = achievement_state(db,user.id)["total_earned"]-earned_before
     db.commit()

@@ -84,6 +84,9 @@ def submit_result(db, user_id, game, score, now=None, run_id=None):
             if weekly is None:
                 raise ScoreError(409, "Начни новую игру.")
             return weekly, weekly.best, False
+    from record_reward_service import global_record_before, owns_global_record, reward_global_record
+    previous_global = global_record_before(db, game)
+    was_global_owner = owns_global_record(db, user_id, game, previous_global)
     row = db.scalar(select(GameScore).where(GameScore.user_id == user_id, GameScore.game == game))
     old = row.best if row else 0
     if row is None:
@@ -120,6 +123,7 @@ def submit_result(db, user_id, game, score, now=None, run_id=None):
             best.best, best.achieved_at = score, now
     from achievement_service import accept_achievement
     accept_achievement(db,user_id,game,score,run,now)
+    reward_global_record(db,result,run,previous_global,now,was_global_owner)
     db.flush()
     return row, old, record
 

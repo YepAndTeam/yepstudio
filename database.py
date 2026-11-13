@@ -332,6 +332,23 @@ class CompensationLetter(Base):
     read_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
 
+class GlobalRecordAward(Base):
+    __tablename__ = "global_record_awards"
+    result_id: Mapped[int] = mapped_column(ForeignKey("game_results.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    game: Mapped[str] = mapped_column(String(20), index=True)
+    score: Mapped[int] = mapped_column(Integer)
+    previous_best: Mapped[int] = mapped_column(Integer)
+    amount: Mapped[int] = mapped_column(Integer, default=1000)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class EconomyRecordAdjustment(Base):
+    __tablename__ = "economy_record_adjustments"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    paid_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
 class EconomyWelcome(Base):
     __tablename__ = "economy_welcome_v2"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)

@@ -19,9 +19,13 @@ def week_ends_at():
 
 
 def prize_for(place):
-    if place == 1: return 100
-    if place <= 3: return 50
-    if place <= 10: return 20
+    if place < 1: return 0
+    if place == 1: return 1000
+    if place == 2: return 750
+    if place == 3: return 500
+    if place == 4: return 350
+    if place == 5: return 250
+    if place <= 10: return 100
     return 0
 
 

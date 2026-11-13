@@ -18,8 +18,8 @@ export function installStudioPreview(scene,theme){
     {game:"tetris",score:15000,place:7,target:50,already_paid:0,credit:50},
     {game:"hell",score:300,place:12,target:20,already_paid:0,credit:20},
   ]};
-  const economyReceipt={id:'economy-rebalance-v2',created_at:now(),read:false,title:'Обновление экономики',description:'Компенсация за изменение баланса и наград',total:4000,target_total:4000,previous_total:0,entries:[{label:'Компенсация за трудности с балансом',credit:2500},{label:'Обновление ежедневных заданий',credit:500},{label:'Обновление наград достижений',credit:1000}]};
-  const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:scene==="economy"?4540:540,theme,
+  const economyReceipt={id:'economy-rebalance-v2',created_at:now(),read:false,title:'Обновление экономики',description:'Компенсация за изменение баланса и наград',total:5000,target_total:5000,previous_total:0,entries:[{label:'Компенсация за трудности с балансом',credit:2500},{label:'Обновление ежедневных заданий',credit:500},{label:'Обновление наград достижений',credit:1000},{label:'Обновление недельных призов и рекордов',credit:1000}]};
+  const me={id:1,first_name:"Ты · тестовый админ",username:"studio_preview",role:"admin",notify:true,jera:scene==="economy"?5540:540,theme,
     owned_themes:["dark","light","retro","terminal","nyan","tetris","poop","neon"],theme_box_price:100,topics:0,comments:0,votes:0,rated:0,
     daily_reward:{day:"2026-11-11",streak:scene==="daily7"?7:3,amount:scene==="daily7"?70:30,awarded:scene.startsWith("daily"),preview:scene.startsWith("daily"),server_now:now(),next_at:new Date(Date.now()+3600000).toISOString()},
     compensation_letters:scene==="letter"?[receipt]:scene==="economy"?[economyReceipt]:[]};
@@ -48,6 +48,7 @@ export function installStudioPreview(scene,theme){
   let first=scene==="empty"||scene==="registration"||scene==="letter";
   let achievementBest=640;
   const demoBests={drive:0,flappy:12,snake:30,tetris:170,hell:0};
+  const worldRecords=Object.fromEntries(Object.entries({...demoBests,dino:980}).map(([game,score])=>[game,{score,owner:2}]));
   const achievementItem=definition=>{const best=definition.game==="dino"?achievementBest:demoBests[definition.game];return {...definition,best,steps:definition.steps.map(step=>({...step,earned:best>=step.score})),total_earned:definition.steps.filter(step=>best>=step.score).reduce((sum,step)=>sum+step.amount,0)};};
   const achievementSteps=[[100,10],[500,50],[1000,100],[3000,250],[5000,500],[10000,1000]];
   let maintenance=false,applied=false,pending=null,history=[];
@@ -117,10 +118,14 @@ export function installStudioPreview(scene,theme){
     if(path.startsWith("/game/top")){const game=new URLSearchParams(path.split("?")[1]).get("game"),best=game==="drive"?demoBests.drive:0;return {top:best?[{user_id:me.id,name:me.first_name,best}]:[],my_best:best,my_rank:best?1:null,ends_at:null};}
     if(path==="/game/start")return {ok:true,run_id:"preview-run-"+Date.now()};
     if(path==="/game/score"){
+      const previous=worldRecords[body.game]||{score:0,owner:null};
+      const recordReward=previous.score>0&&body.score>previous.score&&(previous.owner!==me.id||body.score*10>=previous.score*11)?1000:0;
+      if(body.score>previous.score)worldRecords[body.game]={score:body.score,owner:me.id};
+      me.jera+=recordReward;
       let reward=0;
       if(body.game==="drive")demoBests.drive=Math.max(demoBests.drive,body.score);
       if(body.game==="dino"){reward=achievementSteps.filter(([score])=>score>achievementBest&&score<=body.score).reduce((sum,[,amount])=>sum+amount,0);achievementBest=Math.max(achievementBest,body.score);me.jera+=reward;}
-      return {best:body.game==="drive"?demoBests.drive:body.score,record:true,rank:1,achievement_reward:reward};
+      return {best:body.game==="drive"?demoBests.drive:body.score,record:true,rank:1,achievement_reward:reward,record_reward:recordReward};
     }
     fail("Этот экран не входит в локальный стенд: "+path);
   }

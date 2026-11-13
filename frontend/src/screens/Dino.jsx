@@ -364,6 +364,7 @@ export default function Dino({ onBack }) {
           </span>
         </div>
         {result?.achievement_reward>0&&<div className="gm-rec">Новая ступень достижения · +{result.achievement_reward} Йер</div>}
+        {result?.record_reward>0&&<div className="gm-rec">Рекорд всех времён · +{result.record_reward} Йер</div>}
         {result?.record && (
           <div className="gm-rec">Новый рекорд! Ты #{result.rank}</div>
         )}
