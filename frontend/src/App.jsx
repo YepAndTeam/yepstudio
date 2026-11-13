@@ -118,7 +118,13 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if(ref==="community_trading"){setTab("forum");setCommunitySection("trading");}
+  if(ref==="studio_home"){setTab("news");setStudioSection(null);}
+  else if(ref==="studio_profile"){setTab("profile");setProfileSection(null);}
+  else if(ref==="studio_friends"){setTab("forum");setCommunitySection("friends");}
+  else if(ref==="studio_mail"){setTab("forum");setCommunitySection("letters");}
+  else if(ref==="studio_tournaments"){setTab("news");setStudioSection("tournaments");}
+  else if(ref==="studio_notifications"){setInbox(true);}
+  else if(ref==="community_trading"){setTab("forum");setCommunitySection("trading");}
   else if (ref.startsWith("friend_") && /^friend_\d+$/.test(ref)){
     setTab("forum");setCommunitySection("friends");setFriendTarget(Number(ref.slice(7)));
   } else if (ref==="races") {

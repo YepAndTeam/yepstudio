@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime,timedelta
 from uuid import uuid4
 from sqlalchemy import select,update,delete,func
-from database import User,Meta,Notification
+from database import User,Meta,Notification,Tournament
 from widget_models import BotContact,BoardInvitation,BoardWidgetSession,BoardWidgetQuery
 from chess_models import ChessGame
 from checkers_models import CheckersGame
@@ -30,8 +30,8 @@ def enroll(db,uid,name,username=None,admin=False):
  else:db.add(BotContact(user_id=uid))
  db.flush();return user
 
-def new_session(db,uid):
- row=BoardWidgetSession(id=uuid4().hex,user_id=uid,chat_id=uid,page=0)
+def new_session(db,uid,menu=False):
+ row=BoardWidgetSession(id=uuid4().hex,user_id=uid,chat_id=uid,page=0,kind='menu' if menu else None)
  db.add(row);db.flush();return row
 
 def opponents(db,uid,page):
@@ -49,9 +49,19 @@ def invitation_view(db,session,now):
  user=db.get(User,other)
  return {'screen':'invitation','kind':invitation.kind,'status':status,'delivery':delivery,'incoming':session.user_id==invitation.recipient_id,'name':user.first_name[:30] if user else 'Игрок','game_id':invitation.game_id}
 
+def menu_view(db,uid,now):
+ user=db.get(User,uid)
+ unread=db.scalar(select(func.count()).select_from(Notification).where(Notification.user_id==uid,Notification.read.is_(False))) or 0
+ pending=db.scalar(select(func.count()).select_from(BoardInvitation).where(BoardInvitation.recipient_id==uid,BoardInvitation.status=='pending',BoardInvitation.expires_at>now)) or 0
+ event=db.scalar(select(Tournament).where(Tournament.cancelled.is_(False),Tournament.status=='active',Tournament.starts_at<=now,Tournament.ends_at>now).order_by(Tournament.ends_at).limit(1))
+ view={'screen':'main','name':user.first_name[:30] if user else 'Игрок','unread':unread,'invitations':pending}
+ if event:view['event']={'title':event.title[:50],'minutes':max(1,int((event.ends_at-now).total_seconds()+59)//60)}
+ return view
+
 def session_view(db,session,now=None):
  now=now or datetime.utcnow()
  if session.invitation_id:return invitation_view(db,session,now)
+ if session.kind=='menu':return menu_view(db,session.user_id,now)
  if not session.kind:return {'screen':'choose'}
  page,count,users=opponents(db,session.user_id,session.page);session.page=page
  return {'screen':'players','kind':session.kind,'page':page,'pages':max(1,(count+4)//5),'players':users}
@@ -80,7 +90,8 @@ def handle_action(db,uid,chat_id,message_id,query_id,data,now=None):
   if (previous.user_id,previous.data,previous.session_id)!=(uid,data,session.id):raise WidgetError('Запрос уже использован')
   return session_view(db,session,now),None
  delivery=None
- if data=='home':session.kind=None;session.invitation_id=None;session.page=0
+ if data=='studio':session.kind='menu';session.invitation_id=None;session.page=0
+ elif data=='home':session.kind=None;session.invitation_id=None;session.page=0
  elif data.startswith('kind:'):
   kind=data.split(':',1)[1]
   if kind not in ('chess','checkers'):raise WidgetError('Неизвестная игра')

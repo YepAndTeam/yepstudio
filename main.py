@@ -739,7 +739,7 @@ def react(comment_id: int, body: ReactIn, user: User = Depends(get_user), db=Dep
 # Теперь только верхний потолок очков. Явных читеров удаляем вручную
 # (DELETE /api/game/score/{user_id} или прямо в базе).
 GAMES = {
-    "drive": {"max": 100000},
+    "drive": {"max": 1_000_000_000},
     "dino": {"max": 20000},
     "flappy": {"max": 500},
     "snake": {"max": 3000},
@@ -762,7 +762,7 @@ class StartIn(BaseModel):
 class ScoreIn(BaseModel):
     run_id: Optional[str] = Field(default=None, max_length=40)
     game: str = "dino"
-    score: int = Field(ge=0, le=100000)
+    score: int = Field(ge=0, le=1_000_000_000)
 
 
 @app.post("/api/game/start")

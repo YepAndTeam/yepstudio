@@ -187,3 +187,24 @@ class DiscApiTest(unittest.TestCase):
   self.assertEqual(self.client.post('/api/discs/equip',json={'instance_id':identity}).status_code,409)
   shelves=self.client.get('/api/discs/shelves').json()['shelves']
   self.assertEqual(len(next(s for s in shelves if s['item']['id']=='doom')['slots']),6)
+
+ def test_drive_disc_result_above_old_100k_limit_is_saved(self):
+  from disc_equipment import create_instance
+  with self.sessions.begin() as db:
+   row=create_instance(db,1,'doom','common',uuid4().hex);identity=row.id
+  self.assertEqual(self.client.post('/api/discs/equip',json={'instance_id':identity}).status_code,200)
+  run=self.client.post('/api/disc-play/start',json={'game':'drive'}).json()
+  result=self.client.post('/api/disc-play/score',json={'game':'drive','run_id':run['run_id'],'score':125000})
+  self.assertEqual(result.status_code,200);self.assertEqual(result.json()['raw_score'],125000)
+  self.assertGreater(self.client.get('/api/disc-play/top?game=drive').json()['my_best'],100000)
+ def test_normal_score_schema_accepts_high_drive_scores(self):
+  import ast
+  from typing import Optional
+  from pydantic import BaseModel,Field
+  tree=ast.parse(Path('main.py').read_text(encoding='utf-8'))
+  nodes=[node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='ScoreIn' or isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='GAMES' for t in node.targets)]
+  namespace={'Optional':Optional,'BaseModel':BaseModel,'Field':Field}
+  exec(compile(ast.Module(body=nodes,type_ignores=[]),'drive_limits','exec'),namespace)
+  self.assertEqual(namespace['ScoreIn'](game='drive',score=125000).score,125000)
+  self.assertGreater(namespace['GAMES']['drive']['max'],100000)
+  self.assertEqual(namespace['GAMES']['flappy']['max'],500)

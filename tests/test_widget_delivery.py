@@ -30,6 +30,13 @@ class WidgetDeliveryTest(unittest.IsolatedAsyncioTestCase):
    await handle_widget_query(self.bot,self.sessions,self.query('accept','accept-1',2,200))
   with self.sessions() as db:
    invitation=db.scalar(select(BoardInvitation));self.assertEqual(invitation.status,'accepted');self.assertEqual(invitation.delivery,'sent')
+ async def test_start_sends_one_main_widget(self):
+  import json
+  from widget_bot import start_widget
+  with patch('widget_bot.api_call',new=AsyncMock(return_value={'message_id':300})) as api:
+   await start_widget(self.bot,self.sessions,SimpleNamespace(id=1,first_name='One',username=None))
+   self.assertEqual(api.await_count,1);self.assertEqual(api.await_args.args[1],'sendWidget')
+   state=json.loads(api.await_args.args[2]['chat_data']);self.assertEqual(state['screen'],'main');self.assertEqual(state['name'],'One')
  async def test_delivery_failure_has_explicit_retry(self):
   async def fake(bot,method,payload):
    if method=='sendWidget':raise WidgetError('Offline')

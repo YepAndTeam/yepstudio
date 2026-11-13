@@ -43,17 +43,17 @@ async def start(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть YAB STUDIO", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
-    await message.answer(
-        "Привет! Здесь игры, турниры, новости и сообщество YAB STUDIO.",
-        reply_markup=kb,
-    )
     if message.chat.type=="private" and message.from_user:
         from widget_bot import start_widget
         from widget_service import WidgetError
         try:
             await start_widget(bot,SessionLocal,message.from_user,message.from_user.id in ADMIN_IDS)
+            return
         except WidgetError:
-            await message.answer("Виджет пока недоступен. Обнови Telegram и попробуй /play ещё раз. Игры доступны по кнопке «Открыть YAB STUDIO».")
+            await message.answer("Виджет пока недоступен. Студию можно открыть по кнопке ниже. Попробуй /start ещё раз чуть позже.",reply_markup=kb)
+            return
+    await message.answer("YAB STUDIO · игры, турниры и сообщество.",reply_markup=kb)
+
 
 
 

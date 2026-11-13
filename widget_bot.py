@@ -15,6 +15,7 @@ def packed(value):
  return data
 
 def with_link(state):
+ if state.get('screen')=='main':state={**state,'app_link':APP_LINK}
  if state.get('game_id'):state={**state,'link':APP_LINK+'?startapp=game_'+state['kind']+'_'+str(state['game_id'])}
  return state
 
@@ -43,13 +44,13 @@ async def send_session(bot,sessions,session_id):
   row=db.get(BoardWidgetSession,session_id)
   return row.chat_id,with_link(session_view(db,row))
  chat_id,state=await in_db(sessions,prepare)
- result=await api_call(bot,'sendWidget',{'chat_id':chat_id,'html':HTML,'chat_data':packed(state),'allow_queries':True,'caption':'YAB STUDIO · Партия с другом'})
+ result=await api_call(bot,'sendWidget',{'chat_id':chat_id,'html':HTML,'chat_data':packed(state),'allow_queries':True,'caption':'YAB STUDIO' if state.get('screen')=='main' else 'YAB STUDIO · Партия с другом'})
  await in_db(sessions,lambda db:setattr(db.get(BoardWidgetSession,session_id),'message_id',result['message_id']))
 
 async def start_widget(bot,sessions,user,admin=False):
  def create(db):
   enroll(db,user.id,user.first_name,user.username,admin)
-  return new_session(db,user.id).id
+  return new_session(db,user.id,menu=True).id
  session_id=await in_db(sessions,create)
  await send_session(bot,sessions,session_id)
 

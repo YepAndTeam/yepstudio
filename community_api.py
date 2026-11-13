@@ -14,7 +14,7 @@ class PracticeIn(BaseModel):
  game:str
 class PracticeScore(PracticeIn):
  run_id:str=Field(min_length=32,max_length=40)
- score:int=Field(ge=0,le=100000)
+ score:int=Field(ge=0,le=1_000_000_000)
 class ChatIn(BaseModel):
  body:str=Field(min_length=1,max_length=800)
 class TradeIn(BaseModel):
@@ -57,7 +57,7 @@ def make_community_router(get_user,get_db,deliver_trade_notice=None):
  @router.post('/disc-play/score')
  def score(body:PracticeScore,user=Depends(get_user),db=Depends(get_db)):
   game_check(body.game)
-  if body.score>{'dino':20000,'flappy':500,'snake':3000,'tetris':100000,'hell':5000,'drive':100000}[body.game]:raise HTTPException(422,'Подозрительный результат')
+  if body.score>{'dino':20000,'flappy':500,'snake':3000,'tetris':100000,'hell':5000,'drive':1_000_000_000}[body.game]:raise HTTPException(422,'Подозрительный результат')
   return transaction(db,lambda:finish_practice(db,user.id,body.game,body.run_id,body.score))
  @router.get('/disc-play/top')
  def top(game:str,user=Depends(get_user),db=Depends(get_db)):

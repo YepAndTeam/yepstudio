@@ -90,3 +90,24 @@ class WidgetTest(unittest.TestCase):
    view=session_view(db,session,self.now+timedelta(minutes=31))
    self.assertEqual(view['status'],'expired')
    self.assertEqual(db.get(BoardInvitation,iid).status,'pending')
+
+ def test_main_menu_navigation_preserves_single_session_and_personal_state(self):
+  from widget_service import session_view
+  from database import Notification,Tournament
+  with self.sessions.begin() as db:
+   session=new_session(db,1,menu=True);session.message_id=300
+   db.add(Notification(user_id=1,kind='news',text='One',read=False));db.add(Notification(user_id=2,kind='news',text='Other',read=False))
+   db.add(Tournament(id='test-menu',game='dino',title='Dino cup',starts_at=self.now-timedelta(hours=1),ends_at=self.now+timedelta(hours=2)))
+   db.flush();view=session_view(db,session,self.now)
+   self.assertEqual(view['screen'],'main');self.assertEqual(view['name'],'Player 1');self.assertEqual(view['unread'],1);self.assertEqual(view['event']['minutes'],120)
+   count=db.scalar(select(func.count()).select_from(BoardWidgetSession))
+   for i,action in enumerate(['home','kind:chess','home','studio','refresh']):
+    value,_=handle_action(db,1,1,300,'menu-'+str(i),action,self.now)
+   self.assertEqual(value['screen'],'main');self.assertEqual(db.scalar(select(func.count()).select_from(BoardWidgetSession)),count)
+ def test_main_state_fits_widget_payload_for_long_unicode_names(self):
+  from widget_service import session_view
+  from widget_bot import with_link,packed
+  with self.sessions.begin() as db:
+   db.get(User,1).first_name='Ж'*100
+   row=new_session(db,1,menu=True);data=packed(with_link(session_view(db,row,self.now)))
+   self.assertLessEqual(len(data.encode()),1024)
