@@ -36,8 +36,8 @@ export function installStudioPreview(scene,theme){
   if(["drive","dino","tetris","garden"].includes(scene))window.Telegram.WebApp.initDataUnsafe.start_param="game_"+scene;
   if(scene.startsWith("race_"))window.Telegram.WebApp.initDataUnsafe.start_param="races";
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
-    starts_at:null,ends_at:null,server_now:now(),registered:false,participants:12,top:[],my_best:0,my_place:null,prize_theme:"poop",duplicate_prize:200,
-    prize_jera:{2:150,3:100,4:75,5:50},voting_closed:false,votes:{dino:2,flappy:5,snake:3},my_vote:null,share_path:"/tournaments/preview-first"};
+    starts_at:null,ends_at:null,server_now:now(),registered:false,participants:12,top:[],my_best:0,my_place:null,prize_theme:"",duplicate_prize:0,
+    prize_jera:{1:2000,2:1500,3:1000,4:600,5:400},voting_closed:false,votes:{dino:2,flappy:5,snake:3},my_vote:null,share_path:"/tournaments/preview-first"};
   let events=scene==="empty"?[]:[{...base}];
   if(["active","finished"].includes(scene)){
     Object.assign(events[0],{status:scene==="active"?"active":"finished",registered:true,participants:16,
@@ -69,7 +69,7 @@ export function installStudioPreview(scene,theme){
     if(path==='/admin/performance')return {window_requests:36,cache:{entries:7,max_entries:128,hits:24,misses:7},routes:[{method:'GET',route:'/api/home',requests:20,p50_ms:85,p95_ms:310,average_sql_ms:38,average_sql_queries:1.5,errors:0},{method:'GET',route:'/api/game/top',requests:16,p50_ms:115,p95_ms:420,average_sql_ms:64,average_sql_queries:3,errors:0}]};
     if(path==="/tasks")return {earned_today:30,daily_limit:100,balance:me.jera,ends_at:new Date(Date.now()+3600000).toISOString(),tasks:["participation","variety","score"].map((category,i)=>{const candidates=activityCatalog.tasks.filter(task=>task.category===category);const task=candidates[(Math.floor(Date.now()/86400000)+i)%candidates.length];return {...task,amount:activityCatalog.daily_rewards[i],earned:i===0,current:i===0?task.target:Math.floor(task.target*.4)};})};
     if(path==="/achievements")return {...achievementItem(activityCatalog.achievements[0]),items:activityCatalog.achievements.map(achievementItem)};
-    if(path==="/hall-of-fame")return {winners:events.filter(e=>e.status==="finished").flatMap(e=>e.top.slice(0,5).map(row=>({tournament_id:e.id,title:e.title,game:e.game,user_id:row.user_id,name:row.name,place:row.place,amount:e.prize_jera[row.place]||0,theme_id:row.place===1?"poop":null,ended_at:e.ends_at})))};
+    if(path==="/hall-of-fame")return {winners:events.filter(e=>e.status==="finished").flatMap(e=>e.top.slice(0,5).map(row=>({tournament_id:e.id,title:e.title,game:e.game,user_id:row.user_id,name:row.name,place:row.place,amount:e.prize_jera[row.place]||0,theme_id:row.place===1?e.prize_theme||null:null,ended_at:e.ends_at})))};
     if(path==="/me")return me;
     if(path==="/home"){
       const event=events.find(e=>['active','registration'].includes(e.status));

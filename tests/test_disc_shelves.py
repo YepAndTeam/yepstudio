@@ -45,3 +45,11 @@ class ShelfTest(unittest.TestCase):
    self.assertEqual(row.status,'sealed')
    shelf=next(s for s in shelf_state(db,1)['shelves'] if s['item']['id']=='minecraft')
    self.assertTrue(shelf['slots'][0]['cracked']);self.assertEqual(db.get(User,1).jera,0)
+
+ def test_inventory_marks_already_filled_rarity_before_sealing(self):
+  with self.sessions.begin() as db:
+   first=self.disc(db);seal_disc(db,1,first.id,self.now)
+   duplicate=self.disc(db);other=self.disc(db,rarity='rare');db.flush()
+   rows={row['id']:row for row in disc_state(db,1)['instances']}
+   self.assertTrue(rows[duplicate.id]['shelf_occupied'])
+   self.assertFalse(rows[other.id]['shelf_occupied'])

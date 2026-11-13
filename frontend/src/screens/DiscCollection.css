@@ -33,3 +33,5 @@
 @keyframes dvd-usb-insert{from{transform:translateZ(20px)}to{transform:translateZ(1px)}}
 @media(prefers-reduced-motion:reduce){.dvd-usb-mounted{animation:none}}
 .dvd-console-front{transform-style:preserve-3d}
+
+.dvd-quick-close{position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);right:max(14px,env(safe-area-inset-right,0px));z-index:80;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);box-shadow:0 3px 14px #0003;font:28px/1 system-ui;cursor:pointer;touch-action:manipulation}.dvd-quick-close:disabled{opacity:.55;cursor:wait}.dvd-quick-close:focus-visible{outline:2px solid var(--accent,var(--fg));outline-offset:3px}.dvd-view-heading{padding-right:48px}

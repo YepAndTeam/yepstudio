@@ -60,7 +60,8 @@ initialize_letters(SessionLocal)
 from economy_service import initialize_economy, reward_economy_welcome
 initialize_economy(SessionLocal)
 from tournament_service import (list_events, get_event, event_state, create_event,
-    start_event, cancel_event, register as register_tournament, settle_due, TournamentError, vote as tournament_vote)
+    start_event, cancel_event, register as register_tournament, settle_due, TournamentError, vote as tournament_vote, initialize_tournament_rewards)
+initialize_tournament_rewards(SessionLocal)
 
 def settle_tournaments_in_background():
     with SessionLocal.begin() as db:
@@ -1044,7 +1045,8 @@ def tournament_share_page(event_id: str, db=Depends(get_db)):
     fee = "Участие бесплатно" if event.entry_fee == 0 else f"Взнос {event.entry_fee} Йер"
     state = "Регистрация открыта" if event.status == "registration" else "Турнир идёт" if event.status == "active" and event.ends_at > datetime.utcnow() else "Турнир отменён" if event.cancelled else "Турнир завершён"
     title = event.title
-    description = f"{state} · {game_name} · {event.duration_hours} ч · {fee}. 1 место — мифическая тема «Какашечки», 2–5 — Йера."
+    first_prize = "мифическая тема «Какашечки»" if event.prize_theme else str(json.loads(event.prize_jera).get("1",0))+" Йер"
+    description = f"{state} · {game_name} · {event.duration_hours} ч · {fee}. 1 место — {first_prize}, 2–5 — Йеры. Награды турнира могут измениться."
     base = (WEBAPP_URL or "").rstrip("/")
     image = base + "/tournament-" + event.game + ".png"
     url = base + "/tournaments/" + event.id

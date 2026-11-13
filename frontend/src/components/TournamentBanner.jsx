@@ -52,7 +52,8 @@ export default function TournamentBanner({eventId,onPlay,compact=false,onOpen}) 
     <h2>{event.title}</h2>
     {live?<><span className="small muted">До завершения</span><Countdown key={event.ends_at+event.server_now} end={event.ends_at} serverNow={event.server_now} /></>
       :signup?<p>Длительность — {event.duration_hours} ч. Отсчёт начнётся после старта администратором.</p>:null}
-    <div className="tour-prizes"><b>1 место · «Какашечки»</b><span>{Object.entries(event.prize_jera).map(([place,amount])=>`${place}-е: ${amount} ᛃ`).join(" · ")}</span></div>
+    <div className="tour-prizes"><b>1 место · {event.prize_theme?'«Какашечки»':`${event.prize_jera["1"]||0} Йер`}</b><span>{Object.entries(event.prize_jera).filter(([place])=>place!=="1").map(([place,amount])=>`${place}-е: ${amount} ᛃ`).join(" · ")}</span></div>
+    {(signup||live)&&<p className="small muted">Награды турнира могут измениться.</p>}
     <p className="small muted">{event.entry_fee?`Взнос — ${event.entry_fee} Йер один раз на весь турнир.`:"Первый турнир — участие бесплатно."} Участников: {event.participants}.</p>
     {(signup||live)&&(!event.registered?<button type="button" className="pub" disabled={busy||(event.entry_fee>0&&(me?.jera??0)<event.entry_fee)} onClick={join}>
       {busy?"Регистрируем…":event.entry_fee?`Участвовать · ${event.entry_fee} ᛃ`:"Зарегистрироваться бесплатно"}
@@ -60,7 +61,7 @@ export default function TournamentBanner({eventId,onPlay,compact=false,onOpen}) 
     {!event.registered&&event.entry_fee>(me?.jera??0)&&<span className="small muted">На балансе не хватает Йеры для взноса.</span>}
     {event.registered&&<span className="small">Твой результат: {event.my_best || "пока нет"}{event.my_place?` · место ${event.my_place}`:""}</span>}
     {event.top.length>0&&<div className="tour-top">{event.top.slice(0,5).map(row=><div key={row.user_id} className="between small"><span>#{row.place} {row.user_id===me?.id?"Ты":row.name}</span><b>{row.best}</b></div>)}</div>}
-    <details className="small muted"><summary>Правила и призы</summary><p>Засчитывается лучший забег, начатый после регистрации и старта, завершённый до конца турнира. Попытки не ограничены. При равных очках выше тот, кто достиг их раньше. Если мифик уже есть, победителю начисляется {event.duplicate_prize} Йер.</p></details>
+    <details className="small muted"><summary>Правила и призы</summary><p>Засчитывается лучший забег, начатый после регистрации и старта, завершённый до конца турнира. Попытки не ограничены. При равных очках выше тот, кто достиг их раньше. {event.prize_theme?`Если мифик уже есть, победителю начисляется ${event.duplicate_prize} Йер.`:"Приз за первое место — только Йеры, без темы."}</p></details>
     {finished&&!event.voting_closed&&<div className="col" style={{gap:8}}><b className="small">В какую игру проведём следующий турнир?</b><div className="tour-votes">{Object.entries(games).map(([id,name])=><button type="button" key={id} className={event.my_vote===id?"on":""} disabled={busy} onClick={()=>vote(id)}>{name} · {event.votes?.[id]||0}</button>)}</div></div>}
     <button type="button" className="tour-share" onClick={()=>shareLink("tour_"+event.id,`Турнир ${event.game_name} в YAB STUDIO · ${event.duration_hours} часов · ${event.entry_fee?event.entry_fee+" Йер":"бесплатно"}`)}>Поделиться турниром</button>
     {error&&<span className="small" role="status">{error}</span>}

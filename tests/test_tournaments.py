@@ -110,18 +110,18 @@ class TournamentTest(unittest.TestCase):
         with self.sessions.begin() as db:self.assertTrue(settle_due(db,self.now))
         with self.sessions.begin() as db:
             self.assertFalse(settle_due(db,self.now))
-            self.assertIsNotNone(db.get(UserTheme,(2,"poop")))
-            self.assertEqual([db.get(User,i).jera for i in range(1,7)],[650,500,600,575,550,500])
+            self.assertIsNone(db.get(UserTheme,(2,"poop")))
+            self.assertEqual([db.get(User,i).jera for i in range(1,7)],[2000,2500,1500,1100,900,500])
             self.assertEqual(db.scalar(select(func.count()).select_from(TournamentAward)),5)
-            self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),4)
+            self.assertEqual(db.scalar(select(func.count()).select_from(JeraTx)),5)
             self.assertEqual(db.get(Tournament,eid).status,"finished")
 
-    def test_duplicate_winner_theme_is_200_jera(self):
+    def test_winner_with_existing_theme_still_gets_cash_only(self):
         eid=self.seed_finished_contest(duplicate=True)
         with self.sessions.begin() as db:
             settle_due(db,self.now)
-            self.assertEqual(db.get(User,2).jera,700)
-            self.assertEqual(db.get(TournamentAward,(eid,2)).amount,200)
+            self.assertEqual(db.get(User,2).jera,2500)
+            self.assertEqual(db.get(TournamentAward,(eid,2)).amount,2000)
 
     def test_voting_is_one_per_user_and_selects_next_game(self):
         eid=self.seed_finished_contest()
@@ -157,11 +157,13 @@ class TournamentTest(unittest.TestCase):
         class HttpError(Exception):pass
         scope=dict(Depends=lambda x:None,get_db=lambda:None,get_event=get_event,TournamentError=TournamentError,
                    HTTPException=HttpError,WEBAPP_URL='https://example.test',TG_APP_LINK='https://t.me/demo_bot',
-                   datetime=datetime,escape=escape)
+                   datetime=datetime,escape=escape,json=json)
         exec(compile(module,'share','exec'),scope)
         with self.sessions() as db:html=scope['tournament_share_page'](eid,db)
         self.assertIn('https://example.test/tournament-dino.png',html)
         self.assertIn('og:image:width',html)
+        self.assertIn('2000 Йер',html)
+        self.assertIn('Награды турнира могут измениться',html)
         self.assertIn('startapp=tour_'+eid,html)
         self.assertIn('&lt;Dino &amp; friends&gt;',html)
         self.assertNotIn('<Dino & friends>',html)
@@ -190,5 +192,37 @@ class TournamentTest(unittest.TestCase):
         with self.sessions.begin() as db:
             self.assertEqual(create_event(db,'Next','snake',24,50).game,'snake')
 
+
+class TournamentRewardsMigrationTest(unittest.TestCase):
+    setUp=TournamentTest.setUp
+    tearDown=TournamentTest.tearDown
+    event=TournamentTest.event
+
+    def test_open_prizes_upgrade_once_and_finished_events_stay_unchanged(self):
+        from tournament_service import initialize_tournament_rewards,PRIZES
+        eid=self.event()
+        with self.sessions.begin() as db:
+            event=db.get(Tournament,eid);event.prize_theme='poop';event.duplicate_prize=200;event.prize_jera='{"2":150}'
+            db.add(Tournament(id='finished-old',title='Old',game='dino',starts_at=self.now,ends_at=self.now,status='finished',settled_at=self.now,prize_theme='poop',prize_jera='{"2":150}'))
+        initialize_tournament_rewards(self.sessions);initialize_tournament_rewards(self.sessions)
+        with self.sessions() as db:
+            event=db.get(Tournament,eid)
+            self.assertEqual(json.loads(event.prize_jera),PRIZES);self.assertEqual(event.prize_theme,'');self.assertEqual(event.duplicate_prize,0)
+            self.assertEqual(db.get(Tournament,'finished-old').prize_theme,'poop')
+    def test_funded_event_upgrades_reserve_when_available(self):
+        self.check_funding_upgrade(10000,False,5075)
+    def test_insufficient_fund_returns_old_reserve_without_blocking_tournament(self):
+        self.check_funding_upgrade(0,True,575)
+    def check_funding_upgrade(self,free,closed,remaining):
+        from tournament_service import initialize_tournament_rewards
+        from race_models import RaceFund,RaceTournamentFunding
+        eid=self.event()
+        with self.sessions.begin() as db:
+            db.add(RaceFund(id=1,balance=free));db.add(RaceTournamentFunding(tournament_id=eid,reserved=575,closed=False))
+        initialize_tournament_rewards(self.sessions);initialize_tournament_rewards(self.sessions)
+        with self.sessions() as db:
+            self.assertEqual(db.get(RaceFund,1).balance,remaining)
+            self.assertEqual(db.get(RaceTournamentFunding,eid).closed,closed)
+            if not closed:self.assertEqual(db.get(RaceTournamentFunding,eid).reserved,5500)
 
 if __name__=='__main__':unittest.main()

@@ -96,9 +96,10 @@ def reveal_disc(db,user_id,draw_id):
 
 def disc_state(db,user_id):
  from disc_equipment import ensure_inventory,settle_expired,instance_view,equipment_state,wear_events,luck_for
- from disc_models import DiscInstance
+ from disc_models import DiscInstance,DiscShelfSlot
  ensure_inventory(db,user_id);settle_expired(db,user_id)
  instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status.notin_(('lost','sealed'))).order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
+ sealed=set(db.execute(select(DiscShelfSlot.disc_id,DiscShelfSlot.rarity).where(DiscShelfSlot.user_id==user_id)).all())
  groups={}
  for instance in instances:
   key=(instance.disc_id,instance.rarity)
@@ -110,5 +111,5 @@ def disc_state(db,user_id):
  from disc_odds import boosted_chances
  luck=luck_for(db,user_id);chances=boosted_chances(list(RARITIES.values()),luck)
  return {'wear_events':wear_events(db,user_id),'luck_percent':luck,'price':PRICE,'balance':balance(db,user_id),'launch_gift':launch_gift_state(db,user_id),'catalogue':CATALOG['discs'],'rarities':[{**{k:v for k,v in item.items() if k!='weight'},'chance':chances[item['id']]} for item in RARITIES.values()],
-  'pending':draw_view(pending) if pending else None,'collection':list(groups.values()),'instances':[instance_view(row) for row in instances],'equipment':equipment_state(db,user_id),
+  'pending':draw_view(pending) if pending else None,'collection':list(groups.values()),'instances':[{**instance_view(row),'shelf_occupied':(row.disc_id,row.rarity) in sealed} for row in instances],'equipment':equipment_state(db,user_id),
   'total_copies':len(instances),'unique_editions':len(groups),'total_editions':len(DISCS)*len(RARITIES),'history':[draw_view(row) for row in history]}

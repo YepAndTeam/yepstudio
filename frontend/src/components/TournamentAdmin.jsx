@@ -23,7 +23,7 @@ function CreateForm({first,winner,onClose,onCreated}){
       {winner&&!first&&<span className="small muted">Игра выбрана голосованием игроков.</span>}
       <label>Длительность, часов<input type="number" min={1} max={168} required disabled={first} value={hours} onChange={e=>setHours(e.target.value)} /></label>
       <label>Взнос, Йер<input type="number" min={first?0:1} max={10000} required disabled={first} value={fee} onChange={e=>setFee(e.target.value)} /></label>
-      <span className="small muted">1-е — «Какашечки» (или 200 Йер за повторку). 2–5-е — 150 / 100 / 75 / 50 Йер. Первый турнир: Dino, 48 часов, бесплатно.</span>
+      <span className="small muted">1-е — 2000 Йер. 2–5-е — 1500 / 1000 / 600 / 400 Йер. Награды турнира могут измениться. Первый турнир: Dino, 48 часов, бесплатно.</span>
       <button type="submit" className="pub" disabled={busy}>{busy?"Создаём…":"Создать и открыть регистрацию"}</button>
       <button type="button" className="pub alt" disabled={busy} onClick={onClose}>Назад</button>
       {error&&<span className="small" role="status">{error}</span>}
@@ -53,7 +53,7 @@ export default function TournamentAdmin(){
         {event.status==="registration"&&<button type="button" className="pub" disabled={busy} onClick={()=>action(event.id,"start")}>Запустить на {event.duration_hours} ч</button>}
         {["registration","active"].includes(event.status)&&<button type="button" className="pub alt" disabled={busy} onClick={()=>action(event.id,"cancel")}>Отменить и вернуть взносы</button>}
         <button type="button" className="pub alt" onClick={()=>copyLink("tour_"+event.id)}>Скопировать ссылку</button>
-        <button type="button" className="pub alt" onClick={()=>shareLink("tour_"+event.id,`${event.title}\n${event.duration_hours} часов · ${event.entry_fee?event.entry_fee+" Йер":"участие бесплатно"}\n1-е место — «Какашечки», 2–5-е — Йера.\nРегистрируйся в YAB STUDIO!`)}>Подготовить пост в Telegram</button>
+        <button type="button" className="pub alt" onClick={()=>shareLink("tour_"+event.id,`${event.title}\n${event.duration_hours} часов · ${event.entry_fee?event.entry_fee+" Йер":"участие бесплатно"}\n1-е место — ${event.prize_theme?'тема «Какашечки»':(event.prize_jera["1"]||0)+' Йер'}. Награды турнира могут измениться.\nРегистрируйся в YAB STUDIO!`)}>Подготовить пост в Telegram</button>
       </div>
     </div>)}
     {create&&<CreateForm first={data.next_free} winner={data.next_game} onClose={()=>setCreate(false)} onCreated={load} />}

@@ -10,7 +10,29 @@ from shop_service import owned_themes,RARITY
 from weekly import grant,NAMES
 from race_models import RaceTournamentFunding
 
-PRIZES={"2":150,"3":100,"4":75,"5":50}
+PRIZES={"1":2000,"2":1500,"3":1000,"4":600,"5":400}
+
+
+def initialize_tournament_rewards(SessionLocal):
+    with SessionLocal.begin() as db:
+        lock_scores(db)
+        marker="tournament-cash-prizes-v2"
+        if db.get(Meta,marker):return
+        for event in db.scalars(select(Tournament).where(Tournament.status.in_(["registration","active"]),Tournament.cancelled.is_(False),Tournament.settled_at.is_(None))):
+            allocation=db.get(RaceTournamentFunding,event.id)
+            if allocation and not allocation.closed:
+                from race_service import treasury,fund_move
+                difference=sum(PRIZES.values())-allocation.reserved
+                if difference<=treasury(db)['available']:
+                    fund_move(db,-difference,'tour-prizes-upgrade:'+event.id)
+                    allocation.reserved=sum(PRIZES.values())
+                else:
+                    # Return the previous allocation: the updated tournament uses
+                    # normal prize issuance rather than an underfunded reserve.
+                    fund_move(db,allocation.reserved,'tour-prizes-release:'+event.id)
+                    allocation.closed=True
+            event.prize_theme="";event.duplicate_prize=0;event.prize_jera=json.dumps(PRIZES)
+        db.add(Meta(key=marker,value="1"))
 
 
 class TournamentError(Exception):
@@ -49,9 +71,9 @@ def settle_due(db,now=None):
         total_paid=0
         for place,(score,name) in enumerate(ranked(db,event)[:5],1):
             if db.get(TournamentAward,(event.id,score.user_id)):continue
-            amount=int(prizes.get(str(place),0)) if place>1 else 0
+            amount=int(prizes.get(str(place),0))
             theme=None
-            if place==1:
+            if place==1 and event.prize_theme:
                 if event.prize_theme in owned_themes(db,score.user_id):amount=event.duplicate_prize
                 else:
                     theme=event.prize_theme
@@ -92,7 +114,7 @@ def create_event(db,title,game="dino",duration_hours=48,entry_fee=0,now=None):
         game,duration_hours,entry_fee="dino",48,0
     elif entry_fee<1:raise TournamentError(422,"Для следующих турниров укажи взнос от 1 Йеры")
     row=Tournament(id=uuid4().hex,title=title,game=game,starts_at=now,ends_at=now+timedelta(hours=duration_hours),
-        status="registration",duration_hours=duration_hours,entry_fee=entry_fee,prize_theme="poop",duplicate_prize=200,
+        status="registration",duration_hours=duration_hours,entry_fee=entry_fee,prize_theme="",duplicate_prize=0,
         prize_jera=json.dumps(PRIZES),created_at=now,cancelled=False)
     db.add(row);db.flush();return row
 
