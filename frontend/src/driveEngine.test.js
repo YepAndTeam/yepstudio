@@ -42,3 +42,16 @@ test('fast traffic cannot tunnel through the player between frames',()=>{
  const safe=running();safe.score=10000000;safe.traffic=[{x:70,y:ROAD.playerY-100,speed:1}];
  stepDrive(safe,1/30);assert.equal(safe.phase,'running');
 });
+
+test('both lane dividers collide with neighboring traffic instead of forming an AFK corridor',()=>{
+ for(const x of [95,145])for(const lane of ROAD.lanes.filter(l=>Math.abs(l-x)===25)){
+  const s=running();s.x=x;s.target=x;s.traffic=[{x:lane,y:ROAD.playerY-2,speed:.7}];stepDrive(s,1/60);assert.equal(s.phase,'crashed',`divider ${x}, traffic ${lane}`);
+ }
+});
+test('every stationary road position is reachable by traffic while a genuinely free lane stays safe',()=>{
+ for(let x=ROAD.left+14;x<=ROAD.right-14;x++){
+  const nearest=ROAD.lanes.reduce((a,b)=>Math.abs(a-x)<Math.abs(b-x)?a:b);
+  const s=running();s.x=x;s.target=x;s.traffic=[{x:nearest,y:ROAD.playerY,speed:.7}];stepDrive(s,1/60);assert.equal(s.phase,'crashed',`stationary x=${x}`);
+ }
+ const safe=running();safe.traffic=[{x:70,y:ROAD.playerY,speed:.7},{x:170,y:ROAD.playerY,speed:.7}];stepDrive(safe,1/60);assert.equal(safe.phase,'running');
+});

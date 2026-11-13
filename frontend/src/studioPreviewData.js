@@ -1,3 +1,4 @@
+import {makeYaabikPreview} from './yaabikPreviewData';
 import {makeDiscPreview} from './discPreviewData';
 import {makeFriendPreview} from "./friendPreviewData";
 import {boardPreview} from "./boardPreviewData";
@@ -24,8 +25,10 @@ export function installStudioPreview(scene,theme){
   me.theme_gifts=['neon','poop'].map(id=>({id,total:id==='neon'?1:5,title:id==='neon'?'Неон Токио':'Какашечки',target:'themes',claimed:false,activated:false,remaining:0,...themePasses?.find(g=>g.id===id)}));
   const savePasses=()=>localStorage.setItem('yab_theme_usb_preview_v1',JSON.stringify(me.theme_gifts));
   const discPreview=makeDiscPreview(me);
+  const yaabikPreview=makeYaabikPreview(discPreview);
   const friendPreview=makeFriendPreview();
   const racePreview=makeRacePreview(scene,me);
+  if(scene==="yaabik")window.Telegram.WebApp.initDataUnsafe.start_param="studio_yaabik";
   if(["drive","dino","tetris"].includes(scene))window.Telegram.WebApp.initDataUnsafe.start_param="game_"+scene;
   if(scene.startsWith("race_"))window.Telegram.WebApp.initDataUnsafe.start_param="races";
   const base={id:"preview-first",title:"Первый турнир Dino",game:"dino",game_name:"Дино",status:"registration",entry_fee:0,duration_hours:48,
@@ -52,6 +55,7 @@ export function installStudioPreview(scene,theme){
       {key:"mythic",title:"Мифические",color:"#e8bc66",chance:5,items:[{id:"poop",name:"Какашечки",chance:5}]}]};const luck=discPreview('/discs','GET')?.luck_percent||0;value.luck_percent=luck;if(luck){let used=0;for(const group of value.rarities)if(group.key!=='common'){const base=group.chance,next=Math.ceil(base*(1+luck/100)*10-1e-8)/10;group.chance=next;for(const item of group.items)item.chance=item.chance*next/base;used+=next;}const common=value.rarities.find(g=>g.key==='common'),base=common.chance;common.chance=100-used;for(const item of common.items)item.chance=item.chance*common.chance/base;}return value;};
   const fail=message=>{throw Error(message);};
   async function handle(path,method,body){
+    const companion=yaabikPreview(path,method,body);if(companion!==undefined)return companion;
     const discResult=discPreview(path,method,body);if(discResult!==undefined)return discResult;
     const social=friendPreview(path,method,body);if(social!==undefined)return social;
     const boardResult=boardPreview(path,method);if(boardResult!==undefined)return boardResult;

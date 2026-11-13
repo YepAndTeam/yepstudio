@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import yaabik_models  # private companion state, registered before create_all
 import disc_models  # DVD collection tables
 import social_models  # friends and shared online status
 import widget_models  # registers private-chat widget tables
@@ -200,6 +201,8 @@ async def deliver_friend_game(invitation_id):
 app.include_router(make_social_router(get_user,get_db,deliver_friend_game))
 from disc_service import launch_gift_state
 from theme_gift_service import theme_gifts,update_theme_gift
+from yaabik_api import make_yaabik_router
+app.include_router(make_yaabik_router(get_user,get_db))
 from disc_api import make_disc_router
 app.include_router(make_disc_router(get_user,get_db))
 from community_api import make_community_router

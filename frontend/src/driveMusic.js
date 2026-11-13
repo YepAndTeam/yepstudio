@@ -4,7 +4,7 @@ export function createDriveMusic(player){
  let active=false,unlocked=false;
  player.setVolume(.14);
  // Generate once on demand; no oscillator scheduling or network requests while racing.
- player.setTrack(async()=>{const {renderSuppliedMelody}=await import('./suppliedMelody.js');return renderSuppliedMelody({tempo:1.3,transpose:-3,seamless:true}).blob.arrayBuffer();});
+ player.setTrack(async()=>{const {renderTokyoMidi}=await import('./tokyoMidiMusic.js');return renderTokyoMidi();});
  const play=()=>{if(active&&unlocked)void player.play().catch(()=>{});};
  return {
   setEnabled(value){active=value;if(value)play();else player.pause();},

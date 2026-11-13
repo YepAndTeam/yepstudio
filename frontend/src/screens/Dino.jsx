@@ -1,3 +1,4 @@
+import {recordNyanTrail} from '../nyanTrailCore';
 import GameTimers from '../components/GameTimers';
 import {advanceDino} from '../dinoTiming';
 import GameCanvas from '../components/GameCanvas';
@@ -51,6 +52,7 @@ function step(s, dt) {
     s.y = GROUND;
     s.vy = 0;
   }
+  recordNyanTrail(s,s.y-NYAN_H,s.t);
   s.leg += dt * 10;
   s.gap -= dt;
 
@@ -138,7 +140,7 @@ function draw(ctx, s, col) {
     ctx.fillStyle = col.fg;
   } else if (col.nyan) {
     const frame = Math.floor(s.leg);
-    drawNyanTrail(ctx, DX - 2, s.y - NYAN_H, frame);
+    drawNyanTrail(ctx, DX - 2, s.y - NYAN_H, frame,2,s.nyanTrail,s.t,s.speed);
     drawNyanCat(ctx, DX - 2, s.y - NYAN_H, frame, air);
     ctx.fillStyle = col.fg;
   } else {

@@ -196,7 +196,7 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="retro"] input[type=text]{border:2px solid #000;background:#fff;color:#000;border-radius:0}
 :root[data-theme="retro"] nav{border-top:var(--bw) solid #000}
 :root[data-theme="retro"] nav button.on .pill{background:#000;color:#fff}
-:root[data-theme="retro"] button:active{transform:translate(2px,2px);box-shadow:none}
+:root[data-theme="retro"] button:active:not(.yaabik-pet){transform:translate(2px,2px);box-shadow:none}
 :root[data-theme="retro"] .scrim{background:rgba(0,0,0,.35)}
 
 /* ===== ТЕРМИНАЛ ===== */
@@ -260,14 +260,14 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="nyan"] .stats b{font-size:16px}
 
 /* радужная дорожка под шапкой */
-:root[data-theme="nyan"] header{position:relative}
-:root[data-theme="nyan"] header::after{
+:root[data-theme="nyan"] #app > header{position:relative}
+:root[data-theme="nyan"] #app > header::after{
   content:"";position:absolute;left:0;right:0;bottom:0;height:12px;
   background:linear-gradient(#F00 0 2px,#F90 2px 4px,#FF0 4px 6px,#3F0 6px 8px,#09F 8px 10px,#63F 10px 12px)}
 
 :root[data-theme="nyan"] textarea,
 :root[data-theme="nyan"] input[type=text]{border:2px solid #000}
-:root[data-theme="nyan"] button:active{transform:translate(2px,2px);box-shadow:none}
+:root[data-theme="nyan"] button:active:not(.yaabik-pet){transform:translate(2px,2px);box-shadow:none}
 :root[data-theme="nyan"] .scrim{background:rgba(0,20,60,.6)}
 
 /* Кнопка звука в теме Nyan */
@@ -311,8 +311,8 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="tetris"] .dot{border-radius:0}
 
 /* полоска из семи тетрамино под шапкой */
-:root[data-theme="tetris"] header{position:relative}
-:root[data-theme="tetris"] header::after{
+:root[data-theme="tetris"] #app > header{position:relative}
+:root[data-theme="tetris"] #app > header::after{
   content:"";position:absolute;left:0;right:0;bottom:0;height:8px;
   background:linear-gradient(90deg,
     #00F0F0 0 14.28%,#F0F000 14.28% 28.57%,#A000F0 28.57% 42.85%,
@@ -321,7 +321,7 @@ textarea,input[type=text]{border-radius:calc(var(--r) * .7)}
 :root[data-theme="tetris"] textarea,
 :root[data-theme="tetris"] input[type=text]{border:2px solid var(--bc);border-radius:0}
 :root[data-theme="tetris"] nav{border-top:var(--bw) solid var(--bc)}
-:root[data-theme="tetris"] button:active{transform:translate(2px,2px);box-shadow:none}
+:root[data-theme="tetris"] button:active:not(.yaabik-pet){transform:translate(2px,2px);box-shadow:none}
 .ggrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .gtile{position:relative}
 .gtile .gp{min-height:112px;height:100%}
@@ -999,3 +999,22 @@ button.disc-capsule{font:inherit;width:100%;cursor:pointer;appearance:none}butto
 .case-solid-legendary .case-front-seal{background:linear-gradient(135deg,#e7b4ec,#a1dce3,#e8d9a4)}.case-solid-secret .case-front-seal{background:#191e29;color:#c6ced9;border-color:#6c7785}
 /* Neutral plastic highlights replace the former rarity glow. */
 .disc-sealing-base>i{box-shadow:inset 2px 3px 6px #000b,0 1px 1px #ffffff26;border-color:#46515d}.disc-sealing-base{background:linear-gradient(135deg,#151d27,#0e131a)}
+
+nav button{min-width:0}nav button .pill{max-width:100%}nav button[data-tab="yaabik"] svg{width:24px;height:24px}nav button[data-tab="yaabik"]:not(.on) .pill{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+
+/* Nyan: light text on space, dark text on every pink surface. */
+:root[data-theme="nyan"]{--fg:#edf6ff;--muted:#bed5ee;--inv:#241135;--nyan-ink:#32123f;--nyan-hint:#694576}
+:root[data-theme="nyan"] :is(.card,.topic,.filters,.menu,.sheet,nav,.empty,.seg,.chip span,.votebtn,.app-select,.app-select-dialog,dialog,.ava,.yaabik-power,.yaabik-speech,.yaabik-tools,.yaabik-interactions,.game-timers,.market-create,.market-listing,.market-response,.trade-card,.studio-event,.community-future,.profile-menu-row){--fg:var(--nyan-ink);--muted:var(--nyan-hint);--inv:#fff0ff;color:var(--fg)}
+:root[data-theme="nyan"] :is(.pub,.pub.alt){--fg:#32123f;--muted:#694576;background:#ffd6ff;color:#32123f;border-color:#a95caa}
+:root[data-theme="nyan"] :is(input,textarea,select){background:#ffe6ff;color:#32123f;border-color:#a95caa}
+:root[data-theme="nyan"] input::placeholder,:root[data-theme="nyan"] textarea::placeholder{color:#795780;opacity:1}
+:root[data-theme="nyan"] .app-select-dialog{background:#ffe6ff}:root[data-theme="nyan"] .app-select-dialog [role="radio"]{color:#32123f;background:#ffd6ff}
+:root[data-theme="nyan"] .card .muted,:root[data-theme="nyan"] dialog .muted{color:#694576}
+:root[data-theme="nyan"] .page > .small.muted:not(.card){color:#cbdff3}
+
+:root[data-theme="nyan"] .card .noc{color:var(--nyan-hint)}
+
+/* Standalone menu cards need their own surface; nested menu rows stay transparent. */
+.card.profile-menu-row{background:var(--card);padding:14px 16px}
+:root[data-theme="nyan"] .disc-play-trigger{border:3px solid #000;box-shadow:3px 3px 0 #000;color:#32123f}
+:root[data-theme="nyan"] .disc-play-trigger small{color:#694576}

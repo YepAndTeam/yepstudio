@@ -1,5 +1,7 @@
 // Logical pixels. Simulation has no DOM or wallet writes.
 export const ROAD={width:240,height:360,left:46,right:194,lanes:[70,120,170],playerY:290};
+// Include mirrors and a one-pixel contact margin: adjacent lanes must not leave an AFK corridor.
+const CAR_CONTACT_X=(ROAD.lanes[1]-ROAD.lanes[0])/2+1;
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const DRIVE_SPEED_STEP=5000,DRIVE_KMH_STEP=20;
 export function driveSpeed(time,score){return Math.min(132+time*1.8,235)+Math.floor(Math.max(0,score)/DRIVE_SPEED_STEP)*(DRIVE_KMH_STEP/.9);}
@@ -19,7 +21,7 @@ export function stepDrive(s,dt,random=Math.random){
  }
  for(const car of s.traffic){
   const beforeY=car.y;car.y+=s.speed*car.speed*dt;
-  if(Math.abs(car.x-s.x)<20&&beforeY<ROAD.playerY+34&&car.y>ROAD.playerY-34){s.phase='crashed';s.flash=.25;break;}
+  if(Math.abs(car.x-s.x)<CAR_CONTACT_X&&beforeY<ROAD.playerY+34&&car.y>ROAD.playerY-34){s.phase='crashed';s.flash=.25;break;}
   if(!car.passed&&car.y>ROAD.playerY+40){car.passed=true;s.passed++;if(Math.abs(car.x-s.x)<37){s.near++;s.flash=.2;}}
  }
  for(const coin of s.pickups){const beforeY=coin.y;coin.y+=s.speed*dt;if(!coin.taken&&Math.abs(coin.x-s.x)<17&&beforeY<ROAD.playerY+24&&coin.y>ROAD.playerY-24){coin.taken=true;s.coins++;}}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useStore } from "./store";
 import { tg } from "./tg";
 import Studio from "./screens/Studio";
@@ -15,9 +15,12 @@ import NewTopicSheet from "./components/NewTopicSheet";
 import { Bell, NavForum, NavGame, NavNews, NavProfile } from "./components/Icons";
 import Game from "./screens/Game";
 import NyanRunner from "./components/NyanRunner";
+const Yaabik=lazy(()=>import('./screens/Yaabik'));
+const YaabikIcon=()=> <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V3m-1-1h2M6 6h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><rect x="6.5" y="8.5" width="11" height="8" rx="1.5" strokeWidth="1.2"/><path d="M1.5 11.5v4m21-4v4M8 20v2m8-2v2M10 14h4" strokeWidth="1.5"/><path d="M9 11h.1m5.8 0h.1" strokeWidth="2.5"/></svg>;
 const TABS = [
   ["news", "Студия", <NavNews />],
   ["forum", "Сообщество", <NavForum />],
+  ["yaabik", "Яабик", <YaabikIcon />],
   ["game", "Игры", <NavGame />],
   ["profile", "Профиль", <NavProfile />],
 ];
@@ -118,7 +121,8 @@ const [gameRef, setGameRef] = useState(null);
   useEffect(() => {
   const ref = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get("ref");
   if (!ref) return;
-  if(ref==="studio_home"){setTab("news");setStudioSection(null);}
+  if(ref==="studio_yaabik"){setTab("yaabik");}
+  else if(ref==="studio_home"){setTab("news");setStudioSection(null);}
   else if(ref==="studio_profile"){setTab("profile");setProfileSection(null);}
   else if(ref==="studio_friends"){setTab("forum");setCommunitySection("friends");}
   else if(ref==="studio_mail"){setTab("forum");setCommunitySection("letters");}
@@ -204,7 +208,7 @@ const [gameRef, setGameRef] = useState(null);
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "game" ? <Game initial={gameRef} />
+          ) : tab === "yaabik" ? <Suspense fallback={<p className="card muted">Яабик просыпается…</p>}><Yaabik key={me?.id||"guest"}/></Suspense> : tab === "game" ? <Game initial={gameRef} />
             : (
             <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} onOpenGift={setSelectedGift} />
           )}
@@ -215,6 +219,7 @@ const [gameRef, setGameRef] = useState(null);
         {TABS.map(([id, label, icon]) => (
           <button
             key={id}
+            data-tab={id}
             type="button"
             className={tab === id && !inbox && !thread ? "on" : ""}
             onClick={() => go(id)}

@@ -1,3 +1,4 @@
+import {recordNyanTrail} from '../nyanTrailCore';
 import GameTimers from '../components/GameTimers';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
@@ -62,6 +63,7 @@ function step(s, dt) {
   s.t += dt;
   s.vy += GRAV * dt;
   s.y += s.vy * dt;
+  recordNyanTrail(s,s.y-12,s.t);
 
   // потолок: не умираем, просто упираемся
   if (s.y < R) {
@@ -144,7 +146,7 @@ function draw(ctx, s, col) {
     ctx.fillStyle = col.fg;
   } else if (col.nyan) {
     const frame = Math.floor(performance.now() / 120);
-    drawNyanTrail(ctx, BX - 13, by - 12, frame);
+    drawNyanTrail(ctx, BX - 13, by - 12, frame,2,s.nyanTrail,s.t,SPEED);
     ctx.save();
     ctx.translate(BX, by);
     ctx.rotate(Math.max(-0.25, Math.min(0.5, s.vy / 900))); // кот почти не крутится

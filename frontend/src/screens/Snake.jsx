@@ -6,7 +6,7 @@ import { useStore } from "../store";
 import { haptic, notify } from "../tg";
 import { sfx } from "../sfx";
 import { nyanSfx, isNyan } from "../nyanSfx";
-import { drawNyanHead, drawStars } from "../nyan";
+import { drawNyanHead, drawNyanSnake, drawStars } from "../nyan";
 import Leaderboard from "../components/Leaderboard";
 import { BackIcon, Sound, SoundOff } from "../components/Icons";
 import { usePreferences } from "../preferences";
@@ -114,8 +114,9 @@ function draw(ctx, s, col) {
     ctx.fillRect(f.x * C + 4, f.y * C + 4, C - 8, C - 8);
   }
 
+  if(col.nyan)drawNyanSnake(ctx,s.snake,C);
   // тело (с конца к голове)
-  for (let i = s.snake.length - 1; i >= 1; i--) {
+  for (let i = s.snake.length - 1; !col.nyan && i >= 1; i--) {
     const p = s.snake[i];
     if(col.poop){drawRollSegment(ctx,p.x*C,p.y*C,C);continue;}
     ctx.fillStyle = col.nyan ? RAINBOW[(i - 1) % RAINBOW.length] : col.fg;

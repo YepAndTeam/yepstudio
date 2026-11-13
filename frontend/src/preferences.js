@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-const defaults={musicEnabled:true,snakeController:true,tetrisController:true,gameScale:100,gameMaxWidth:0,tetrisGap:8,tetrisOrder:"left,rotate,right,down"};
+const defaults={musicEnabled:true,yaabikSounds:true,snakeController:true,tetrisController:true,gameScale:100,gameMaxWidth:0,tetrisGap:8,tetrisOrder:"left,rotate,right,down"};
 export const TETRIS_KEYS={left:{label:'◀',title:'Влево'},rotate:{label:'⟳',title:'Поворот'},right:{label:'▶',title:'Вправо'},down:{label:'▼',title:'Ускорение'}};
 function valid(key,value){
  if(key==='tetrisOrder')return typeof value==='string'&&value.split(',').length===4&&Object.keys(TETRIS_KEYS).every(id=>value.split(',').includes(id));
