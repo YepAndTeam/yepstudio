@@ -13,3 +13,5 @@
 .tag-inspector-panel .tag-test-actions>button{border-style:dashed;color:var(--muted,#b6c4b9);font-size:11px}
 .tag-inspector-panel header button{background:transparent;border-color:var(--line,#51615c)}
 @media(hover:hover){.tag-inspector-panel .tag-inspector-actions>button:hover{background:var(--bg,#25322d)}.tag-inspector-panel .tag-equip-actions>button:hover{background:#d5ddc2}}
+
+.tag-turntable .ym-orbit{--ym-width:min(290px,calc(100vw - 100px));--ym-height:calc(var(--ym-width)/2)}
