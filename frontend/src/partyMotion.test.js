@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {partyMotionBlend,PARTY_FRAME_MS} from './partyMotion.js';
+test('camera and head damping preserve elapsed motion at different refresh rates',()=>{for(const rate of [5.95,7.45]){const positions=[30,60,90,120].map(fps=>{let x=0;for(let i=0;i<fps;i++)x+=(1-x)*partyMotionBlend(1/fps,rate);return x;});assert.ok(Math.max(...positions)-Math.min(...positions)<1e-12);}assert.equal(PARTY_FRAME_MS,1000/60);});
