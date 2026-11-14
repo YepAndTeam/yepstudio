@@ -1,3 +1,4 @@
+import bekovich_models  # register bonus wallet and inventory tables
 """Registration, fees, deadlines and rewards share the score transaction lock."""
 import json
 from datetime import datetime,timedelta
@@ -142,11 +143,14 @@ def register(db,event_id,user_id,now=None):
     if event.cancelled or event.status not in ("registration","active") or (event.status=="active" and event.ends_at<=now):
         raise TournamentError(409,"Регистрация на этот турнир закрыта")
     if entry is not None:return entry
-    if event.entry_fee:
+    from bekovich_service import consume_ticket
+    paid=event.entry_fee
+    if event.entry_fee and consume_ticket(db,user_id,event.id):paid=0
+    if paid:
         changed=db.execute(update(User).where(User.id==user_id,User.jera>=event.entry_fee).values(jera=User.jera-event.entry_fee))
         if changed.rowcount!=1:raise TournamentError(409,"Не хватает Йеры для участия")
         db.add(JeraTx(user_id=user_id,amount=-event.entry_fee,reason="tour:entry:"+event.id))
-    entry=TournamentEntry(tournament_id=event.id,user_id=user_id,paid=event.entry_fee,joined_at=now)
+    entry=TournamentEntry(tournament_id=event.id,user_id=user_id,paid=paid,joined_at=now)
     db.add(entry);db.flush();return entry
 
 
@@ -162,6 +166,8 @@ def cancel_event(db,event_id):
             db.add(Notification(user_id=entry.user_id,kind="game",text=f"Турнир «{event.title}» отменён. Возвращено {entry.paid} Йер.",ref="game"))
     from race_service import close_tournament_funding
     close_tournament_funding(db,event,0)
+    from bekovich_service import restore_tickets
+    restore_tickets(db,event.id)
     event.cancelled=True;event.status="cancelled";db.flush();return event
 
 

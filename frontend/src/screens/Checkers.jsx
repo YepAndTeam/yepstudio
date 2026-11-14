@@ -1,3 +1,4 @@
+import PlayerName from '../components/PlayerName';
 import StudioLoading from '../components/StudioLoading';
 import GameCanvas from '../components/GameCanvas';
 import { useEffect, useRef, useState } from "react";
@@ -235,7 +236,7 @@ function Match({ id, onBack }) {
   const bar = (p, color) => (
     <div className="between">
       <span>
-        {color === "w" ? "○" : "●"} {p.name ? (p.id === me?.id ? "Ты" : p.name) : "—"} · {count(color)}
+        {color === "w" ? "○" : "●"} <PlayerName userId={p.id} name={p.name?(p.id===me?.id?"Ты":p.name):"—"}/> · {count(color)}
       </span>
       {st.status === "active" && st.turn === color && <span className="badge">ход</span>}
     </div>
@@ -339,11 +340,9 @@ function Lobby({ onBack, open }) {
     let badge = null;
     if (g.status === "finished") badge = outcome(g.result, g.my);
     else if (g.status === "active" && g.turn === g.my) badge = "Твой ход";
-    const title = watch ? `${g.white_name || "Белые"} — ${g.black_name || "Чёрные"}` : lobby
-      ? `Вызов от ${g.creator || "?"}`
-      : g.opponent
-      ? `С ${g.opponent}`
-      : "Ждёт соперника";
+    const title = watch ? <><PlayerName userId={g.white_id} name={g.white_name||'Белые'}/> — <PlayerName userId={g.black_id} name={g.black_name||'Чёрные'}/></> : lobby
+      ? <>Вызов от <PlayerName userId={g.creator_id} name={g.creator||'?'}/></>
+      : g.opponent ? <>С <PlayerName userId={g.opponent_id} name={g.opponent}/></> : 'Ждёт соперника';
     return (
       <button type="button" className="topic" key={g.id} onClick={() => open(g.id)}>
         <div className="t1">

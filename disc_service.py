@@ -1,3 +1,5 @@
+import gacha_models  # register batch receipts
+import bekovich_models  # register bonus wallet and inventory tables
 """Server chooses and charges once; flipping reveals an already persisted result."""
 import json,secrets
 from datetime import datetime
@@ -21,7 +23,9 @@ GIFT_OPENS=10
 
 def launch_gift_state(db,user_id):
  row=db.get(DiscLaunchGift,user_id)
- return {'id':GIFT_ID,'total':GIFT_OPENS,'claimed':row is not None,'activated':bool(row and row.activated_at),'remaining':row.remaining if row else 0}
+ from bekovich_service import credits
+ bonus=credits(db,user_id)['dvd']
+ return {**({'bonus_remaining':bonus} if bonus else {}),'id':GIFT_ID,'total':GIFT_OPENS,'claimed':row is not None,'activated':bool(row and row.activated_at),'remaining':row.remaining if row else 0}
 
 def claim_launch_gift(db,user_id):
  lock_scores(db)
@@ -63,10 +67,13 @@ def open_disc(db,user_id,request_id):
  if pending is None:
   if db.scalar(select(Meta.value).where(Meta.key=='score_maintenance'))=='1':raise DiscError(503,'Идёт обновление балансов. Попробуй немного позже.')
   gift=db.get(DiscLaunchGift,user_id)
-  price=0 if gift and gift.activated_at and gift.remaining>0 else PRICE
+  from bekovich_service import credits,consume_open
+  bonus=credits(db,user_id)['dvd']>0
+  price=0 if bonus or gift and gift.activated_at and gift.remaining>0 else PRICE
   if price:
    changed=db.execute(update(User).where(User.id==user_id,User.jera>=price).values(jera=User.jera-price))
    if changed.rowcount!=1:raise DiscError(409,'Не хватает Йер для DVD-диска')
+  elif bonus:consume_open(db,user_id,'dvd')
   else:gift.remaining-=1
   from disc_equipment import luck_for
   disc,rarity=choose_disc(luck_for(db,user_id))
@@ -98,7 +105,7 @@ def disc_state(db,user_id):
  from disc_equipment import ensure_inventory,settle_expired,instance_view,equipment_state,wear_events,luck_for
  from disc_models import DiscInstance,DiscShelfSlot
  ensure_inventory(db,user_id);settle_expired(db,user_id)
- instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status.notin_(('lost','sealed'))).order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
+ instances=db.scalars(select(DiscInstance).where(DiscInstance.user_id==user_id,DiscInstance.status.in_(('ready','active','cracked'))).order_by(DiscInstance.created_at.desc(),DiscInstance.id)).all()
  sealed=set(db.execute(select(DiscShelfSlot.disc_id,DiscShelfSlot.rarity).where(DiscShelfSlot.user_id==user_id)).all())
  groups={}
  for instance in instances:

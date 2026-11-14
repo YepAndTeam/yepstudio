@@ -1,3 +1,4 @@
+import PlayerName from './PlayerName';
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
@@ -60,7 +61,7 @@ export default function TournamentBanner({eventId,onPlay,compact=false,onOpen}) 
     </button>:live?<button type="button" className="pub" onClick={()=>onPlay(event.game)}>Играть в {event.game_name}</button>:<b className="small">Ты зарегистрирован. Ждём старта!</b>)}
     {!event.registered&&event.entry_fee>(me?.jera??0)&&<span className="small muted">На балансе не хватает Йеры для взноса.</span>}
     {event.registered&&<span className="small">Твой результат: {event.my_best || "пока нет"}{event.my_place?` · место ${event.my_place}`:""}</span>}
-    {event.top.length>0&&<div className="tour-top">{event.top.slice(0,5).map(row=><div key={row.user_id} className="between small"><span>#{row.place} {row.user_id===me?.id?"Ты":row.name}</span><b>{row.best}</b></div>)}</div>}
+    {event.top.length>0&&<div className="tour-top">{event.top.slice(0,5).map(row=><div key={row.user_id} className="between small"><span>#{row.place} <PlayerName userId={row.user_id} name={row.user_id===me?.id?"Ты":row.name}/></span><b>{row.best}</b></div>)}</div>}
     <details className="small muted"><summary>Правила и призы</summary><p>Засчитывается лучший забег, начатый после регистрации и старта, завершённый до конца турнира. Попытки не ограничены. При равных очках выше тот, кто достиг их раньше. {event.prize_theme?`Если мифик уже есть, победителю начисляется ${event.duplicate_prize} Йер.`:"Приз за первое место — только Йеры, без темы."}</p></details>
     {finished&&!event.voting_closed&&<div className="col" style={{gap:8}}><b className="small">В какую игру проведём следующий турнир?</b><div className="tour-votes">{Object.entries(games).map(([id,name])=><button type="button" key={id} className={event.my_vote===id?"on":""} disabled={busy} onClick={()=>vote(id)}>{name} · {event.votes?.[id]||0}</button>)}</div></div>}
     <button type="button" className="tour-share" onClick={()=>shareLink("tour_"+event.id,`Турнир ${event.game_name} в YAB STUDIO · ${event.duration_hours} часов · ${event.entry_fee?event.entry_fee+" Йер":"бесплатно"}`)}>Поделиться турниром</button>

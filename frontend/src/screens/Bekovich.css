@@ -44,3 +44,53 @@
 .bek-parcel-flap.flap-front,.bek-parcel-flap.flap-back{transition-delay:.06s}.bek-parcel-flap.flap-left,.bek-parcel-flap.flap-right{transition-delay:.23s}
 
 .bek-badge-gallery-link{display:block;min-height:36px;padding:9px 10px;border:1px solid #4b6064;border-radius:7px;background:#27383b;color:#e9efdc;text-decoration:none;font:12px Arial,sans-serif}
+
+/* Dialogue gestures are short SVG transforms, not continuous JavaScript loops. */
+.bek-voice-toggle,.bek-repeat-line{border:1px solid var(--bek-border);border-radius:5px;background:var(--bek-surface);color:var(--bek-ink);font:10px Arial;padding:6px 8px;cursor:pointer}.bek-repeat-line{margin-top:5px}.bek-speech>span small{font:9px Arial;letter-spacing:0;color:var(--bek-sub)}.bek-speech p{min-height:40px}.bek-seed-details{display:flex;align-items:center;gap:12px;margin:14px 0;padding:12px;border:1px solid #b397d377;border-radius:8px;background:#987ab512}.bek-seed-details>svg{width:80px;height:80px}.bek-seed-details>span{font:11px/1.7 Arial;color:var(--bek-ink)}.bek-prop-disc{opacity:0;transform-box:fill-box;transform-origin:center}.bek-bunker .bek-head,.bek-bunker .bek-hand,.bek-bunker .bek-eye-right,.bek-bunker .bek-eye-left,.bek-bunker .bek-brows,.bek-bunker .bek-mouth{transform-box:fill-box;transform-origin:center}.bek-bunker .bek-head{transform-origin:50% 90%}.bek-bunker .bek-hand{transform-origin:50% 12%}
+.bek-speaking .bek-mouth{animation:bek-letter-mouth .14s steps(2,end) infinite}.bek-action-scan .bek-head,.bek-action-eyeroll .bek-head{animation:bek-dialogue-scan 2.2s ease both}.bek-action-collar .bek-hand-right{animation:bek-dialogue-collar 2s ease both}.bek-action-rub .bek-hand-left,.bek-action-laugh .bek-hand-left{animation:bek-dialogue-rub-left .55s ease-in-out 4}.bek-action-rub .bek-hand-right,.bek-action-laugh .bek-hand-right{animation:bek-dialogue-rub-right .55s ease-in-out 4}.bek-action-tilt .bek-head,.bek-action-chin .bek-head{animation:bek-dialogue-tilt 2.3s ease both}.bek-action-tap .bek-hand-right,.bek-action-count .bek-hand-right{animation:bek-dialogue-tap .48s ease 5}.bek-action-count .bek-hand-left{animation:bek-dialogue-tap .48s ease .24s 5}.bek-action-brows .bek-brows,.bek-action-inspect .bek-brows{animation:bek-dialogue-brows 2.2s ease both}.bek-action-inspect .bek-head{animation:bek-dialogue-inspect 2.4s ease both}.bek-action-hide .bek-hand-right{animation:bek-dialogue-hide 2.8s ease both}.bek-action-hide .bek-prop-disc{animation:bek-dialogue-disc 2.8s ease both}.bek-action-squint .bek-eyes{animation:bek-dialogue-squint 2.4s ease both}.bek-action-spread .bek-hand-left,.bek-action-shrug .bek-hand-left,.bek-action-cross .bek-hand-right{animation:bek-dialogue-spread-left 2.2s ease both}.bek-action-spread .bek-hand-right,.bek-action-shrug .bek-hand-right,.bek-action-cross .bek-hand-left{animation:bek-dialogue-spread-right 2.2s ease both}.bek-action-chin .bek-hand-left{animation:bek-dialogue-chin 2.5s ease both}.bek-action-handshake .bek-hand-right,.bek-action-give .bek-hand-right{animation:bek-dialogue-give 2s ease both}.bek-action-handshake .bek-head{animation:bek-dialogue-nod .7s ease 2}.bek-action-smile .bek-mouth{scale:1.25 1}.bek-action-laugh .bek-head{animation:bek-dialogue-nod .45s ease 4}.bek-action-yawn .bek-mouth{animation:bek-dialogue-yawn 2.5s ease both}.bek-action-yawn .bek-head{animation:bek-dialogue-tilt 2.5s ease both}.bek-action-eyeroll .bek-eyes{animation:bek-dialogue-eyeroll 2.3s ease both}.bek-action-empty .bek-head{animation:bek-dialogue-nod 1.1s ease 2}.bek-action-wave .bek-hand-right{animation:bek-dialogue-wave .6s ease 4}.bek-action-wink .bek-eye-right{animation:bek-dialogue-wink 2s ease both}
+@keyframes bek-letter-mouth{0%,100%{scale:1 1}50%{scale:1.1 2.2}}
+@keyframes bek-dialogue-scan{0%,100%{transform:none}28%{transform:translateX(-2px) rotate(-5deg)}65%{transform:translateX(2px) rotate(4deg)}}
+@keyframes bek-dialogue-collar{0%,100%{transform:none}30%,70%{transform:translate(-14px,-19px) rotate(-25deg)}}
+@keyframes bek-dialogue-rub-left{0%,100%{transform:translate(20px,-4px) rotate(-8deg)}50%{transform:translate(25px,-5px) rotate(-5deg)}}
+@keyframes bek-dialogue-rub-right{0%,100%{transform:translate(-23px,-4px) rotate(8deg)}50%{transform:translate(-18px,-5px) rotate(5deg)}}
+@keyframes bek-dialogue-tilt{0%,100%{transform:none}30%,75%{transform:rotate(7deg) translateY(1px)}}
+@keyframes bek-dialogue-tap{0%,100%{transform:none}45%{transform:translateY(-4px) rotate(-3deg)}}
+@keyframes bek-dialogue-brows{0%,100%{transform:none}25%,75%{transform:translateY(-4px) rotate(-3deg)}}
+@keyframes bek-dialogue-inspect{0%,100%{transform:none}25%,70%{transform:translateY(6px) scale(1.06) rotate(-4deg)}}
+@keyframes bek-dialogue-hide{0%,100%{transform:none;opacity:1}25%{transform:translate(-25px,-9px) rotate(12deg)}60%,85%{transform:translate(17px,-18px) rotate(-15deg);opacity:.2}}
+@keyframes bek-dialogue-disc{0%,100%{opacity:0;transform:none}20%,45%{opacity:1;transform:translate(-25px,-5px)}80%{opacity:0;transform:translate(13px,-30px)}}
+@keyframes bek-dialogue-squint{0%,100%{transform:none}25%,75%{transform:scaleY(.45)}}
+@keyframes bek-dialogue-spread-left{0%,100%{transform:none}30%,70%{transform:translate(-9px,-8px) rotate(18deg)}}
+@keyframes bek-dialogue-spread-right{0%,100%{transform:none}30%,70%{transform:translate(9px,-8px) rotate(-18deg)}}
+@keyframes bek-dialogue-chin{0%,100%{transform:none}30%,80%{transform:translate(30px,-36px) rotate(-20deg)}}
+@keyframes bek-dialogue-give{0%,100%{transform:none}30%,75%{transform:translate(-10px,6px) rotate(12deg)}}
+@keyframes bek-dialogue-nod{0%,100%{transform:none}50%{transform:translateY(3px) rotate(3deg)}}
+@keyframes bek-dialogue-yawn{0%,100%{transform:none}25%,70%{transform:scale(.75,3)}}
+@keyframes bek-dialogue-eyeroll{0%,100%{transform:none}30%,70%{transform:translateY(-2px)}}
+@keyframes bek-dialogue-wave{0%,100%{transform:translateY(-15px) rotate(-22deg)}50%{transform:translateY(-18px) rotate(-40deg)}}
+@keyframes bek-dialogue-wink{0%,25%,60%,100%{transform:none}30%,55%{transform:scaleY(.18)}}
+@media(prefers-reduced-motion:reduce){.bek-stage[class*="bek-action-"] .bek-head,.bek-stage[class*="bek-action-"] .bek-hand,.bek-stage[class*="bek-action-"] .bek-eyes,.bek-stage[class*="bek-action-"] .bek-eye-right,.bek-stage[class*="bek-action-"] .bek-brows,.bek-stage[class*="bek-action-"] .bek-mouth,.bek-stage[class*="bek-action-"] .bek-prop-disc{animation:none!important}}
+
+.bek-action-rub .bek-hand-left,.bek-action-laugh .bek-hand-left{animation:bek-dialogue-rub-left 2.6s ease both}.bek-action-rub .bek-hand-right,.bek-action-laugh .bek-hand-right{animation:bek-dialogue-rub-right 2.6s ease both}.bek-action-wave .bek-hand-right{animation:bek-dialogue-wave 2.6s ease both}.bek-action-cross .bek-hand-left{animation:bek-dialogue-cross-left 2.3s ease both}.bek-action-cross .bek-hand-right{animation:bek-dialogue-cross-right 2.3s ease both}
+@keyframes bek-dialogue-rub-left{0%,100%{transform:none}18%,38%,58%,78%{transform:translate(20px,-4px) rotate(-8deg)}28%,48%,68%{transform:translate(25px,-5px) rotate(-5deg)}}
+@keyframes bek-dialogue-rub-right{0%,100%{transform:none}18%,38%,58%,78%{transform:translate(-23px,-4px) rotate(8deg)}28%,48%,68%{transform:translate(-18px,-5px) rotate(5deg)}}
+@keyframes bek-dialogue-wave{0%,100%{transform:none}18%,48%,78%{transform:translateY(-15px) rotate(-22deg)}32%,62%{transform:translateY(-18px) rotate(-40deg)}}
+@keyframes bek-dialogue-cross-left{0%,100%{transform:none}30%,75%{transform:translate(28px,-7px) rotate(-15deg)}}
+@keyframes bek-dialogue-cross-right{0%,100%{transform:none}30%,75%{transform:translate(-28px,-7px) rotate(15deg)}}
+@keyframes bek-dialogue-collar{0%,100%{transform:none}30%,70%{transform:translate(-24px,-34px) rotate(12deg)}}
+@keyframes bek-dialogue-chin{0%,100%{transform:none}30%,80%{transform:translate(22px,-58px) rotate(-20deg)}}
+
+.bek-profile-demo .bek-profile-identity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;min-width:0}.bek-profile-demo .bek-demo-avatar{flex-shrink:0}.bek-profile-title{display:inline-flex;max-width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer}.bek-profile-title:focus-visible{outline:2px solid var(--bek-ink);outline-offset:3px;border-radius:6px}
+
+.bek-inspected-item{width:100px;height:100px;margin:24px auto;display:grid;place-items:center}.bek-inspected-item>svg{width:100%;height:100%}
+
+.bek-badge-inspect{width:100%;padding:0;border:0;background:transparent;cursor:grab}.bek-badge-inspect:focus-visible{outline:2px solid var(--bek-ink);outline-offset:4px;border-radius:12px}
+
+.bek-inline-proposal{border-top:1px solid var(--bek-border);margin-top:14px;padding-top:16px}.bek-inline-proposal .bek-offer-item{margin:10px 0}.bek-inline-proposal .bek-memory-note{font-size:10px;line-height:1.5}.bek-inline-proposal .bek-secondary{margin-top:8px}.bek-action-yawn.bek-speaking .bek-mouth{animation:bek-dialogue-yawn 2.5s ease both}
+
+.bek-test-title{width:100%;margin-bottom:12px}
+
+.bek-dialog{box-sizing:border-box}
+.bek-reward-copy>.bek-primary,.bek-reward-copy>.bek-secondary{display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:46px;padding:12px 14px;line-height:1.4;white-space:normal;text-align:center}
+.bek-reward-copy>.bek-primary+.bek-secondary,.bek-reward-copy>.bek-secondary+.bek-primary{margin-top:10px}
+.bek-reward-copy>.bek-secondary{background:transparent;border:1px solid var(--bek-border);color:var(--bek-ink)}

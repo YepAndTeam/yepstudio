@@ -1,3 +1,4 @@
+import gacha_models  # register batch receipts
 """Server-authoritative themes, purchases and Jera refunds."""
 import secrets
 from datetime import datetime
@@ -83,6 +84,9 @@ def balance(db,user_id):
 def buy_box(db,user_id,request_id):
     lock_scores(db)
     check_available(db)
+    from gacha_service import pending_theme_batch,theme_batch_buy_result
+    pending_batch=pending_theme_batch(db,user_id)
+    if pending_batch:return theme_batch_buy_result(db,pending_batch)
     row=db.scalar(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.request_id==request_id))
     if row is not None and row.status!="pending":
         raise ShopError(409,"Эта покупка уже завершена. Обнови магазин перед новой покупкой.")
@@ -113,6 +117,12 @@ def unlock_box(db,user_id,box_id,runes):
     lock_scores(db)
     check_available(db)
     row=db.get(ThemeBoxPurchase,box_id)
+    if row is None:
+        from gacha_models import GachaBatch
+        if db.get(GachaBatch,box_id):
+            from gacha_service import unlock_five_themes,GachaError
+            try:return unlock_five_themes(db,user_id,box_id,runes)
+            except GachaError as error:raise ShopError(error.status,str(error))
     if row is None or row.user_id!=user_id:raise ShopError(404,"Кассета не найдена")
     if row.status!="pending":return result(db,row)
     if len(runes)!=3 or any(r not in RUNES for r in runes):raise ShopError(422,"Нужно выбрать три руны")
@@ -135,6 +145,8 @@ def unlock_box(db,user_id,box_id,runes):
 
 
 def shop_state(db,user_id):
+    from gacha_service import pending_theme_batch
+    pending_batch=pending_theme_batch(db,user_id)
     pending=db.scalar(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.status=="pending"))
     rows=db.scalars(select(ThemeBoxPurchase).where(ThemeBoxPurchase.user_id==user_id,ThemeBoxPurchase.status!="pending")
         .order_by(ThemeBoxPurchase.resolved_at.desc(),ThemeBoxPurchase.id).limit(15)).all()
@@ -144,7 +156,7 @@ def shop_state(db,user_id):
     groups=[{**group,"chance":chances[group["key"]],"items":[{**{k:v for k,v in item.items() if k!="weight"},"chance":chances[group["key"]]*item["weight"]/sum(i["weight"] for i in group["items"])} for item in group["items"]]} for group in CATALOG]
     return {"luck_percent":luck,"price":BOX_PRICE,"failure_refund":BOX_PRICE//2,"rarities":groups,
             "balance":balance(db,user_id),"theme_gifts":theme_gifts(db,user_id),"owned_themes":sorted(owned_themes(db,user_id)),
-            "active_box":{"id":pending.id,"price":pending.price} if pending else None,
+            "active_box":({"id":pending_batch.id,"count":5} if pending_batch else {"id":pending.id,"price":pending.price,"count":1} if pending else None),
             "history":[{"id":row.id,"themeId":row.theme_id if row.status=="won" else None,
                         "success":row.status=="won","isDupe":row.is_dupe,"refund":row.refund} for row in rows]}
 

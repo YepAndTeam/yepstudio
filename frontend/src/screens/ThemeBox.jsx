@@ -1,3 +1,4 @@
+import {GachaMode} from '../components/GachaBatch';
 import StudioLoading from '../components/StudioLoading';
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
@@ -65,6 +66,7 @@ function ThemePreview({ id, size = 48 }) {
 
 export default function ThemeBox({ jera = 0, onBack }) {
   const { theme, setTheme, syncEconomy } = useStore();
+  const [count,setCount]=useState(1),[sessionBusy,setSessionBusy]=useState(false);
   const [shop, setShop] = useState(null);
   const [error, setError] = useState("");
   const [giftBusy,setGiftBusy]=useState(false),[buying,setBuying]=useState(false),[openedPrice,setOpenedPrice]=useState(null);
@@ -73,27 +75,27 @@ export default function ThemeBox({ jera = 0, onBack }) {
   const requestId = useRef(null);
   useEffect(() => {
     let active=true;
-    api("/shop").then(value=>{if(active){setShop(value);syncEconomy(value);purchase.current=value.active_box?.id || null;setOpenedPrice(value.active_box?.price??null);}})
+    api("/shop").then(value=>{if(active){setShop(value);if(value.active_box?.count===5)setCount(5);syncEconomy(value);purchase.current=value.active_box?.id || null;setOpenedPrice(value.active_box?.price??null);}})
       .catch(e=>{if(active)setError(e.message);});
     return ()=>{active=false;};
   },[syncEconomy]);
   async function buyBox() {
-    setBuying(true);
+    setBuying(true);setSessionBusy(true);
     if (!requestId.current) requestId.current=crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
     try {
-      const result=await api("/shop/theme-box/buy","POST",{request_id:requestId.current});
-      purchase.current=result.box_id;setOpenedPrice(result.price);
-      setShop(value=>({...value,balance:result.balance,active_box:{id:result.box_id},theme_gifts:result.theme_gifts??value.theme_gifts}));
+      const result=await api(count===5?"/gacha/themes/buy-five":"/shop/theme-box/buy","POST",{request_id:requestId.current.replaceAll("-","")});
+      if(result.count===5)setCount(5);purchase.current=result.box_id;setOpenedPrice(result.price);
+      setShop(value=>({...value,balance:result.balance,active_box:{id:result.box_id,count:result.count||1},theme_gifts:result.theme_gifts??value.theme_gifts}));
       setError("");syncEconomy(result);
       return result;
-    } catch(e){setError(e.message);throw e;} finally{setBuying(false);}
+    } catch(e){setSessionBusy(false);setError(e.message);throw e;} finally{setBuying(false);}
   }
   async function handleUnlock(attempt) {
     try {
       if (!purchase.current) {
         throw new Error("Кассета уже обработана. Вернись в магазин и открой историю круток.");
       }
-      const result=await api("/shop/theme-box/unlock","POST",{box_id:purchase.current,runes:attempt});
+      const result=await api(count===5?"/gacha/themes/unlock-five":"/shop/theme-box/unlock","POST",{box_id:purchase.current,runes:attempt});
       purchase.current=null;requestId.current=null;
       const state=result.shop;
       if(state)setShop(state);
@@ -134,15 +136,17 @@ export default function ThemeBox({ jera = 0, onBack }) {
       </div>
 
       {error && <div className="card small" role="status">{error}</div>}
-      {shop?.theme_gifts?.filter(g=>g.claimed).map(g=><section key={g.id} className="card usb-pass-panel"><UsbFlash size={90} count={g.activated?g.remaining:g.total} target="themes"/><div><b>За тему «{g.title}»</b><p className="small muted">{g.activated?'Бесплатных коробок тем: '+g.remaining:'Флешка: бесплатных коробок тем — '+g.total}</p>{!g.activated&&<button className="pub alt" disabled={giftBusy||buying||Boolean(shop.active_box)} onClick={()=>activateGift(g.id)}>Вставить флешку</button>}</div></section>)}
+      {shop?.theme_gifts?.filter(g=>g.claimed).map(g=><section key={g.id} className="card usb-pass-panel"><UsbFlash size={90} count={g.activated?g.remaining:g.total} target="themes"/><div><b>{g.id==='bekovich'?'Флешка Бековича':'За тему «'+g.title+'»'}</b><p className="small muted">{g.activated?'Бесплатных коробок тем: '+g.remaining:'Флешка: бесплатных коробок тем — '+g.total}</p>{!g.activated&&<button className="pub alt" disabled={giftBusy||buying||Boolean(shop.active_box)} onClick={()=>activateGift(g.id)}>Вставить флешку</button>}</div></section>)}
       {freeOpens>0&&<p className="card small">Бесплатных коробок: {freeOpens}. Йеры не списываются. Возврат Йер за бесплатную коробку не начисляется.</p>}
+      {shop&&<GachaMode value={count} onChange={value=>{requestId.current=null;setCount(value);}} disabled={buying||sessionBusy||Boolean(shop.active_box)} pending={sessionBusy||Boolean(shop.active_box)} price={shop.price} free={freeOpens}/>}
       {shop ? <LockBox
-        title="Коробка тем"
-        price={freeOpens?0:shop.price}
+        title={count===5?"Пять кассет":"Коробка тем"}
+        price={Math.max(0,count-freeOpens)*shop.price}
         balance={shop.balance}
         onBuy={async()=>{if(giftWorking.current)throw Error("Флешка подключается");return buyBox();}}
         onUnlock={handleUnlock}
         onApply={setTheme}
+        onReset={()=>setSessionBusy(false)}
         activeTheme={theme}
         resumeAvailable={Boolean(shop.active_box)}
         lostText={openedPrice===0?"Бесплатная коробка открыта. Йеры не списывались, возврата нет.":"Раз код не вспомнили — Бека выкупит его у вас обратно за пол цены"}

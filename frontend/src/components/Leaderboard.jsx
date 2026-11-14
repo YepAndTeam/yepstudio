@@ -1,3 +1,4 @@
+import PlayerName from './PlayerName';
 import StudioLoading from './StudioLoading';
 export default function Leaderboard({ title = "Таблица рекордов", data, meId,failed=false }) {
   if(!data&&failed)return <div className="card small" role="status">Не удалось загрузить рекорды. Попробуй обновить таблицу.</div>;
@@ -18,7 +19,7 @@ export default function Leaderboard({ title = "Таблица рекордов",
       {data?.top.map((r, i) => (
         <div className={`lb ${r.user_id === meId ? "me" : ""}`} key={r.user_id}>
           <span className="rk">{r.place ?? i + 1}</span>
-          <span className="nm">{r.user_id === meId ? "Ты" : r.name}</span>
+          <span className="nm"><PlayerName userId={r.user_id} name={r.user_id===meId?"Ты":r.name}/></span>
           <b>{r.best}</b>
         </div>
       ))}

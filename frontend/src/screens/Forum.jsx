@@ -1,3 +1,4 @@
+import PlayerName from '../components/PlayerName';
 import { useMemo } from "react";
 import { CATS } from "../constants";
 import { useStore } from "../store";
@@ -42,7 +43,7 @@ export default function Forum({ openThread, openSheet, cat, setCat, sort, setSor
           <div className="title">{t.title}</div>
           {t.text && <div className="prev">{t.text}</div>}
           <div className="foot">
-            <span className="au">{t.author_id === me?.id ? "Ты" : t.author}</span>
+            <span className="au"><PlayerName userId={t.author_id} name={t.author_id===me?.id?"Ты":t.author}/></span>
             <span className={`v ${t.voted ? "on" : ""}`}>▲ {t.votes}</span>
             <span>Ответов: {t.replies}</span>
             <span

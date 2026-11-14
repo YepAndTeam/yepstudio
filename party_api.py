@@ -97,7 +97,7 @@ def make_party_router(get_user,get_db):
   for room in rows:
    s=json.loads(room.data_json)
    member=any(p['id']==user.id for p in s['players'])
-   result.append({'code':room.code,'kind':room.kind,'status':room.status,'count':len(s['players']),'capacity':s['capacity'],'mine':member,'host_name':next((p['name'] for p in s['players'] if p['id']==s['host']),'Яабик')})
+   result.append({'code':room.code,'kind':room.kind,'status':room.status,'count':len(s['players']),'capacity':s['capacity'],'mine':member,'host_id':s['host'],'host_name':next((p['name'] for p in s['players'] if p['id']==s['host']),'Яабик')})
   return {'rooms':result}
  @r.post('')
  def create(body:CreateIn,user=Depends(get_user),db=Depends(get_db)):

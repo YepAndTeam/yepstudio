@@ -91,6 +91,7 @@ def make_router(get_user, get_db):
             "opponent": name_of(db, opp_id), "creator_id": g.creator_id,
             "creator": name_of(db, g.creator_id),
             "white_name": name_of(db,g.white_id), "black_name": name_of(db,g.black_id),
+            "white_id":g.white_id,"black_id":g.black_id,"opponent_id":opp_id,
             "updated_at": iso(g.updated_at),
         }
 

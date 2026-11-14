@@ -1,5 +1,6 @@
 import StudioLoading from '../components/StudioLoading';
 import { lazy, Suspense, useState } from "react";
+const BekovichLive=lazy(()=>import("./BekovichLive"));
 const DiscCollection=lazy(()=>import("./DiscCollection"));
 import { useStore } from "../store";
 import { JeraIcon } from "../components/JeraIcon";
@@ -10,6 +11,7 @@ export default function Shop({ jera = 0 }) {
   const { me } = useStore();
   const price = me?.theme_box_price ?? THEME_BOX_PRICE;
 
+  if(box==="bekovich")return <Suspense fallback={<StudioLoading compact label="Загружаем лавку…"/>}><BekovichLive onBack={()=>setBox(null)}/></Suspense>;
   if(box==="discs")return <Suspense fallback={<StudioLoading compact label="Загружаем DVD-плеер…"/>}><DiscCollection onBack={()=>setBox(null)} backLabel="Магазин"/></Suspense>;
   if (box === "themes") {
     return <ThemeBox jera={jera} onBack={() => setBox(null)} />;
@@ -25,7 +27,7 @@ export default function Shop({ jera = 0 }) {
         </div>
       </div>
 
-      <div className="ggrid"><div className="gtile wide"><button type="button" className="topic gp" onClick={()=>setBox("discs")}><div className="title">DVD-архив</div><div className="prev">Коллекционные диски · редкость на обороте</div><div className="foot"><span className="badge">Открыть плеер</span></div></button></div>
+      <div className="ggrid"><div className="gtile wide"><button type="button" className="topic gp" onClick={()=>setBox("bekovich")}><div className="title">Лавка Бековича</div><div className="prev">Обменяй лишние DVD-диски на ящик с находкой</div><div className="foot"><span className="badge">Зайти в лавку ›</span></div></button></div><div className="gtile wide"><button type="button" className="topic gp" onClick={()=>setBox("discs")}><div className="title">DVD-архив</div><div className="prev">Коллекционные диски · редкость на обороте</div><div className="foot"><span className="badge">Открыть плеер</span></div></button></div>
       <div className="gtile wide">
         <button
           type="button"

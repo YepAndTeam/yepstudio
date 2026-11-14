@@ -18,6 +18,8 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import gacha_models  # registers batch openings before create_all
+import bekovich_models  # registers merchant tables before create_all
 import party_models  # social game rooms, registered before create_all
 import garden_models  # registers greenhouse before create_all
 import yaabik_models  # private companion state, registered before create_all
@@ -212,6 +214,11 @@ from yaabik_api import make_yaabik_router
 app.include_router(make_yaabik_router(get_user,get_db))
 from disc_api import make_disc_router
 app.include_router(make_disc_router(get_user,get_db))
+from bekovich_service import equipped_badge
+from bekovich_api import make_bekovich_router
+app.include_router(make_bekovich_router(get_user,get_db))
+from gacha_api import make_gacha_router
+app.include_router(make_gacha_router(get_user,get_db))
 from community_api import make_community_router
 from disc_equipment import equipment_state
 async def deliver_trade_notice(identity):
@@ -281,6 +288,7 @@ def me(user: User = Depends(get_user), db=Depends(get_db)):
         "compensation_letters": list_letters(db, user.id),
         "disc_equipment": disc_equipment, "disc_gift": launch_gift_state(db,user.id), "theme_gifts": theme_gifts(db,user.id),
         "daily_reward": daily,
+        "studio_badge": equipped_badge(db,user.id),
     }
 
 

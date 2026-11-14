@@ -1,3 +1,4 @@
+import bekovich_models  # register bonus wallet and inventory tables
 # coding: utf-8
 from datetime import datetime
 from sqlalchemy import select
@@ -9,7 +10,11 @@ THEME_USB={'neon':(1,'Неон Токио'),'poop':(5,'Какашечки')}
 def theme_gifts(db,user_id):
  owned=set(db.scalars(select(UserTheme.theme_id).where(UserTheme.user_id==user_id)))
  rows={row.theme_id:row for row in db.scalars(select(ThemeUsbGift).where(ThemeUsbGift.user_id==user_id))}
- return [dict(id=key,total=count,title=title,target='themes',claimed=key in rows,activated=bool(rows.get(key) and rows[key].activated_at),remaining=rows[key].remaining if key in rows else 0) for key,(count,title) in THEME_USB.items() if key in owned or key in rows]
+ result=[dict(id=key,total=count,title=title,target='themes',claimed=key in rows,activated=bool(rows.get(key) and rows[key].activated_at),remaining=rows[key].remaining if key in rows else 0) for key,(count,title) in THEME_USB.items() if key in owned or key in rows]
+ from bekovich_service import credits
+ bonus=credits(db,user_id)['themes']
+ if bonus:result.append(dict(id='bekovich',total=bonus,title='Бековича',target='themes',claimed=True,activated=True,remaining=bonus))
+ return result
 
 def update_theme_gift(db,user_id,key,activate=False):
  from shop_service import ShopError,balance
@@ -23,6 +28,8 @@ def update_theme_gift(db,user_id,key,activate=False):
  return {'theme_gifts':theme_gifts(db,user_id),'balance':balance(db,user_id)}
 
 def consume_theme_open(db,user_id):
+ from bekovich_service import consume_open
+ if consume_open(db,user_id,'themes'):return True
  row=db.scalar(select(ThemeUsbGift).where(ThemeUsbGift.user_id==user_id,ThemeUsbGift.activated_at.is_not(None),ThemeUsbGift.remaining>0).order_by(ThemeUsbGift.theme_id).limit(1))
  if row is None:return False
  row.remaining-=1

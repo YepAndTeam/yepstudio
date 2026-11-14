@@ -1,3 +1,4 @@
+import {GachaResults} from './GachaBatch';
 import { useEffect, useRef, useState } from "react";
 import PoopIcon from "./PoopIcon";
 import { JeraIcon } from "./JeraIcon";
@@ -62,11 +63,13 @@ export default function LockBox({
   onBuy, // async () => { runes: string[] }  // 3 руны в правильном порядке
   onUnlock, // async (runes: string[]) => { ok, themeId, left, refund }
   onApply,
+  onReset,
   activeTheme,
   resumeAvailable = false,
   lostText = "Раз код не вспомнили — Бека выкупит его у вас обратно за пол цены",
 }) {
   // idle | buying | sign | stamp | lock | check | pullback | open | lost | reveal
+  const [batchResults,setBatchResults]=useState([]);
   const [phase, setPhase] = useState("idle");
   const [secret, setSecret] = useState([]); // правильный порядок (только в sign)
   const [slots, setSlots] = useState(["", "", ""]); // то, что игрок поставил
@@ -281,6 +284,7 @@ export default function LockBox({
       ]);
       if (!alive.current) return;
 
+      setBatchResults(res.batch_results||[]);
       if (res.ok) {
         haptic();
         setPrizeId(res.themeId);
@@ -329,6 +333,7 @@ export default function LockBox({
 
   function reset() {
     if (busy.current) return;
+    setBatchResults([]);onReset?.();
     setWrong(false);
     setRefund(0);
     deckSound.stop();
@@ -449,7 +454,7 @@ export default function LockBox({
         {phase === "pullback" && <h3>Код принят</h3>}
         {phase === "open" && <h3>Выдаём кассету…</h3>}
 
-        {phase === "lost" && (
+        {phase === "lost" && batchResults.length===0 && (
   <>
     <h3>Запись не расшифрована</h3>
     <p>{lostText}<br />Возвращено: {coin} {refund}</p>
@@ -459,7 +464,8 @@ export default function LockBox({
   </>
 )}
 
-        {["reveal", "recycle", "recycled"].includes(phase) && prize && (
+        {["reveal","recycle","recycled","lost"].includes(phase)&&batchResults.length>0&&<><GachaResults items={batchResults} onApply={onApply} activeTheme={activeTheme}/><button type="button" className="pub alt" disabled={phase==='recycle'||phase==='reveal'&&isDupe} onClick={reset}>Завершить просмотр</button></>}
+        {["reveal", "recycle", "recycled"].includes(phase) && prize && batchResults.length===0 && (
           <>
             <h3>{isDupe ? "Повторка" : prize.name}</h3>
             {!isDupe && prize.rarity === "mythic" && <span className="mythic-reward">Мифическая · Золотой смыв</span>}

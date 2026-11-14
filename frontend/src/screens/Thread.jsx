@@ -1,3 +1,4 @@
+import PlayerName from '../components/PlayerName';
 import StudioLoading from '../components/StudioLoading';
 import { useEffect, useRef, useState } from "react";
 import { CYCLE, ST, dayLabel } from "../constants";
@@ -108,7 +109,7 @@ export default function Thread({ refId, onBack }) {
             {item.rated && <span className="badge">Оценено</span>}
           </div>
           <h2>{item.title}</h2>
-          <div className="small muted">{who(item.author_id, item.author)}</div>
+          <div className="small muted"><PlayerName userId={item.author_id} name={who(item.author_id,item.author)}/></div>
           {item.text && <p className="body">{item.text}</p>}
           <div><button type="button" className={`votebtn ${item.voted ? "on" : ""}`} onClick={vote}>▲ {item.votes}</button></div>
         </div>
@@ -132,7 +133,7 @@ export default function Thread({ refId, onBack }) {
             {!all.length && <div className="noc">Пока никто не написал. Начни первым.</div>}
             {ordered.map((c) => (
               <div className={`cm ${c.parent_id === null ? "" : "reply"}`} key={c.id}>
-                <div className="who"><b>{who(c.author_id, c.author)}</b>{c.staff && <i>Автор</i>}</div>
+                <div className="who"><b><PlayerName userId={c.author_id} name={who(c.author_id,c.author)}/></b>{c.staff && <i>Автор</i>}</div>
                 <div className="tx">{c.text}</div>
                 <div className="acts">
                   <button type="button" className={c.my === "like" ? "on" : ""} aria-label="Нравится" onClick={() => react(c.id, "like")}>▲ {c.likes}</button>

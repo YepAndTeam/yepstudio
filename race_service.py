@@ -363,7 +363,7 @@ def state(db,race,user_id,now=None):
  chat=[]
  if race.opens_at<=now<race.chat_until and race.status not in ('skipped','refunded'):
   rows=db.execute(select(RaceChat,User.first_name).join(User,User.id==RaceChat.user_id).where(RaceChat.race_id==chat_id).order_by(RaceChat.id.desc()).limit(80)).all()
-  chat=[{'id':m.id,'name':name,'text':m.text,'created_at':m.created_at.isoformat()+'Z'} for m,name in reversed(rows)]
+  chat=[{'id':m.id,'user_id':m.user_id,'name':name,'text':m.text,'created_at':m.created_at.isoformat()+'Z'} for m,name in reversed(rows)]
  return {'id':race.id,'meeting_id':race.meeting_id,'node_id':race.node_id,'meeting_bets':meeting_bets(db,race,user_id),'bracket':meeting_bracket(db,race.meeting_id,now,user_id) if race.meeting_id else [],'status':phase,'attempt':race.attempt,'opens_at':race.opens_at.isoformat()+'Z','closes_at':race.closes_at.isoformat()+'Z','starts_at':race.starts_at.isoformat()+'Z','chat_until':race.chat_until.isoformat()+'Z','server_now':now.isoformat()+'Z','horses':rules['horses'],'commitment':race.commitment,'beacon_round':race.beacon_round,'rules':rules,'proof':json.loads(race.proof_json) if race.proof_json else None,'ranking':json.loads(race.result_json) if race.result_json else [],'chat_open':race.opens_at<=now<race.chat_until and race.status not in ('skipped','refunded'),'chat':chat,'my_bets':[{'id':b.id,'horse':b.horse,'amount':b.amount,'payout':b.payout,'status':b.status,'commitment':b.commitment} for b in bets],'pool':db.scalar(select(func.coalesce(func.sum(RaceBet.amount),0)).where(RaceBet.race_id==race.id,RaceBet.status!='replaced')) or 0}
 
 def race_list(db,user_id,now=None):

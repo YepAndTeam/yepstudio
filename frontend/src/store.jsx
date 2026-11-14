@@ -1,3 +1,4 @@
+import {publicBadgeCache} from './publicBadges';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "./api";
 import {createReadCache} from "./readCache";
@@ -13,6 +14,7 @@ export function StoreProvider({ children }) {
   const meRevision=useRef(0);
   const reads=useRef(null);if(!reads.current)reads.current=createReadCache(path=>api(path));
   const [me, setMe] = useState(null);
+  useEffect(()=>{if(me?.id&&me.studio_badge!==undefined)publicBadgeCache.set(me.id,me.studio_badge);},[me?.id,me?.studio_badge]);
   const [home, setHome] = useState(null);
   const [topics, setTopics] = useState(null);
   const [comments, setComments] = useState({});
@@ -104,7 +106,7 @@ export function StoreProvider({ children }) {
 
   const syncEconomy = useCallback((state) => {
     meRevision.current++;reads.current.invalidate('/me');
-    setMe(value=>value?{...value,jera:state.balance ?? value.jera,owned_themes:state.owned_themes ?? value.owned_themes,disc_gift:state.launch_gift ?? value.disc_gift,theme_gifts:state.theme_gifts ?? value.theme_gifts,disc_equipment:state.equipment ?? value.disc_equipment}:value);
+    setMe(value=>value?{...value,jera:state.balance ?? value.jera,studio_badge:state.studio_badge===undefined?value.studio_badge:state.studio_badge,owned_themes:state.owned_themes ?? value.owned_themes,disc_gift:state.launch_gift ?? value.disc_gift,theme_gifts:state.theme_gifts ?? value.theme_gifts,disc_equipment:state.equipment ?? value.disc_equipment}:value);
   },[]);
 
   const claimDiscGift=useCallback(async()=>{const state=await api('/discs/gift/claim','POST');syncEconomy(state);return state;},[syncEconomy]);
