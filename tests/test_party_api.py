@@ -80,6 +80,18 @@ class PartyApiTest(unittest.TestCase):
   self.assertEqual(self.command(code,'reveal',wrong,nonce='wrong'*4).status_code,422)
   accepted=self.command(code,'reveal',key,nonce='right'*4);self.assertEqual(accepted.status_code,200,accepted.text)
   self.assertEqual(accepted.json()['reveal_trait'],key)
+ def test_look_is_self_only_bounded_and_does_not_change_room_revision(self):
+  code=self.room('bunker');self.command(code,'start')
+  def look(body,uid=1):return self.post('/'+code+'/look',body,uid)
+  with self.sessions() as db:revision=db.get(PartyRoom,code).revision
+  self.assertEqual(look({'yaw':.8,'pitch':.1},5).status_code,422)
+  for body in [{'yaw':2,'pitch':0},{'yaw':0,'pitch':-.6},{'yaw':0,'pitch':.5}]:self.assertEqual(look(body).status_code,422)
+  self.assertTrue(look({'yaw':.8,'pitch':.1}).json()['ok'])
+  public=self.get('/'+code,2).json();self.assertEqual(public['players'][0]['look'],{'yaw':.8,'pitch':.1})
+  with self.sessions() as db:self.assertEqual(db.get(PartyRoom,code).revision,revision)
+  with self.sessions.begin() as db:
+   row=db.get(PartyRoom,code);s=json.loads(row.data_json);s['phase']='night';s['deadline']=time.time()+40;row.data_json=json.dumps(s)
+  self.assertFalse(look({'yaw':-.8,'pitch':.1}).json()['ok']);self.assertTrue(all('look' not in p for p in self.get('/'+code,2).json()['players']))
  def test_lazy_deadline_advances_and_persists(self):
   code=self.room('bunker');self.command(code,'start')
   with self.sessions.begin() as db:

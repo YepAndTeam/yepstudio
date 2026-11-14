@@ -19,3 +19,5 @@
 .party-play-screen .party-hand-cards{justify-content:flex-start;max-width:100%;overflow-x:auto;padding:5px 3px 9px;touch-action:pan-x;pointer-events:auto;scroll-snap-type:x proximity}.party-play-screen .party-dossier-card{flex:0 0 80px;scroll-snap-align:start}.party-play-screen .party-dossier-card>small{white-space:normal;line-height:1.2}
 
 .party-script-reveal{pointer-events:auto;background:#d5dfd2;color:#243a31;border:1px solid #99bda4;border-radius:5px;padding:9px 12px;font:600 12px Arial;box-shadow:0 3px 12px #0005}.party-play-screen .party-dossier-card.is-requested{border:2px solid #d8e8b7;box-shadow:inset 0 0 0 2px #557052}
+
+.party-chat-new{position:sticky;bottom:0;display:block;margin:8px auto 0;border:1px solid #879c89;border-radius:20px;background:#d8e2d2;color:#24372d;padding:8px 13px;font:12px Arial;z-index:2}.party-play-chat-history{overscroll-behavior:contain;overflow-anchor:none}.party-chat-messages{overflow-anchor:none;overscroll-behavior:contain}

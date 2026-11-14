@@ -5,14 +5,15 @@ import {publicTableCards} from '../partyPublicCards';
 import {RoleMark} from './PartyHand';
 import YaabikRobot from './YaabikRobot';
 import './PartyTable.css';
-export default function PartyTable({room,viewerId,picked,onPick,children}){
+export default function PartyTable({room,viewerId,picked,onPick,children,onLook}){
  const node=useRef(null),canvas=useRef(null),engine=useRef(null),labels=useRef(new Map()),gesture=useRef(null),[failed,setFailed]=useState(false),[reading,setReading]=useState(false),[cardDetail,setCardDetail]=useState(null),[tableList,setTableList]=useState(false);
+ const lookCallback=useRef(onLook);useEffect(()=>{lookCallback.current=onLook;},[onLook]);
  const publicCards=publicTableCards(room);
  const players=room.players.filter(p=>p.id!==viewerId),latest=new Map();
  for(const message of room.messages){if(room.server_now-message.at<12)latest.set(message.uid,(message.last_words?'Последнее слово: ':'')+message.text);}
  useEffect(()=>{
   let stopped=false,view;
-  try{view=createPartyRenderer(canvas.current,node.current,{kind:room.kind,onProject:(id,p)=>{const label=labels.current.get(id);if(label){label.style.left=p.x+'px';label.style.top=p.y+'px';label.hidden=!p.visible;}},onFailure:()=>{if(!stopped)setFailed(true);}});engine.current=view;queueMicrotask(()=>{if(!stopped)setFailed(false);});}
+  try{view=createPartyRenderer(canvas.current,node.current,{kind:room.kind,onLook:look=>lookCallback.current?.(look),onProject:(id,p)=>{const label=labels.current.get(id);if(label){label.style.left=p.x+'px';label.style.top=p.y+'px';label.hidden=!p.visible;}},onFailure:()=>{if(!stopped)setFailed(true);}});engine.current=view;queueMicrotask(()=>{if(!stopped)setFailed(false);});}
   catch{queueMicrotask(()=>{if(!stopped)setFailed(true);});}
   return()=>{stopped=true;view?.dispose();engine.current=null;};
  },[room.kind,viewerId]);

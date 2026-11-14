@@ -5,7 +5,7 @@ from typing import Optional,Union
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,Field,StrictInt,StrictStr
 from sqlalchemy import select,update,delete,or_
-from party_models import PartyRoom,PartyMember,PartyTiming
+from party_models import PartyRoom,PartyMember,PartyTiming,PartyLook
 from sqlalchemy.exc import IntegrityError
 from yaabik_models import YaabikState
 from database import User
@@ -23,6 +23,9 @@ class CommandIn(BaseModel):
  kind:str
  value:Optional[Union[StrictInt,StrictStr]]=None
  phase_token:str=''
+class LookIn(BaseModel):
+ yaw:float=Field(ge=-1.88,le=1.88,allow_inf_nan=False)
+ pitch:float=Field(ge=-.45,le=.4,allow_inf_nan=False)
 class TimingIn(BaseModel):
  discussion_seconds:StrictInt=Field(ge=15,le=1800)
  vote_seconds:StrictInt=Field(ge=15,le=1800)
@@ -45,8 +48,12 @@ def make_party_router(get_user,get_db):
   revision=room.revision
   changed=db.execute(update(PartyRoom).where(PartyRoom.code==room.code,PartyRoom.revision==revision).values(data_json=json.dumps(s,ensure_ascii=False),status=s['status'],revision=revision+1,updated_at=datetime.utcnow()).execution_options(synchronize_session=False))
   if changed.rowcount!=1:db.rollback();raise HTTPException(409,'Комната обновилась. Повтори действие.')
- def pack(room,s,uid,now):
-  data=game.view(s,uid,now);data.update({'code':room.code,'phase_token':token(s)});return data
+ def pack(db,room,s,uid,now):
+  data=game.view(s,uid,now)
+  if s['status']=='active' and s['phase']!='night':
+   looks={row.user_id:{'yaw':row.yaw,'pitch':row.pitch} for row in db.scalars(select(PartyLook).where(PartyLook.room_code==room.code)).all()}
+   for p in data['players']:p['look']=looks.get(p['id'],{'yaw':0,'pitch':-.08}) if p['alive'] else {'yaw':0,'pitch':-.08}
+  data.update({'code':room.code,'phase_token':token(s)});return data
  def tick(db,room,s,now):
   if game.advance(s,now,secrets.SystemRandom()):save(db,room,s);db.flush();db.refresh(room)
  def appearance(db,user):
@@ -97,13 +104,13 @@ def make_party_router(get_user,get_db):
    code=''.join(secrets.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(6))
    if not db.get(PartyRoom,code):break
   else:raise HTTPException(503,'Попробуй создать комнату ещё раз')
-  room=PartyRoom(code=code,kind=body.kind,public=body.public,data_json=json.dumps(s,ensure_ascii=False));db.add(room);db.add(PartyMember(room_code=code,user_id=user.id));db.commit();return pack(room,s,user.id,time.time())
+  room=PartyRoom(code=code,kind=body.kind,public=body.public,data_json=json.dumps(s,ensure_ascii=False));db.add(room);db.add(PartyMember(room_code=code,user_id=user.id));db.commit();return pack(db,room,s,user.id,time.time())
  @r.get('/{code}')
  def read(code:str,user=Depends(get_user),db=Depends(get_db)):
   room,s=load(db,code);now=time.time()
   if not room.public and not any(p['id']==user.id for p in s['players']):raise HTTPException(403,'Сначала войди по коду')
   tick(db,room,s,now)
-  try:data=pack(room,s,user.id,now)
+  try:data=pack(db,room,s,user.id,now)
   except game.PartyError as e:fail(e)
   db.commit();return data
  @r.post('/{code}/join')
@@ -115,7 +122,22 @@ def make_party_router(get_user,get_db):
   try:game.join(s,user.id,user.first_name,skin,theme)
   except game.PartyError as e:fail(e)
   if not db.get(PartyMember,(room.code,user.id)):db.add(PartyMember(room_code=room.code,user_id=user.id))
-  save(db,room,s);db.commit();return pack(room,s,user.id,time.time())
+  save(db,room,s);db.commit();return pack(db,room,s,user.id,time.time())
+ @r.post('/{code}/look')
+ def look(code:str,body:LookIn,user=Depends(get_user),db=Depends(get_db)):
+  room=db.get(PartyRoom,code.upper())
+  if not room:raise HTTPException(404,'Комната не найдена')
+  s=json.loads(room.data_json)
+  try:p=game.player(s,user.id)
+  except game.PartyError as e:fail(e)
+  if s['status']!='active' or s['phase']=='night' or not p['alive']:return {'ok':False}
+  row=db.get(PartyLook,(room.code,user.id));now=datetime.utcnow()
+  if row and (now-row.updated_at).total_seconds()<.5:return {'ok':True}
+  if row is None:row=PartyLook(room_code=room.code,user_id=user.id);db.add(row)
+  row.yaw=body.yaw;row.pitch=body.pitch;row.updated_at=now
+  try:db.commit()
+  except IntegrityError:db.rollback()
+  return {'ok':True}
  @r.post('/{code}/action')
  def action(code:str,body:CommandIn,user=Depends(get_user),db=Depends(get_db)):
   room,s=load(db,code);now=time.time();tick(db,room,s,now)
@@ -134,7 +156,7 @@ def make_party_router(get_user,get_db):
     game.act(s,user.id,body.kind,body.value,now)
     s['seen']=(s['seen']+[key])[-256:];save(db,room,s)
     if body.kind=='leave' and previous_status=='lobby':db.execute(delete(PartyMember).where(PartyMember.room_code==room.code,PartyMember.user_id==user.id))
-   data=pack(room,s,user.id,now) if body.kind!='leave' else {'left':True}
+   data=pack(db,room,s,user.id,now) if body.kind!='leave' else {'left':True}
   except game.PartyError as e:fail(e)
   db.commit();return data
  @r.post('/{code}/chat')
@@ -144,7 +166,7 @@ def make_party_router(get_user,get_db):
    game.player(s,user.id);key=f'{user.id}:{body.id}'
    if key not in s['seen']:
     game.chat(s,user.id,body.text,now);s['seen']=(s['seen']+[key])[-256:];save(db,room,s)
-   data=pack(room,s,user.id,now)
+   data=pack(db,room,s,user.id,now)
   except game.PartyError as e:fail(e)
   db.commit();return data
  return r

@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {partyPixelRatio} from './partyRenderQuality.js';
+test('mobile keeps crisp density while high DPR and large canvases are bounded',()=>{assert.equal(partyPixelRatio(360,780,3),2);assert.equal(partyPixelRatio(360,780,1),1);const dpr=partyPixelRatio(1280,720,3);assert.ok(dpr>1.25&&dpr<2);assert.ok(1280*720*dpr*dpr<=1800001);});
