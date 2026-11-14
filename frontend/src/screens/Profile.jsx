@@ -1,3 +1,4 @@
+import PartyAdmin from '../components/PartyAdmin';
 import {lazy,Suspense,useState} from 'react';
 import {useStore} from '../store';
 import {Loading} from '../components/Common';
@@ -17,7 +18,7 @@ import {THEMES} from '../constants';
 const DiscAvatar=lazy(()=>import('../components/DiscAvatar'));
 const DiscCollection=lazy(()=>import('./DiscCollection'));
 export default function Profile({initialSection}){
- const {me:m,theme,loadMe}=useStore();const [tab,setTab]=useState(initialSection||'profile'),[rewardOpen,showReward]=useState(false);
+ const {me:m,selectedTheme:theme,loadMe}=useStore();const [tab,setTab]=useState(initialSection||'profile'),[rewardOpen,showReward]=useState(false);
  if(!m)return <Loading/>;
  const back=()=>setTab('profile'),cur=THEMES.find(t=>t.id===theme)||THEMES[0];
  if(tab==='theme-box')return <ThemeBox jera={m.jera} onBack={back}/>;
@@ -30,6 +31,6 @@ export default function Profile({initialSection}){
  if(tab==='accounting'&&m.role==='admin')return <Accounting local={import.meta.env.DEV} onBack={()=>setTab('admin')}/>;
  if(tab==='shop')return <><button className="back" onClick={back}>‹ Профиль</button><Shop jera={m.jera||0}/></>;
  if(tab==='achievements')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Достижения</h2><Achievements/></>;
- if(tab==='admin'&&m.role==='admin')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Управление студией</h2><button className="card profile-menu-row" onClick={()=>setTab('accounting')}><span>Бухгалтерия</span><span>›</span></button><button className="card profile-menu-row" onClick={()=>setTab('performance')}><span>Быстродействие</span><span>›</span></button><TournamentAdmin/><AdminWallet/><RecordsAdmin onUpdated={loadMe}/></>;
+ if(tab==='admin'&&m.role==='admin')return <><button className="back" onClick={back}>‹ Профиль</button><h2>Управление студией</h2><button className="card profile-menu-row" onClick={()=>setTab('accounting')}><span>Бухгалтерия</span><span>›</span></button><button className="card profile-menu-row" onClick={()=>setTab('performance')}><span>Быстродействие</span><span>›</span></button><PartyAdmin/><TournamentAdmin/><AdminWallet/><RecordsAdmin onUpdated={loadMe}/></>;
  return <section className="profile-hub"><div className="card profile-hero"><Suspense fallback={<div className="ava">{(m.first_name||'?').slice(0,1)}</div>}><DiscAvatar disc={m.disc_equipment?.active} letter={(m.first_name||'?').slice(0,1)}/></Suspense><div className="profile-identity"><h2>{m.first_name}</h2>{m.username&&<small className="muted">@{m.username}</small>}<span className="small muted">Тема · {cur.name}</span></div><button className="jera-chip" aria-label="Открыть магазин" onClick={()=>setTab('shop')}><JeraIcon size={16}/>{m.jera||0}</button></div><div className="card profile-reward"><button className="profile-menu-row" onClick={()=>showReward(v=>!v)} aria-expanded={rewardOpen}><span><b>Ежедневная награда</b><small className="muted">{m.daily_reward?.awarded?'Начислено сегодня':'Награда за сегодня получена'}</small></span><b>+{m.daily_reward?.amount||25} Йер {rewardOpen?'⌃':'⌄'}</b></button>{rewardOpen&&<DailyReward userId={m.id} reward={m.daily_reward} refresh={loadMe}/>}</div><div className="profile-shortcuts">{[['inventory','Инвентарь','Кассеты и DVD-коллекция'],['achievements','Достижения','Прогресс и награды'],['dvd','DVD-плеер','Открыть новый диск'],['settings','Настройки','Управление, звук и помощь']].map(([id,title,description])=><button className="card profile-shortcut" key={id} onClick={()=>setTab(id)}><b>{title}</b><small>{description}</small><span aria-hidden="true">↗</span></button>)}</div><section className="card profile-menu">{[['shop','Магазин'],...(m.role==='admin'?[['admin','Управление студией']]:[])].map(([id,title])=><button className="profile-menu-row" key={id} onClick={()=>setTab(id)}><span>{title}</span><span>›</span></button>)}</section></section>;
 }

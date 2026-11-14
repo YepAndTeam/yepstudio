@@ -1,5 +1,5 @@
 import StudioLoading from './components/StudioLoading';
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useStore } from "./store";
 import { tg } from "./tg";
 import Studio from "./screens/Studio";
@@ -27,7 +27,8 @@ const TABS = [
 ];
 
 export default function App() {
-const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, syncEconomy, acknowledgeCompensation } = useStore();
+const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, setThemeArea, syncEconomy, acknowledgeCompensation } = useStore();
+  const [gameImmersive,setGameImmersive]=useState(false);
   const [tournamentId,setTournamentId]=useState(null);
   const [studioSection,setStudioSection]=useState(null);
   const [communitySection,setCommunitySection]=useState(null);
@@ -48,6 +49,7 @@ const { loadHome, loadTopics, loadMe, loadUnread, notifs, theme, me, syncEconomy
   const [sort, setSort] = useState("new");
   const [sheet, setSheet] = useState(false);
 const [gameRef, setGameRef] = useState(null);
+  useLayoutEffect(()=>{setThemeArea(thread||inbox?'shell':tab==='yaabik'?'yaabik':tab==='game'&&gameImmersive?'play':'shell');},[tab,thread,inbox,gameImmersive,setThemeArea]);
   const content = useRef(null);
   const saved = useRef(0);
 
@@ -209,7 +211,7 @@ const [gameRef, setGameRef] = useState(null);
               sort={sort}
               setSort={setSort}
             />
-          ) : tab === "yaabik" ? <Suspense fallback={<StudioLoading compact label="Яабик просыпается…"/>}><Yaabik key={me?.id||"guest"} onOpenGarden={()=>{setGameRef("garden_yaabik");setTab("game");}}/></Suspense> : tab === "game" ? <Game initial={gameRef} onGardenBack={()=>setTab("yaabik")} />
+          ) : tab === "yaabik" ? <Suspense fallback={<StudioLoading compact label="Яабик просыпается…"/>}><Yaabik key={me?.id||"guest"} onOpenGarden={()=>{setGameRef("garden_yaabik");setTab("game");}}/></Suspense> : tab === "game" ? <Game onImmersiveChange={setGameImmersive} initial={gameRef} onGardenBack={()=>setTab("yaabik")} />
             : (
             <Profile key={profileSection||"profile"} initialSection={profileSection} targetId={friendTarget} openThread={openThread} onOpenLetter={setSelectedMail} onOpenGift={setSelectedGift} />
           )}

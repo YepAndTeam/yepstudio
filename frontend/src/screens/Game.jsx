@@ -1,6 +1,6 @@
 import StudioLoading from '../components/StudioLoading';
 import DiscPlay from './DiscPlay';
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import { shareLink } from "../share";
@@ -22,6 +22,8 @@ import Hell from "./Hell";
 import Doom from "./Doom";
 import Drive from "./Drive";
 
+const Mafia=lazy(()=>import('./Party').then(m=>({default:props=><m.default {...props} kind="mafia"/>})));
+const Bunker=lazy(()=>import('./Party').then(m=>({default:props=><m.default {...props} kind="bunker"/>})));
 const Garden=lazy(()=>import('./Garden'));
 const GARDEN={id:'garden',title:'Сад Яабика',View:Garden};
 // Казуальные: играешь один, борешься за рекорд
@@ -36,6 +38,8 @@ const CASUAL = [
 
 // Состязания: партия против другого участника. View: null = пока заглушка "Скоро"
 const VERSUS = [
+  {id:"mafia",title:"Мафия",hint:"Твой Яабик за ночным столом · от 4 игроков",View:Mafia},
+  {id:"bunker",title:"Бункер",hint:"Совет убежища · кто останется?",View:Bunker},
   { id: "chess", title: "Шахматы", hint: "Партия с другом", View: Chess },
   { id: "checkers", title: "Шашки", hint: "Партия с другом", View: Checkers },
 ];
@@ -66,7 +70,7 @@ function timeLeft(iso) {
   return d > 0 ? `${d} д ${h} ч` : `${h} ч`;
 }
 
-export default function Game({ initial,onGardenBack }) {
+export default function Game({ initial,onGardenBack,onImmersiveChange }) {
   const { me, theme, loadMe } = useStore();
   const [goals,setGoals]=useState(false),[discMode,setDiscMode]=useState(false);
   const [initGame, initArg] = (initial || "").split(/_(.+)/); // "chess_12" -> "chess", "12"
@@ -84,6 +88,8 @@ export default function Game({ initial,onGardenBack }) {
   const [scope, setScope] = useState("week"); // "week" | "all"
   const [tops, setTops] = useState({});
   const [topsLoading,setTopsLoading]=useState(true),[topsError,setTopsError]=useState(false),topsRequest=useRef(0);
+
+  useLayoutEffect(()=>{onImmersiveChange?.(Boolean(game||discMode));return()=>onImmersiveChange?.(false);},[game,discMode,onImmersiveChange]);
 
   // ввод секретного кода
   const [showCode, setShowCode] = useState(false);
@@ -137,7 +143,7 @@ export default function Game({ initial,onGardenBack }) {
     const View = current.View;
     return (
       <>
-        <Suspense fallback={<StudioLoading compact label="Открываем теплицу…"/>}><View
+        <Suspense fallback={<StudioLoading compact label="Готовим игру…"/>}><View
           onBack={() => {
             if(current.id==='garden'&&arg==='yaabik'&&onGardenBack){onGardenBack();return;}
             setGame(null);

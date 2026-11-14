@@ -53,7 +53,7 @@ function RotatableCassette({item,disabled}) {
  </>;
 }
 export default function ThemeCollection({onBack,backLabel="Профиль"}){
- const {me,theme,setTheme}=useStore();
+ const {me,selectedTheme:theme,setTheme}=useStore();
  const [selected,select]=useState(theme),[phase,setPhase]=useState("idle"),[error,setError]=useState("");
  const locked=useRef(false),alive=useRef(true),waiter=useRef(null),deck=useRef(null);
  const [running,setRunning]=useState(false);

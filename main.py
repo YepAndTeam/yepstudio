@@ -18,6 +18,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update, and_, or_
+import party_models  # social game rooms, registered before create_all
 import garden_models  # registers greenhouse before create_all
 import yaabik_models  # private companion state, registered before create_all
 import disc_models  # DVD collection tables
@@ -237,6 +238,8 @@ async def deliver_trade_notice(identity):
 app.include_router(make_community_router(get_user,get_db,deliver_trade_notice))
 app.include_router(make_chess_router(get_user, get_db))
 app.include_router(make_checkers_router(get_user, get_db))
+from party_api import make_party_router
+app.include_router(make_party_router(get_user,get_db))
 
 
 # ---------- профиль ----------

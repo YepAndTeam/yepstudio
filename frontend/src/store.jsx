@@ -1,7 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "./api";
 import {createReadCache} from "./readCache";
 import { tg } from "./tg";
+import {usePreferences} from "./preferences";
+import {resolveTheme} from "./themeScope";
 import { THEME_IDS } from "./constants";
 
 const Ctx = createContext(null);
@@ -24,13 +26,17 @@ export function StoreProvider({ children }) {
     }
   });
 
-  const [theme, setThemeState] = useState(() => {
+  const [selectedTheme, setThemeState] = useState(() => {
     try {
       const saved = localStorage.getItem("yab_theme");
       if (THEME_IDS.includes(saved)) return saved;
     } catch {}
     return tg?.colorScheme === "light" ? "light" : "dark";
   });
+
+  const preferences=usePreferences();
+  const [themeArea,setThemeArea]=useState('shell');
+  const theme=resolveTheme({selected:selectedTheme,base:preferences.baseTheme,mode:preferences.themeMode,area:themeArea});
 
   const run = useCallback(async (fn) => {
     try {
@@ -81,8 +87,9 @@ export function StoreProvider({ children }) {
   }, [boot]);
 
   // применяем тему
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme;
+    try{const palette=theme==='light'?'#E9EAEC':'#0B0B0C';tg?.setHeaderColor?.(palette);tg?.setBackgroundColor?.(palette);}catch{}
   }, [theme]);
 
   // если на сервере есть тема — берём её
@@ -215,6 +222,8 @@ export function StoreProvider({ children }) {
     mod,
     notifs,
     theme,
+    selectedTheme,
+    setThemeArea,
     isMod: !!(me && me.role === "admin" && mod),
     boot,
     loadMe,

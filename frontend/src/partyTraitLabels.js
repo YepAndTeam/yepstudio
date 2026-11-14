@@ -1,0 +1,1 @@
+export const PARTY_TRAIT_LABELS={"biography": "Биография", "profession": "Профессия", "health": "Здоровье", "hobby": "Хобби", "phobia": "Фобия", "baggage": "Багаж", "fact": "Факт", "trait": "Черта характера", "skill": "Навык", "secret": "Особенность"};
