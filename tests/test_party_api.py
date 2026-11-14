@@ -7,7 +7,7 @@ from sqlalchemy import BigInteger,create_engine,select
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 from database import Base,User
-from party_models import PartyRoom,PartyMember
+from party_models import PartyRoom,PartyMember,PartyPose
 from party_api import make_party_router
 class PartyApiTest(unittest.TestCase):
  def setUp(self):
@@ -92,6 +92,30 @@ class PartyApiTest(unittest.TestCase):
   with self.sessions.begin() as db:
    row=db.get(PartyRoom,code);s=json.loads(row.data_json);s['phase']='night';s['deadline']=time.time()+40;row.data_json=json.dumps(s)
   self.assertFalse(look({'yaw':-.8,'pitch':.1}).json()['ok']);self.assertTrue(all('look' not in p for p in self.get('/'+code,2).json()['players']))
+ def test_targeted_gaze_points_to_a_member_and_manual_look_clears_it(self):
+  code=self.room('bunker');self.command(code,'start')
+  for target in (1,999):self.assertEqual(self.post('/'+code+'/look',{'yaw':0,'pitch':0,'target_id':target}).status_code,422)
+  self.assertEqual(self.post('/'+code+'/look',{'yaw':0,'pitch':0,'target_id':2}).status_code,200)
+  self.assertEqual(self.get('/'+code,2).json()['players'][0]['look']['target_id'],2)
+  with self.sessions.begin() as db:db.get(PartyPose,(code,1)).look_updated=0
+  self.post('/'+code+'/look',{'yaw':.4,'pitch':0});self.assertNotIn('target_id',self.get('/'+code,2).json()['players'][0]['look'])
+ def test_emote_is_public_idempotent_rate_limited_and_expires(self):
+  code=self.room('bunker');self.command(code,'start');body={'id':'wave-test-0000001','name':'wave'}
+  self.assertEqual(self.post('/'+code+'/emote',body,5).status_code,422)
+  self.assertEqual(self.post('/'+code+'/emote',{'id':'invalid-test-001','name':'unknown'}).status_code,422)
+  one=self.post('/'+code+'/emote',body);self.assertEqual(one.status_code,200,one.text)
+  retry=self.post('/'+code+'/emote',body);self.assertEqual(one.json()['emote'],retry.json()['emote'])
+  self.assertEqual(self.get('/'+code,2).json()['players'][0]['emote'],one.json()['emote'])
+  self.assertEqual(self.post('/'+code+'/emote',{'id':'nod-test-00000001','name':'nod'}).status_code,429)
+  with self.sessions.begin() as db:db.get(PartyPose,(code,1)).emote_at=time.time()-7
+  self.assertNotIn('emote',self.get('/'+code,2).json()['players'][0])
+  with self.sessions.begin() as db:
+   row=db.get(PartyRoom,code);s=json.loads(row.data_json);s['players'][0]['alive']=False;row.data_json=json.dumps(s)
+  self.assertEqual(self.post('/'+code+'/emote',{'id':'dead-test-000001','name':'wave'}).status_code,422)
+ def test_emotes_are_disabled_and_hidden_during_night(self):
+  code=self.room();self.command(code,'start')
+  self.assertEqual(self.post('/'+code+'/emote',{'id':'night-test-000001','name':'wave'}).status_code,422)
+  self.assertTrue(all('emote' not in p for p in self.get('/'+code).json()['players']))
  def test_lazy_deadline_advances_and_persists(self):
   code=self.room('bunker');self.command(code,'start')
   with self.sessions.begin() as db:

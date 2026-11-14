@@ -31,3 +31,15 @@ class PartyLook(Base):
     yaw:Mapped[float]=mapped_column(Float,default=0)
     pitch:Mapped[float]=mapped_column(Float,default=-.08)
     updated_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+
+class PartyPose(Base):
+    __tablename__='party_poses'
+    room_code:Mapped[str]=mapped_column(String(8),primary_key=True)
+    user_id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
+    yaw:Mapped[float]=mapped_column(Float,default=0)
+    pitch:Mapped[float]=mapped_column(Float,default=-.08)
+    target_id:Mapped[int]=mapped_column(BigInteger,nullable=True)
+    look_updated:Mapped[float]=mapped_column(Float,default=0)
+    emote:Mapped[str]=mapped_column(String(12),nullable=True)
+    emote_id:Mapped[str]=mapped_column(String(64),nullable=True)
+    emote_at:Mapped[float]=mapped_column(Float,nullable=True)

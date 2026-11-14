@@ -1,11 +1,11 @@
 """Authenticated, persistent rooms. No wallet writes and no bot notifications."""
 import json,secrets,time
 from datetime import datetime,timedelta
-from typing import Optional,Union
+from typing import Optional,Union,Literal
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,Field,StrictInt,StrictStr
 from sqlalchemy import select,update,delete,or_
-from party_models import PartyRoom,PartyMember,PartyTiming,PartyLook
+from party_models import PartyRoom,PartyMember,PartyTiming,PartyPose
 from sqlalchemy.exc import IntegrityError
 from yaabik_models import YaabikState
 from database import User
@@ -23,7 +23,11 @@ class CommandIn(BaseModel):
  kind:str
  value:Optional[Union[StrictInt,StrictStr]]=None
  phase_token:str=''
+class EmoteIn(BaseModel):
+ id:str=Field(min_length=16,max_length=64,pattern=r'^[a-zA-Z0-9_-]+$')
+ name:Literal['wave','nod','think','surprise']
 class LookIn(BaseModel):
+ target_id:Optional[StrictInt]=None
  yaw:float=Field(ge=-1.88,le=1.88,allow_inf_nan=False)
  pitch:float=Field(ge=-.45,le=.4,allow_inf_nan=False)
 class TimingIn(BaseModel):
@@ -51,8 +55,12 @@ def make_party_router(get_user,get_db):
  def pack(db,room,s,uid,now):
   data=game.view(s,uid,now)
   if s['status']=='active' and s['phase']!='night':
-   looks={row.user_id:{'yaw':row.yaw,'pitch':row.pitch} for row in db.scalars(select(PartyLook).where(PartyLook.room_code==room.code)).all()}
-   for p in data['players']:p['look']=looks.get(p['id'],{'yaw':0,'pitch':-.08}) if p['alive'] else {'yaw':0,'pitch':-.08}
+   poses={row.user_id:row for row in db.scalars(select(PartyPose).where(PartyPose.room_code==room.code)).all()}
+   for p in data['players']:
+    pose=poses.get(p['id']);p['look']={'yaw':pose.yaw,'pitch':pose.pitch} if pose and p['alive'] else {'yaw':0,'pitch':-.08}
+    if pose and p['alive']:
+     if pose.target_id is not None:p['look']['target_id']=pose.target_id
+     if pose.emote_at and 0<=now-pose.emote_at<6:p['emote']={'name':pose.emote,'id':pose.emote_id,'at':pose.emote_at}
   data.update({'code':room.code,'phase_token':token(s)});return data
  def tick(db,room,s,now):
   if game.advance(s,now,secrets.SystemRandom()):save(db,room,s);db.flush();db.refresh(room)
@@ -131,13 +139,31 @@ def make_party_router(get_user,get_db):
   try:p=game.player(s,user.id)
   except game.PartyError as e:fail(e)
   if s['status']!='active' or s['phase']=='night' or not p['alive']:return {'ok':False}
-  row=db.get(PartyLook,(room.code,user.id));now=datetime.utcnow()
-  if row and (now-row.updated_at).total_seconds()<.5:return {'ok':True}
-  if row is None:row=PartyLook(room_code=room.code,user_id=user.id);db.add(row)
-  row.yaw=body.yaw;row.pitch=body.pitch;row.updated_at=now
+  if body.target_id is not None:
+   if body.target_id==user.id or not any(q['id']==body.target_id for q in s['players']):raise HTTPException(422,'Выбери другого участника этой комнаты')
+  row=db.get(PartyPose,(room.code,user.id));now=time.time()
+  if row and now-row.look_updated<.5:return {'ok':True}
+  if row is None:row=PartyPose(room_code=room.code,user_id=user.id);db.add(row)
+  row.yaw=body.yaw;row.pitch=body.pitch;row.target_id=body.target_id;row.look_updated=now
   try:db.commit()
   except IntegrityError:db.rollback()
   return {'ok':True}
+ @r.post('/{code}/emote')
+ def emote(code:str,body:EmoteIn,user=Depends(get_user),db=Depends(get_db)):
+  room=db.get(PartyRoom,code.upper())
+  if not room:raise HTTPException(404,'Комната не найдена')
+  s=json.loads(room.data_json)
+  try:p=game.player(s,user.id)
+  except game.PartyError as e:fail(e)
+  if s['status']!='active' or s['phase']=='night' or not p['alive']:raise HTTPException(422,'Жесты доступны живым участникам днём')
+  row=db.scalar(select(PartyPose).where(PartyPose.room_code==room.code,PartyPose.user_id==user.id).with_for_update());now=time.time()
+  if row and row.emote_id==body.id:return {'emote':{'name':row.emote,'id':row.emote_id,'at':row.emote_at},'server_now':now}
+  if row and row.emote_at and now-row.emote_at<4:raise HTTPException(429,'Подожди несколько секунд перед следующим жестом')
+  if row is None:row=PartyPose(room_code=room.code,user_id=user.id);db.add(row)
+  row.emote=body.name;row.emote_id=body.id;row.emote_at=now
+  try:db.commit()
+  except IntegrityError:db.rollback();raise HTTPException(409,'Поза обновилась. Повтори жест.')
+  return {'emote':{'name':body.name,'id':body.id,'at':now},'server_now':now}
  @r.post('/{code}/action')
  def action(code:str,body:CommandIn,user=Depends(get_user),db=Depends(get_db)):
   room,s=load(db,code);now=time.time();tick(db,room,s,now)
