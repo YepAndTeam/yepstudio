@@ -1022,3 +1022,5 @@ nav button{min-width:0}nav button .pill{max-width:100%}nav button[data-tab="yaab
 .garden-entry{margin:12px 0}.garden-entry small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
 
 .profile-name-badge{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;min-width:0}.profile-badge-button{display:inline-flex;background:none;border:0;padding:0;max-width:100%;cursor:pointer}.profile-badge-button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:6px}
+
+.profile-name-badge .profile-badge-button{width:32px;height:32px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:5px;border:1px solid var(--line,#51615c);border-radius:7px;background:var(--card,#172125);color:var(--fg,#eef1e9);flex:none;box-sizing:border-box}.profile-badge-button>svg{width:19px;height:19px}

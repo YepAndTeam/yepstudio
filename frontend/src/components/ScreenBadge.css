@@ -62,3 +62,6 @@
 .ym-display{padding-top:3px;padding-bottom:3px}
 
 .ym-solid,.ym-solid *{box-sizing:border-box}.ym-right>button:disabled{opacity:1;cursor:inherit}
+
+/* Keep global dialog button padding and minimum sizes off the physical switch. */
+.ym-solid .ym-side.ym-right>button{box-sizing:border-box;left:4px;top:calc(50% - 13px);width:12px;height:26px;min-width:0;min-height:0;max-width:12px;max-height:26px;margin:0;padding:0;border:1px solid #263c32;border-radius:4px;background:linear-gradient(90deg,#637b6b,#40564a);color:transparent;line-height:0;touch-action:manipulation;box-shadow:inset 1px 0 #ffffff45;transform:none}.ym-solid .ym-side.ym-right>button:active{background:#304738;box-shadow:inset 1px 1px 2px #0008}.ym-solid .ym-side.ym-right>button:focus-visible{outline:1px solid var(--ym-ink);outline-offset:1px}
